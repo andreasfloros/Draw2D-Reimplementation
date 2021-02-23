@@ -10,9 +10,14 @@ Authors:
 - Vasileios Manginas (BusWire.fs)
 - Shaheer Mapara (Symbol.fs)
 
-## Bounding Box 
+## Common Function Definitions
+
+### Bounding Box functions
+#### type definition:
 type BB = 
 {
   TopLeft: XYPos
   BottomRight: XYPos
 }
+
+#### 
