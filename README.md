@@ -9,3 +9,10 @@ Authors:
 - Anushka Kulkarni (Sheet.fs)
 - Vasileios Manginas (BusWire.fs)
 - Shaheer Mapara (Symbol.fs)
+
+## Bounding Box 
+type BB = 
+{
+  TopLeft: XYPos
+  BottomRight: XYPos
+}
