@@ -31,8 +31,10 @@ type BB =
 
 #### distance between point and bounding box 
 let distFromPoint (point: XYPos) (box: BB) 
+returns float
 
 #### a point inside the box 
 let containsPoint  (box: BB) (point: XYPos) 
+returns bool
 
 
