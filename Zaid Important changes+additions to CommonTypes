@@ -1,0 +1,36 @@
+// I never use ComponentId - I will use SymbolId declared towards the top of CommonTypes.fs:
+type SymbolId = | SymbolId of string  
+
+
+// Added Direction Type:
+type Direction = Right | Left | Up | Down
+
+
+// Altered version of Port: 
+type Port = {
+    Id : string
+    PortNumber : int option
+    PortType : PortType
+    SelectPin : bool
+    PortPos : XYPos
+    BusWidth : int Option
+    ConnectionDirection : Direction
+    HostId : SymbolId
+}
+
+
+// Altered version of Component:
+type Component = {
+    Id : SymbolId
+    Type : ComponentType
+    Label : string // All components have a label that may be empty.
+    Ports : Port list
+    NumOfInputs : int
+    NumOfOutputs : int
+    NumOfSelects : int // The number of select pins is included in NumOfInputs aswell
+    Pos : XYPos
+    H : float
+    W : float
+    LastDragPos : Helpers.XYPos //change to definition
+    IsDragging : bool 
+}
