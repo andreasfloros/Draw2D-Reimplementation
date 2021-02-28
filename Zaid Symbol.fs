@@ -85,7 +85,8 @@ let generatePortList compId compPos height width headerMargin numOfPorts portTyp
                 PortNumber = Some (x-1)
                 PortType = portType
                 SelectPin = false
-                PortPos = {X = compPos.X ; Y = compPos.Y + headerMargin + (float(x)*portDists)}
+                // PortPos = {X = compPos.X ; Y = compPos.Y + headerMargin + (float(x)*portDists)}
+                PortPos = {X = 0. ; Y = headerMargin + (float(x)*portDists)}
                 BusWidth = busWidth
                 ConnectionDirection = Right
                 HostId = compId
@@ -99,7 +100,8 @@ let generatePortList compId compPos height width headerMargin numOfPorts portTyp
                 PortNumber = Some (x-1)
                 PortType = portType
                 SelectPin = false
-                PortPos = {X = compPos.X + width ; Y = compPos.Y + headerMargin + (float(x)*portDists)}
+                // PortPos = {X = compPos.X + width ; Y = compPos.Y + headerMargin + (float(x)*portDists)}
+                PortPos = {X = width ; Y = headerMargin + (float(x)*portDists)}
                 BusWidth = busWidth
                 ConnectionDirection = Left
                 HostId = compId
@@ -113,7 +115,8 @@ let generatePortList compId compPos height width headerMargin numOfPorts portTyp
                 PortNumber = Some (x-1)
                 PortType = portType
                 SelectPin = true
-                PortPos = {X = compPos.X + (float(x)*portDists) ; Y = compPos.Y + height}
+                // PortPos = {X = compPos.X + (float(x)*portDists) ; Y = compPos.Y + height}
+                PortPos = {X = float(x)*portDists ; Y = height}
                 BusWidth = busWidth
                 ConnectionDirection = Up
                 HostId = compId
@@ -212,16 +215,6 @@ let createNewSymbol (compType:CommonTypes.ComponentType) (label:string) (pos:XYP
         LastDragPos = {X=0. ; Y=0.} 
         IsDragging = false 
     } 
-
-// let createNewSymbol (compType:CommonTypes.ComponentType) (pos:XYPos) =  // Previous createNewSymbol
-//     {
-//         Pos = pos
-//         LastDragPos = {X=0. ; Y=0.} // initial value can always be this
-//         IsDragging = false // initial value can always be this
-//         Id = CommonTypes.ComponentId (Helpers.uuid()) // create a unique id for this symbol
-//         CompType = compType
-//     }
-
 
 /// Dummy function for test. The real init would probably have no symbols.
 let init () =
@@ -375,6 +368,19 @@ let portLabels (sym:Symbol) (i:int) =
             ]
         ] [str <| sprintf $"{labelPrefix}{labelNum}"]
 
+// let portLabels (sym:Symbol) (i:int) =
+//         text [ 
+//             X 0.; 
+//             Y 10.; 
+//             Style [
+//                 TextAnchor "miiddle"
+//                 DominantBaseline "middle"
+//                 FontSize "13px"
+//                 FontWeight "Bold"
+//                 Fill "Black" 
+//             ]
+//         ] [str <| sprintf $"hello"]
+
 
 let private renderBasicSymbol = 
     FunctionComponent.Of(
@@ -410,55 +416,47 @@ let private renderBasicSymbol =
                 else
                     "gray"
 
-            // let scaleFactor = 1.0
-            // let rotation = 0
+            let scaleFactor = 1.0
+            let rotation = 0
 
-            g   
-                // [ Style [ 
-                //     TransformOrigin "0px 50px" // so that rotation is around centre of line
-                //     Transform (sprintf "translate(%fpx,%fpx) rotate(%ddeg) scale(%f) " fX fY rotation scaleFactor )
-                //     ]
-                // ]
-            
-                [ 
-                    OnMouseUp (fun ev -> 
-                        document.removeEventListener("mousemove", handleMouseMove.current)
-                        EndDragging props.Sym.Id
-                        |> props.Dispatch
-                    )
-                    OnMouseDown (fun ev -> 
-                        // See note above re coords wrong if zoom <> 1.0
-                        StartDragging (props.Sym.Id, posOf ev.pageX ev.pageY)
-                        |> props.Dispatch
-                        document.addEventListener("mousemove", handleMouseMove.current)
-                    )
-                    // Cx props.Sym.Pos.X
-                    // Cy props.Sym.Pos.Y
-                    // R 20.
-                    // SVGAttr.Fill color
-                    // SVGAttr.Stroke color
-                    // SVGAttr.StrokeWidth 1
+            g   [ Style [ 
+                TransformOrigin "0px 50px" // so that rotation is around centre of line
+                Transform (sprintf "translate(%fpx,%fpx) rotate(%ddeg) scale(%f) " fX fY rotation scaleFactor )
                 ]
-                //[ ]
-                
-                
-
+                ]
+ 
                 ([
-                    polygon [
-                        SVGAttr.Points $"{fX},{fY} {fX},{fY+fH} {fX+fW},{fY+fH} {fX+fW},{fY}"
-                        SVGAttr.StrokeWidth "2px"
-                        SVGAttr.Stroke "Black"
-                        SVGAttr.FillOpacity 0.1
-                        SVGAttr.Fill color] []
 
+                    polygon 
+                        [
+                            OnMouseUp (fun ev -> 
+                                document.removeEventListener("mousemove", handleMouseMove.current)
+                                EndDragging props.Sym.Id
+                                |> props.Dispatch
+                            )
+                            OnMouseDown (fun ev -> 
+                                // See note above re coords wrong if zoom <> 1.0
+                                StartDragging (props.Sym.Id, posOf ev.pageX ev.pageY)
+                                |> props.Dispatch
+                                document.addEventListener("mousemove", handleMouseMove.current)
+                            )
+
+                            SVGAttr.Points $"{0.},{0.} {0.},{fH} {fW},{fH} {fW},{0.}"
+                            SVGAttr.StrokeWidth "2px"
+                            SVGAttr.Stroke "Black"
+                            SVGAttr.FillOpacity 0.1
+                            SVGAttr.Fill color] []
+                    
                     // line [X1 0.; Y1 0.; X2 0.; Y2 (100.) ; Style [Stroke "Black"]] [
                     //  // child elements of line do not display since children of svg are dom elements
                     //  // and svg will only display on svg canvas, not in dom.
                     //  // hence this is not used
                     // ]
                     text [ // a demo text svg element
-                        X (fX + (fW/2.)); 
-                        Y (fY + 15.); 
+                        // X (fX + (fW/2.)); 
+                        // Y (fY + 15.); 
+                        X (fW/2.); 
+                        Y 15.; 
                         Style [
                             TextAnchor "middle" // left/right/middle: horizontal algnment vs (X,Y)
                             DominantBaseline "middle" // auto/middle/hanging: vertical alignment vs (X,Y)
@@ -469,8 +467,9 @@ let private renderBasicSymbol =
                     //] [str <| sprintf "X=%.0f Y=%.0f" fX fY] // child of text element is text to display
                     ] [str <| sprintf $"{header}"]
 
-                ] @ List.map (portLabels props.Sym) [0..n-1])
+            ] @ List.map (portLabels props.Sym) [0..n-1]) 
 
+           
     , "Circle?"
     , equalsButFunctions
     )
@@ -541,3 +540,4 @@ let extractComponent
 
 let extractComponents (symModel: Model) : CommonTypes.Component list = 
     failwithf "Not implemented"
+
