@@ -12,8 +12,6 @@ open CommonTypes
 //------------------------------------------------------------------------//
 
 
-// type SymbolId = | SymbolId of string //CommonTypes.ComponentId
-
 /// Model to generate one symbol (skeleton). Id is a unique Id 
 /// for the symbol shared with Issie Component type.
 /// The real type will obviously be much larger.
@@ -23,14 +21,6 @@ open CommonTypes
 /// determine are they the same is fast.
 type Symbol = CommonTypes.Component
 
-// type Symbol =   // Previous Symbol type
-//     {
-//         Pos: XYPos
-//         LastDragPos : XYPos
-//         IsDragging : bool
-//         Id : CommonTypes.ComponentId
-//         CompType : CommonTypes.ComponentType
-//     }
 
 type Model = Symbol list
 
@@ -85,8 +75,8 @@ let generatePortList compId compPos height width headerMargin numOfPorts portTyp
                 PortNumber = Some (x-1)
                 PortType = portType
                 SelectPin = false
-                // PortPos = {X = compPos.X ; Y = compPos.Y + headerMargin + (float(x)*portDists)}
-                PortPos = {X = 0. ; Y = headerMargin + (float(x)*portDists)}
+                PortPos = {X = compPos.X ; Y = compPos.Y + headerMargin + (float(x)*portDists)}
+                RelativePortPos = {X = 0. ; Y = headerMargin + (float(x)*portDists)}
                 BusWidth = busWidth
                 ConnectionDirection = Right
                 HostId = compId
@@ -100,8 +90,8 @@ let generatePortList compId compPos height width headerMargin numOfPorts portTyp
                 PortNumber = Some (x-1)
                 PortType = portType
                 SelectPin = false
-                // PortPos = {X = compPos.X + width ; Y = compPos.Y + headerMargin + (float(x)*portDists)}
-                PortPos = {X = width ; Y = headerMargin + (float(x)*portDists)}
+                PortPos = {X = compPos.X + width ; Y = compPos.Y + headerMargin + (float(x)*portDists)}
+                RelativePortPos = {X = width ; Y = headerMargin + (float(x)*portDists)}
                 BusWidth = busWidth
                 ConnectionDirection = Left
                 HostId = compId
@@ -115,8 +105,8 @@ let generatePortList compId compPos height width headerMargin numOfPorts portTyp
                 PortNumber = Some (x-1)
                 PortType = portType
                 SelectPin = true
-                // PortPos = {X = compPos.X + (float(x)*portDists) ; Y = compPos.Y + height}
-                PortPos = {X = float(x)*portDists ; Y = height}
+                PortPos = {X = compPos.X + (float(x)*portDists) ; Y = compPos.Y + height}
+                RelativePortPos = {X = float(x)*portDists ; Y = height}
                 BusWidth = busWidth
                 ConnectionDirection = Up
                 HostId = compId
@@ -357,8 +347,8 @@ let portLabels (sym:Symbol) (i:int) =
             | _ -> failwithf "Error: should not occur"
 
         text [ 
-            X (port.PortPos.X + xMargin); 
-            Y (port.PortPos.Y + yMargin); 
+            X (port.RelativePortPos.X + xMargin); 
+            Y (port.RelativePortPos.Y + yMargin); 
             Style [
                 TextAnchor textAnchor
                 DominantBaseline dominantBaseline
