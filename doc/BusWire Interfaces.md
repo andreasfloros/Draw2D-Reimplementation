@@ -2,6 +2,8 @@ The below specifications assume no knowledge of Symbol or Sheet other than:
 1. Symbol people own the Port type.
 2. The port type includes enough information for the following to be determined: its position on the canvas, its relative position with respect to the symbol it's attached to and its width.
 
+Where types are ambiguous (symbolId, portId, wireId) any definition will work.
+
 # Symbol to BusWire
 
 The following functions are expected from Symbol for use in the BusWire module:
@@ -19,5 +21,5 @@ The following functions are provided from BusWire for use in the Sheet module:
 
 ```
 getSymbolModelFromWireModel (wireModel : BusWire.Model) : Symbol.Model // Get the symbol model from a wire model
-wireHit (mousePos : XYPos) (wireModel : BusWire.Model) : (BusWire.WireId * int) option // Get the wire segment that was clicked
+wireHit (mousePos : XYPos) (wireModel : BusWire.Model) : (WireId * int) option // Get the wire segment that was clicked
 ```
