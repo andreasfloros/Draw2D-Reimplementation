@@ -4,7 +4,7 @@ The below specifications assume no knowledge of Symbol or Sheet other than:
 
 # Symbol to BusWire
 
-The following functions are expected from the Symbol module for use in the BusWire module:
+The following functions are expected from Symbol for use in the BusWire module:
 
 ```
 getPosFromPort (port : Port) : XYPos // Get the coordinates of the port
@@ -15,7 +15,7 @@ getPortsFromId (symbolId : SymbolId) (symbolModel : Symbol.model) : Map<PortId,P
 
 # BusWire to Sheet
 
-The following functions are provided from the BusWire module for use in the Sheet module:
+The following functions are provided from BusWire for use in the Sheet module:
 
 ```
 getSymbolModelFromWireModel (wireModel : BusWire.model) : Symbol.Model // Get the symbol model from a wire model
