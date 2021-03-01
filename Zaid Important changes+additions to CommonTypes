@@ -9,10 +9,13 @@ type Direction = Right | Left | Up | Down
 // Altered version of Port: 
 type Port = {
     Id : string
+    // For example, an And would have input ports 0 and 1, and output port 0.
+    // If the port is used in a Connection record as Source or Target, the Number is None. 
     PortNumber : int option
     PortType : PortType
     SelectPin : bool
     PortPos : XYPos
+    RelativePortPos : XYPos  // This is relative to Pos of Component
     BusWidth : int Option
     ConnectionDirection : Direction
     HostId : SymbolId
