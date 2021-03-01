@@ -10,7 +10,7 @@ The following functions are expected from Symbol for use in the BusWire module:
 getPosFromPort (port : Port) : XYPos // Get the coordinates of the port
 getDirFromPort (port : Port) : Dir // Get the relative position of the port with respect to the symbol (Up,Down,Left,Right)
 getWidthFromPort (port : Port) : int // Get the width of the port (definition will likely change later, for now assume this will only be called when the width is a constant)
-getPortsFromId (symbolId : SymbolId) (symbolModel : Symbol.model) : Map<PortId,Port> // Get all the ports connected to the symbol with the specified Id
+getPortsFromId (symbolId : SymbolId) (symbolModel : Symbol.Model) : Map<PortId,Port> // Get all the ports connected to the symbol with the specified Id
 ```
 
 # BusWire to Sheet
@@ -18,6 +18,6 @@ getPortsFromId (symbolId : SymbolId) (symbolModel : Symbol.model) : Map<PortId,P
 The following functions are provided from BusWire for use in the Sheet module:
 
 ```
-getSymbolModelFromWireModel (wireModel : BusWire.model) : Symbol.Model // Get the symbol model from a wire model
-wireHit (mousePos : XYPos) (wireModel : BusWire.model) : (BusWire.WireId * int) option // Get the wire segment that was clicked
+getSymbolModelFromWireModel (wireModel : BusWire.Model) : Symbol.Model // Get the symbol model from a wire model
+wireHit (mousePos : XYPos) (wireModel : BusWire.Model) : (BusWire.WireId * int) option // Get the wire segment that was clicked
 ```
