@@ -2,7 +2,15 @@ The below specifications assume no knowledge of Symbol or Sheet other than:
 1. Symbol people own the Port type.
 2. The port type includes enough information for the following to be determined: its position on the canvas, its relative position with respect to the symbol it's attached to and its width.
 
-Where types are ambiguous (symbolId, portId, wireId) any definition will work.
+Where types are ambiguous (SymbolId, PortId, WireId) any definition will work.
+
+# BusWire Messages
+
+```
+Symbol of Symbol.Msg
+ManualRoute of wireId: WireId * segmentIndex: int * mousePos: XYPos // moves the specified wire segment
+AutoRoute // Auto routes all wires from their starting positions
+```
 
 # Symbol to BusWire
 
