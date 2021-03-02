@@ -13,13 +13,30 @@ type Port = {
     // If the port is used in a Connection record as Source or Target, the Number is None. 
     PortNumber : int option
     PortType : PortType
-    SelectPin : bool
     PortPos : XYPos
     RelativePortPos : XYPos  // This is relative to Pos of Component
     BusWidth : int Option
     ConnectionDirection : Direction
     HostId : SymbolId
 }
+
+
+// Altered version of Component Type:
+type ComponentType =
+    | Input of BusWidth: int | Output of BusWidth: int | IOLabel 
+    | BusSelection of OutputWidth: int * OutputLSBit: int
+    | Constant of Width: int * ConstValue: int
+    | Not | And | Or | Xor | Nand | Nor | Xnor |Decode4
+    | Mux2 | Demux2 | Mux4 | Demux4 
+    | MuxN of NumOfInputs: int| DemuxN of NumOfOutputs: int
+    | NbitsAdder of BusWidth: int
+    | Custom of CustomComponentType // schematic sheet used as component
+    | MergeWires | SplitWire of BusWidth: int // int is bus width
+    // DFFE is a DFF with an enable signal.
+    // No initial state for DFF or Register? Default 0.
+    | DFF | DFFE | Register of BusWidth: int | RegisterE of BusWidth: int 
+    | AsyncROM of Memory | ROM of Memory | RAM of Memory // memory is contents
+    | Circle
 
 
 // Altered version of Component:
@@ -30,10 +47,17 @@ type Component = {
     Ports : Port list
     NumOfInputs : int
     NumOfOutputs : int
-    NumOfSelects : int // The number of select pins is included in NumOfInputs aswell
+    NumOfUpwardInputs : int // The number of upward input pins is included in NumOfInputs aswell
     Pos : XYPos
     H : float
     W : float
     LastDragPos : Helpers.XYPos //change to definition
     IsDragging : bool 
 }
+
+
+// The following function goes in my Helpers.fs module:
+let log2 x = 
+    log(float(x))/log(2.)
+    |> System.Math.Ceiling
+    |> int
