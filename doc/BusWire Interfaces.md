@@ -8,8 +8,8 @@ Where types are ambiguous (SymbolId, PortId, WireId) any definition will work.
 
 ```
 Symbol of Symbol.Msg
-ManualRoute of wireId: WireId * segmentIndex: int * mousePos: XYPos // moves the specified wire segment
-AutoRoute // Auto routes all wires from their starting positions
+ManualRouting of wireId: WireId * segmentIndex: int * mousePos: XYPos // moves the specified wire segment
+AutoRouteAll // Auto routes all wires from their starting positions
 ```
 
 # Symbol to BusWire
