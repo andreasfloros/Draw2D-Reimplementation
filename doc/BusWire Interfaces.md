@@ -29,5 +29,5 @@ The following functions are provided from BusWire for use in the Sheet module:
 
 ```
 getSymbolModelFromWireModel (wireModel : BusWire.Model) : Symbol.Model // Get the symbol model from a wire model
-wireHit (mousePos : XYPos) (wireModel : BusWire.Model) : (WireId * int) option // Get the wire segment that was clicked
+findWire (mousePos : XYPos) (wireModel : BusWire.Model) : (WireId * int) option // Get the wire segment that was clicked
 ```
