@@ -20,14 +20,14 @@ FindSymbol (mousePos: XYPos) (sModel: Model) : Option Symbol.Id // Returns the I
 
 # Messages
 
-The following messages are recognized by Symbol:
+The following messages are found by Symbol:
 
 ```
 | MouseMsg of MouseT // Provides mouse info
 | StartDragging of sId : CommonTypes.SymbolId * pagePos: XYPos // Used to initiate dragging
 | Dragging of sId : CommonTypes.SymbolId * pagePos: XYPos // Used to actually change the position of the selected symbol
 | EndDragging of sId : CommonTypes.SymbolId // Ends dragging 
-| Unselect of sId : CommonTypes.SymbolId // To unselect components
+| Unselect of sId : CommonTypes.SymbolId // To unselect components (provided by Sheet people)
 | AddCircle of label: string * pagePos: XYPos // Used by demo code to add a circle
 | AddSymbol of CompType: CommonTypes.ComponentType * label: string * pagePos: XYPos // Used to add a new symbol
 | DeleteSymbol of sId:CommonTypes.SymbolId // Used to delete the selected symbol
