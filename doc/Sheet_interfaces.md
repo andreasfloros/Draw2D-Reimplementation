@@ -3,11 +3,12 @@
 The following are provided by Sheet for common use.
  
 ```
-type BB = 
+type BB = //bounding box
 {
     TopLeft : XYPos
     BottomRight : XYPos
 }
+
 ContainsPoint (box: BB) (click: XYPos) : bool //checks whether the user has clicked within a bounding box 
 ```
 
@@ -16,7 +17,7 @@ ContainsPoint (box: BB) (click: XYPos) : bool //checks whether the user has clic
 The following are required by Sheet from Symbol.
 
 ```
-FindSymbol (mousePos: XYPos) (sModel: Model) : Option Symbol.Id
+FindSymbol (mousePos: XYPos) (sModel: Model) : Option Symbol.Id //get the symbol Id that was clicked 
 ```
 
 # Functions: BusWire to Sheet
@@ -25,7 +26,7 @@ The following are required by Sheet from BusWire
 
 ```
 getSymbolModelFromWireModel (wireModel : BusWire.Model) : Symbol.Model // Get the symbol model from a wire model
-findWire (mousePos : XYPos) (wireModel : BusWire.Model) : (WireId * int) option // Get the wire segment that was clicked
+wireHit (mousePos : XYPos) (wireModel : BusWire.Model) : (WireId * int) option // Get the wire segment that was clicked
 ```
 
 # Features:
