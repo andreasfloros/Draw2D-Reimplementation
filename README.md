@@ -15,7 +15,7 @@ Module specific documentation can be found in the doc folder.
 
 ## Interface Documentation
 
-Interface documentation can be found in the docs folder. There is a seperate .md file for each module.
+Interface documentation can be found in the doc folder. There is a seperate .md file for each module.
 
 ## Communication between modules for mouse clicks
 Sheet will have a function called getHit(point: XYPos) which will have as parameter the position that has been clicked on the canvas. This function will then query symbol and wire (in that order) to find out what has been clicked. If something has been clicked, then the unique id of that module will be returned to sheet, which will then send the mouse msgs accordingly. 
