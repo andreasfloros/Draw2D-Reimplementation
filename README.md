@@ -10,6 +10,7 @@ Authors:
 - Vasileios Manginas (BusWire.fs)
 - Shaheer Mapara (Symbol.fs)
 
+This file contains general documentation for the project.
 Module specific documentation can be found in the doc folder.
 
 ## Communication between modules for mouse clicks
@@ -19,7 +20,7 @@ Symbol and wire will use the bounding box functions to perform a search to find 
 
 ## Selecting Items
 (Only) Sheet will have a a SelectedItem value which will indicate what object has been selected, if any.
-Symbols and wires will include their render props and appropriate functions will be written by the symbol and wire module leaders to change an objects props.
+Symbols and wires will include their render props and appropriate functions will be written by the symbol and wire module leaders upon request to change an objects props.
 Examples would be changing the color of an object, resizing the object (if we decide to implement something like that later on).
 Combining symbol and wire functions into one should allow sheet to act on a high level, i.e. deciding to color an object without going into the details of whether it is a symbol or a wire.
 
