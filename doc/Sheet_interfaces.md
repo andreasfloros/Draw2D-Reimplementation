@@ -1,6 +1,6 @@
 # Functions: Helper functions by Sheet
 
-The following are provided by Sheet for common use.
+The following are provided by Sheet for common use and can be found in Helpers.fs
  
 ```
 type BB = //bounding box
@@ -22,7 +22,7 @@ FindSymbol (mousePos: XYPos) (sModel: Model) : Option Symbol.Id //get the symbol
 
 # Functions: BusWire to Sheet
 
-The following are required by Sheet from BusWire
+The following are required by Sheet from BusWire.
 
 ```
 getSymbolModelFromWireModel (wireModel : BusWire.Model) : Symbol.Model // Get the symbol model from a wire model
