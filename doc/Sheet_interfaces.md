@@ -46,7 +46,6 @@ type Msg =
 ### Model 
 type Wire = 
 {
-    IsSelected : bool 
     Colour : CommonTypes.HighLightColor
 }
 
