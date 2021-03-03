@@ -37,30 +37,35 @@ Sheet requires BusWire and Symbol modules to modify certain types in the module 
 These are the extra features added for symbol. 
 
 ### Messages 
+```
 type Msg = 
 | DeleteWire of CommonTypes.ConnectionId
 | DeleteSym of CommonTypes.SymbolId 
 | Select of CommonTypes.ConnectionId
 | Unselect of CommonTypes.ConnectionId
-
+```
 
 ### Model 
+```
 type Wire = 
 {
     Colour : CommonTypes.HighLightColor
 }
-
+```
 ## Symbol 
 These are the extra features added for symbol. 
 
 ### Messages 
+```
 type Msg = 
 | Unselect of CommonTypes.SymbolId
-
+```
 
 ### Model 
+```
 type Symbol =
 {
     IsSelected : bool 
     Colour : CommonTypes.HighlightColor 
 }
+```
