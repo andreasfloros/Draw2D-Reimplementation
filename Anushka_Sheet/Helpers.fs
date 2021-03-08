@@ -40,6 +40,7 @@
         BottomRight: XYPos 
     }
 
+
     //--------------------------------------------------------------------------//
     //-----------------------------Helpers--------------------------------------//
     //--------------------------------------------------------------------------//
@@ -112,55 +113,21 @@
 
     //--------------------------------Bounding Box functions----------------------------------//
 
+    //Written by Sheet (Anushka A. Kulkarni)
+
+    //is a point inside the box 
+    let containsPoint  (box: BB) (point: XYPos) = 
+        point.X >= box.TopLeft.X 
+        && point.X <= box.BottomRight.X 
+        && point.Y >= box.TopLeft.Y 
+        && point.Y <= box.BottomRight.Y
+
+    //dist between point and BB 
+    let distFromPoint (point: XYPos) (box: BB) = 
+        let dist1 = ((point.X - box.TopLeft.X) ** 2.0) + ((point.Y - box.TopLeft.Y) ** 2.0)
+        let dist2 = ((point.X - box.BottomRight.X) ** 2.0) + ((point.Y - box.BottomRight.Y) ** 2.0)
+        min(dist1, dist2)
  
-
-
-//makes symbol bounding box (should be in symbol)
-//assumes that the XYPos of Symbol is the top left of the box 
-//size is how big you wnat the box to be -- makes it a square
-//this depends on the symbol person anyway so you cna change it
-
-
-//same as symbol 
-//works for one segment
-let makeBox (w: Wire) (size: float) = 
-    failwithf "not yet done"
-
-
-
-///checks which symbol has been clicked
-//returns symbol 
-//should be in symbol.fs
-let findSymbol (mousePos: XYPos) (model: Model) = 
-    List.tryFind (fun sym -> containsPoint (makeBox sym 2.0) mousePos) model
-
-//checks which wire has been clicked
-//returns wire
-//should be in wire.fs
-let findWire (mousePos: XYPos) (model: Model) = 
-    let wire = model.WX
-    let res = List.tryFind (fun w -> containsPoint (makeBox w 2.0) mousePos) wire
-
-
-//------------------------ Bounding box functions -----------------------------
-//let me know if you need any more 
-
-
-
-//is a point inside the box 
-let containsPoint  (box: BB) (point: XYPos) = 
-    point.X >= box.TopLeft.X 
-    && point.X <= box.BottomRight.X 
-    && point.Y <= box.TopLeft.Y 
-    && point.Y >= box.BottomRight.Y
-
-
-//dist between point and BB 
-let distFromPoint (point: XYPos) (box: BB) = 
-    let dist1 = ((point.X - box.TopLeft.X) ** 2.0) + ((point.Y - box.TopLeft.Y) ** 2.0)
-    let dist2 = ((point.X - box.BottomRight.X) ** 2.0) + ((point.Y - box.BottomRight.Y) ** 2.0)
-    min(dist1, dist2)
-
 
         
 
