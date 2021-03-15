@@ -58,7 +58,7 @@ let createBB (sym: Symbol) (h,w: float) =
 
 let FindSymbol (mousePos: XYPos) (model: Model) = 
     printf "hey in Find Symbol now"
-    match List.tryFind (fun sym -> containsPoint (createBB sym (sym.H,sym.W)) mousePos) model with 
+    match List.tryFind (fun sym -> containsPoint (createBB sym (sym.CurrentH,sym.CurrentW)) mousePos) model with 
     | Some sym -> Some sym.Id
     | None -> None
 
@@ -345,6 +345,8 @@ let createNewSymbol (compType:CommonTypes.ComponentType) (label:string) (pos:XYP
         Pos = pos
         H = height
         W = width
+        CurrentH = height
+        CurrentW = width
         LastDragPos = {X=0. ; Y=0.} 
         IsDragging = false 
         IsSelected = false
@@ -356,18 +358,6 @@ let testROM = ROM {AddressWidth = 4; WordWidth = 2; Data = Map.ofList [(int64(5)
 let testRAM = RAM {AddressWidth = 4; WordWidth = 2; Data = Map.ofList [(int64(5),int64(2))]}
 let testCustom = Custom {Name = "Custom Comp Test"; InputLabels = [("data-in",4);("R/W",1)]; OutputLabels = [("data-out1",2);("data-out2",2);("data-out3",2)] }
 
-/// Dummy function for test. The real init would probably have no symbols.
-// let init () =
-//     List.allPairs [1..4] [1..2]
-//     |> List.map (fun (x,y) -> {X = float (x*160+40); Y=float (y*200+40)})
-//     |> List.map (fun {X=x;Y=y} -> 
-//         if y=x 
-//         then createNewSymbol (BusSelection (3, 4)) "label" {X=x;Y=y}
-//         else 
-//             if y<x
-//             then (createNewSymbol (DFF) "label" {X=x;Y=y})
-//             else (createNewSymbol (Demux4) "label" {X=x;Y=y}) )
-//     , Cmd.none
 
 let init () =
     List.allPairs [1..4] [1..2]
@@ -385,12 +375,6 @@ let init () =
         | _ -> (createNewSymbol (Xor) "label" {X=x;Y=y}) )
         
     , Cmd.none
-
-
-// let portMove diff port : Port =
-//     {port with
-//         PortPos = posAdd port.PortPos diff
-//     }
 
 
 /// Alters Ports of a symbol upon rotation
@@ -464,21 +448,29 @@ let symbolRotation sym =
             {sym with
                 Ports = List.map (portRotation sym) prevPorts
                 Orientation = Rotate90clk
+                CurrentH = sym.W
+                CurrentW = sym.H
             }
         | Rotate90clk ->
             {sym with
                 Ports = List.map (portRotation sym) prevPorts
                 Orientation = Mirror
+                CurrentH = sym.H
+                CurrentW = sym.W
             }
         | Mirror ->
             {sym with
                 Ports = List.map (portRotation sym) prevPorts
                 Orientation = Rotate90antiClk
+                CurrentH = sym.W
+                CurrentW = sym.H
             }
         | Rotate90antiClk ->
             {sym with
                 Ports = List.map (portRotation sym) prevPorts
                 Orientation = Standard
+                CurrentH = sym.H
+                CurrentW = sym.W
             }
 
 /// update function which displays symbols
