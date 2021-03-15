@@ -95,6 +95,8 @@ module CommonTypes
         Pos : XYPos
         H : float
         W : float
+        CurrentH : float
+        CurrentW : float
         LastDragPos : Helpers.XYPos //change to definition
         IsDragging : bool 
         IsSelected : bool
