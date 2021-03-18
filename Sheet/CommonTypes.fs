@@ -1,5 +1,6 @@
 module CommonTypes
     open Fable.Core
+    open Helpers
 
     let draw2dCanvasWidth = 3000
     let draw2dCanvasHeight = 2000
@@ -7,13 +8,12 @@ module CommonTypes
     //==========================================//
     // Canvas state mapped to f# data structure //
     //==========================================//
+    
+    type SymbolId = | SymbolId of string
+    type PortId = string
 
     // Specify the position and type of a port in a JSComponent.
     type PortType = Input | Output
-
-    type Direction = Left | Right | Up | Down
-
-    type SymbolId = | SymbolId of string
 
     /// A component I/O.
     /// Id (like any other Id) is a string generated with 32 random hex charactes,
@@ -25,18 +25,16 @@ module CommonTypes
     /// HostId is the unique Id of the component where the port is. For example,
     /// all three ports on the same And component will have the same HostId.
     type Port = {
-        PortId : string
+        Id : string
         // For example, an And would have input ports 0 and 1, and output port 0.
         // If the port is used in a Connection record as Source or Target, the Number is None. 
         PortNumber : int option
         PortType : PortType
+        PortPos : XYPos
+        RelativePortPos : XYPos  // This is relative to Pos of Component
+        BusWidth : int Option
+        ConnectionDirection : Dir
         HostId : SymbolId
-        //SelectPin : bool
-        PortPos : Helpers.XYPos
-        BusWidth : int 
-        ConnectionDirection : Direction 
-        RelativePortPos: Helpers.XYPos 
-
     }
 
     /// Name identified the LoadedComponent used.
@@ -70,7 +68,7 @@ module CommonTypes
         | Constant of Width: int * ConstValue: int
         | Not | And | Or | Xor | Nand | Nor | Xnor |Decode4
         | Mux2 | Demux2 | Mux4 | Demux4 
-        | MuxN of n : int | DemuxN of n : int
+        | MuxN of NumOfInputs: int| DemuxN of NumOfOutputs: int
         | NbitsAdder of BusWidth: int
         | Custom of CustomComponentType // schematic sheet used as component
         | MergeWires | SplitWire of BusWidth: int // int is bus width
@@ -78,26 +76,10 @@ module CommonTypes
         // No initial state for DFF or Register? Default 0.
         | DFF | DFFE | Register of BusWidth: int | RegisterE of BusWidth: int 
         | AsyncROM of Memory | ROM of Memory | RAM of Memory // memory is contents
-        | Circle 
+        | Circle
 
-    
-     /// Colors to highlight components
-    /// Case name is used as HTML color name.
-    /// See JSHelpers.getColorString
-    /// lots of colors can be added, see https://www.w3schools.com/colors/colors_names.asp
-    /// The Text() method converts it to the correct HTML string
-    /// Where speed matters the color must be added as a case in the match statement
-    type HighLightColor = Red | Blue | Yellow | Green | Orange | Grey
-    
-    with 
-        member this.Text() = // the match statement is used for performance
-            match this with
-            | Red -> "Red"
-            | Blue -> "Blue"
-            | Yellow -> "Yellow"
-            | Green -> "Green"
-            | Grey -> "Grey"
-            | c -> sprintf "%A" c
+
+    type CompOrientation = | Standard | Rotate90clk | Mirror | Rotate90antiClk
 
     /// JSComponent mapped to F# record.
     /// Id uniquely identifies the component within a sheet and is used by draw2d library.
@@ -106,17 +88,19 @@ module CommonTypes
         Id : SymbolId
         Type : ComponentType
         Label : string // All components have a label that may be empty.
+        Ports : Port list
+        NumOfInputs : int
+        NumOfOutputs : int
+        NumOfUpwardInputs : int // The number of upward input pins is included in NumOfInputs aswell
+        Pos : XYPos
         H : float
         W : float
-        Ports: Port list 
-        NumOfInputs : int 
-        NumOfOutputs : int 
-        NumOfUpInputs : int
-        NumOfSelects : int 
-        Pos: Helpers.XYPos
-        LastDragPos : Helpers.XYPos
-        IsDragging : bool
-        Colour : HighLightColor
+        CurrentH : float
+        CurrentW : float
+        LastDragPos : Helpers.XYPos //change to definition
+        IsDragging : bool 
+        IsSelected : bool
+        Orientation : CompOrientation
     }
 
     /// JSConnection mapped to F# record.
@@ -128,6 +112,15 @@ module CommonTypes
         Vertices : (float * float) list
     }
 
+    type Color = |Red | Blue | Green | Grey
+        with 
+            member this.Text() =
+                match this with
+                | Red -> "Red"
+                | Blue -> "Blue"
+                | Green -> "Green"
+                | Grey -> "Grey"
+
     /// F# data describing the contents of a single schematic sheet.
     type CanvasState = Component list * Connection list
 
@@ -137,7 +130,22 @@ module CommonTypes
 
     type NumberBase = | Hex | Dec | Bin | SDec
 
-
+    /// Colors to highlight components
+    /// Case name is used as HTML color name.
+    /// See JSHelpers.getColorString
+    /// lots of colors can be added, see https://www.w3schools.com/colors/colors_names.asp
+    /// The Text() method converts it to the correct HTML string
+    /// Where speed matters the color must be added as a case in the match statement
+    type HighLightColor = Red | Blue | Yellow | Green | Orange | Grey
+    with 
+        member this.Text() = // the match statement is used for performance
+            match this with
+            | Red -> "Red"
+            | Blue -> "Blue"
+            | Yellow -> "Yellow"
+            | Green -> "Green"
+            | Grey -> "Grey"
+            | c -> sprintf "%A" c
             
             
 
@@ -165,8 +173,7 @@ module CommonTypes
     [<Erase>]
     type InputPortId      = | InputPortId of string
     /// SHA hash unique to a component port - common between JS and F#.
-    /// Connection 
-        ///  and connected component ports have the same port Id
+    /// Connection ports and connected component ports have the same port Id
     /// InputPortId and OutputPortID wrap the hash to distinguish component
     /// inputs and outputs some times (e.g. in simulation)
 

@@ -8,16 +8,15 @@ open Elmish.React
 open Helpers
 
 
-type SelectedItem = 
-    | Symbol of symbolId: CommonTypes.SymbolId
-    | BusWire of wireId: BusWire.WireId  * segmentIndex : int
-    | Port of portId : string * portType : CommonTypes.PortType
-    | NoItem
-    // | BusWire of wireId: BusWire.wireId * segmentIndex: int
+// type SelectedItem = 
+//     | Symbol of symbolId: CommonTypes.SymbolId
+//     | BusWire of wireId: BusWire.WireId  * segmentIndex : int
+//     | Port of portId : string * portType : CommonTypes.PortType
+//     | NoItem
+//     // | BusWire of wireId: BusWire.wireId * segmentIndex: int
 
  type Model = {
     Wire: BusWire.Model
-    SelectedItem: SelectedItem
     KeyPressShift: bool 
     }
 
@@ -58,10 +57,10 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
             ] 
 
           OnMouseDown (fun ev -> 
-                        (MouseMsg {Op = Down; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch))
+                        (MouseMsg {Op = MouseOp.Down; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch))
 
 
-          OnMouseUp (fun ev -> (MouseMsg {Op = Up; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch))
+          OnMouseUp (fun ev -> (MouseMsg {Op = MouseOp.Up; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch))
 
           OnMouseMove (fun ev -> 
                         if mDown ev 
@@ -93,17 +92,17 @@ let view (model:Model) (dispatch : Msg -> unit) =
     displaySvgWithZoom 1.0 wireSvg dispatch
 
 
-let getHit (click: XYPos) (model: Model) =
-    let sModel = BusWire.getSymbolModelFromWireModel model.Wire
-    match Symbol.FindPort click sModel with 
-    | Some (p,t) -> Port (p, t)
-    | None -> 
-        match Symbol.FindSymbol click sModel with 
-        | Some sId -> Symbol sId 
-        | None -> 
-            match BusWire.findWire click model.Wire with 
-            | Some wId -> BusWire wId 
-            | None -> NoItem 
+// let getHit (click: XYPos) (model: Model) =
+//     let sModel = BusWire.getSymbolModelFromWireModel model.Wire
+//     // match Symbol.FindPort click sModel with 
+//     // | Some (p,t) -> Port (p, t)
+//     // | None -> 
+//     match Symbol.FindSymbol click sModel with 
+//     | l -> l
+//     | [] -> 
+//         match BusWire.findWire click model.Wire with 
+//         | Some wId -> BusWire wId 
+//         | None -> NoItem 
 
 let getStringtoComponentType (s : string) = 
     match s with 
@@ -141,20 +140,11 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | AltV -> model, Cmd.ofMsg (Wire <| BusWire.SetColor CommonTypes.Green)
         | AltZ -> model, Cmd.ofMsg (Wire <| BusWire.SetColor CommonTypes.Red)
         | DEL -> 
-            let itemTobeDeleted = model.SelectedItem
-            {model with SelectedItem = NoItem}, 
-            match itemTobeDeleted with 
-            | Port (p,t) -> Cmd.none                
-            | Symbol sId ->
-                    sId
-                    |> Symbol.Msg.DeleteSymbol
-                    |> BusWire.Msg.Symbol
-                    |> Wire |> Cmd.ofMsg
-            | BusWire (wId, x) -> 
-                    wId 
-                    |> BusWire.Msg.DeleteWire 
-                    |> Wire |> Cmd.ofMsg
-            | NoItem -> Cmd.none
+            //let itemTobeDeleted = model.SelectedItem
+            model, 
+            match model.Wire.SymbolModel.SelectedSymbols with 
+            | [] -> BusWire.Msg.DeleteWire |> Wire |> Cmd.ofMsg
+            | _ -> Symbol.Msg.DeleteSymbol |> BusWire.Msg.Symbol |> Wire |> Cmd.ofMsg
 
         | A -> newSymbol "Xnor" model
         | B -> newSymbol "And" model
@@ -177,98 +167,65 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             {model with KeyPressShift = false}, Cmd.none
         | _ -> failwithf "not yet done"
 
-    | MouseMsg event when event.Op = Down -> 
-        let selected = getHit event.Pos model 
-        let newModel = {model with SelectedItem = NoItem}
-        match selected with 
-        | Symbol symbolId ->             
-            if selected <> model.SelectedItem then 
-                if model.KeyPressShift then 
-                    {model with SelectedItem = selected}, 
-                    symbolId |> Symbol.Msg.MultipleSelect
-                    |> BusWire.Msg.Symbol 
-                    |> Wire |> Cmd.ofMsg
-                else 
-                    {model with SelectedItem = selected}, 
-                    (symbolId, event.Pos)
+    | MouseMsg event when event.Op = MouseOp.Down -> 
+        let selectedSyms = Symbol.FindSymbol event.Pos model.Wire.SymbolModel
+        //let newModel = {model with SelectedItem = NoItem}
+        match selectedSyms with 
+        | [] -> 
+            printf "NO SYM SELECTED"
+            model, Cmd.none 
+        | _ -> {model with Wire = {model.Wire with SymbolModel = {model.Wire.SymbolModel with SelectedSymbols = selectedSyms}}}, 
+                    event.Pos
                     |> Symbol.Msg.StartDragging
                     |> BusWire.Msg.Symbol
                     |> Wire |> Cmd.ofMsg
-            else 
-                newModel, 
-                symbolId 
-                |> Symbol.Msg.Unselect
-                |> BusWire.Msg.Symbol 
-                |> Wire |> Cmd.ofMsg
-
-        | BusWire (wireId,x) -> 
-            if selected <> model.SelectedItem then
-                {model with SelectedItem = selected}, 
-                wireId 
-                |> BusWire.Msg.Select |> Wire |> Cmd.ofMsg
-            else 
-                newModel, 
-                wireId 
-                |> BusWire.Msg.Unselect 
-                |> Wire |> Cmd.ofMsg
-            
-        | NoItem -> 
-            let s = model.SelectedItem
-            match s with
-            | Symbol sId ->
-                newModel,
-                sId |> Symbol.Msg.Unselect |> BusWire.Msg.Symbol |> Wire |> Cmd.ofMsg
-            | BusWire (wId,x) -> 
-                newModel, 
-                wId |> BusWire.Msg.Unselect |> Wire |> Cmd.ofMsg
-            | NoItem -> model, Cmd.none
 
 
-    | MouseMsg event when event.Op = Up -> 
-       match model.SelectedItem with 
-        | Symbol symbolId ->
-            model,
-            symbolId
-            |> Symbol.Msg.EndDragging
-            |> BusWire.Msg.Symbol
-            |> Wire |> Cmd.ofMsg
-        | BusWire (wId, x) ->
-            model, 
-            wId 
-            |> BusWire.Msg.StopMovingWire
-            |> Wire |> Cmd.ofMsg
-        | NoItem -> model, Cmd.none
-        | _ -> failwithf "not yet done"
+    | MouseMsg event when event.Op = MouseOp.Up -> failwithf "not yet done"
+    //    match model.SelectedItem with 
+    //     | Symbol symbolId ->
+    //         model,
+    //         symbolId
+    //         |> Symbol.Msg.EndDragging
+    //         |> BusWire.Msg.Symbol
+    //         |> Wire |> Cmd.ofMsg
+    //     | BusWire (wId, x) ->
+    //         model, 
+    //         wId 
+    //         |> BusWire.Msg.StopMovingWire
+    //         |> Wire |> Cmd.ofMsg
+    //     | NoItem -> model, Cmd.none
+    //     | _ -> failwithf "not yet done"
 
-    | MouseMsg event when event.Op = Drag -> 
-        match model.SelectedItem with 
-        | Symbol symbolId -> 
-            model,
-            (symbolId, event.Pos) 
-            |> Symbol.Msg.Dragging 
-            |> BusWire.Msg.Symbol
-            |> Wire |> Cmd.ofMsg
-        | BusWire (wId, x) ->
-            {model with SelectedItem = BusWire (wId,x)}, 
-            (wId, x, event.Pos)
-                |> BusWire.Msg.ManualRouting
-                |> Wire
-                |> Cmd.ofMsg
-        | NoItem -> 
-            let s = model.SelectedItem
-            let newModel = {model with SelectedItem = NoItem}
-            match s with 
-            | Symbol sId -> 
-                    newModel, 
-                    sId |> Symbol.Msg.Unselect 
-                    |> BusWire.Msg.Symbol
-                    |> Wire |> Cmd.ofMsg
-            | BusWire (wId,x) -> 
-                        newModel, 
-                        wId |> BusWire.Msg.Unselect
-                        |> Wire |> Cmd.ofMsg
-            | NoItem -> newModel, Cmd.none
-        | _ -> failwithf "not yet done"
+    | MouseMsg event when event.Op = Drag -> failwithf "not yet done"
+        // match model.SelectedItem with 
+        // | Symbol symbolId -> 
+        //     model,
+        //     (symbolId, event.Pos) 
+        //     |> Symbol.Msg.Dragging 
+        //     |> BusWire.Msg.Symbol
+        //     |> Wire |> Cmd.ofMsg
+        // | BusWire (wId, x) ->
+        //     {model with SelectedItem = BusWire (wId,x)}, 
+        //     (wId, x, event.Pos)
+        //         |> BusWire.Msg.ManualRouting
+        //         |> Wire
+        //         |> Cmd.ofMsg
+        // | NoItem -> 
+        //     let s = model.SelectedItem
+        //     let newModel = {model with SelectedItem = NoItem}
+        //     match s with 
+        //     | Symbol sId -> 
+        //             newModel, 
+        //             sId |> Symbol.Msg.Unselect 
+        //             |> BusWire.Msg.Symbol
+        //             |> Wire |> Cmd.ofMsg
+        //     | BusWire (wId,x) -> 
+        //                 newModel, 
+        //                 wId |> BusWire.Msg.Unselect
+        //                 |> Wire |> Cmd.ofMsg
+        //     | NoItem -> newModel, Cmd.none
+        // | _ -> failwithf "not yet done"
 
     | MouseMsg event -> model, Cmd.none 
 
@@ -280,7 +237,6 @@ let init() =
     let model,cmds = (BusWire.init)()
     {
         Wire = model
-        SelectedItem = NoItem
         KeyPressShift = false 
 
     }, Cmd.map Wire cmds
