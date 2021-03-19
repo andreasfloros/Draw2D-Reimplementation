@@ -1,4 +1,4 @@
-﻿module Helpers
+module Helpers
 open Fable.Core.JsInterop
 
 //--------------------------------------------------------------------------//
@@ -122,6 +122,78 @@ let segmentsToString segments =
     |> List.reduce (+)
 
 
+let verticesToString firstPoint secondPoint thirdPoint = 
+    " L " + (posToString firstPoint) + " Q " + (posToString secondPoint) + (posToString thirdPoint)
+
+
+let segmentToCurve currentSegment nextSegment minimumLength =
+    let currentSegmentDir = dirOfSeg currentSegment
+    let nextSegmentDir = dirOfSeg nextSegment
+
+    if currentSegmentDir = Right then
+        let firstPoint = {X = currentSegment.End.X - minimumLength ; Y = currentSegment.End.Y}
+        let secondPoint = currentSegment.End
+        if nextSegmentDir = Up then
+            let thirdPoint = {X = nextSegment.Start.X ; Y = nextSegment.Start.Y - minimumLength}
+            verticesToString firstPoint secondPoint thirdPoint
+        else
+            let thirdPoint = {X = nextSegment.Start.X ; Y = nextSegment.Start.Y + minimumLength}
+            verticesToString firstPoint secondPoint thirdPoint
+        
+    elif currentSegmentDir = Left then
+        let firstPoint = {X = currentSegment.End.X + minimumLength ; Y = currentSegment.End.Y}
+        let secondPoint = currentSegment.End
+        if nextSegmentDir = Up then
+            let thirdPoint = {X = nextSegment.Start.X ; Y = nextSegment.Start.Y - minimumLength}
+            verticesToString firstPoint secondPoint thirdPoint
+        else
+            let thirdPoint = {X = nextSegment.Start.X ; Y = nextSegment.Start.Y + minimumLength}
+            verticesToString firstPoint secondPoint thirdPoint
+
+    elif currentSegmentDir = Up then
+        let firstPoint = {X = currentSegment.End.X ; Y = currentSegment.End.Y + minimumLength }
+        let secondPoint = currentSegment.End
+        if nextSegmentDir = Left then
+            let thirdPoint = {X = nextSegment.Start.X - minimumLength ; Y = nextSegment.Start.Y}
+            verticesToString firstPoint secondPoint thirdPoint
+        else
+            let thirdPoint = {X = nextSegment.Start.X + minimumLength ; Y = nextSegment.Start.Y}
+            verticesToString firstPoint secondPoint thirdPoint
+
+    else
+        let firstPoint = {X = currentSegment.End.X ; Y = currentSegment.End.Y - minimumLength }
+        let secondPoint = currentSegment.End
+        if nextSegmentDir = Left then
+            let thirdPoint = {X = nextSegment.Start.X - minimumLength ; Y = nextSegment.Start.Y}
+            verticesToString firstPoint secondPoint thirdPoint
+        else
+            let thirdPoint = {X = nextSegment.Start.X + minimumLength ; Y = nextSegment.Start.Y}
+            verticesToString firstPoint secondPoint thirdPoint
+
+
+let segmentsToRoundedString segments =
+    segments
+    |> List.mapi (fun index segment  -> if index <> (segments.Length-1) then
+                                            let currentSegment = segments.[index]
+                                            let nextSegment = segments.[index+1]
+                                            let currentSegmentLength = lenOfSeg currentSegment
+                                            let nextSegmentLength = lenOfSeg nextSegment
+
+                                            if ((currentSegmentLength <> 0.) && (nextSegmentLength <> 0.)) then
+
+                                                if ((currentSegmentLength<20.) || (nextSegmentLength<20.)) then
+                                                    let minimumLength = min currentSegmentLength nextSegmentLength
+                                                    segmentToCurve currentSegment nextSegment (minimumLength/2.)
+                                                else
+                                                    segmentToCurve currentSegment nextSegment 10.
+
+                                            else
+                                                ""
+                                        else
+                                            " L " + posToString segment.End)
+    |> List.reduce (+)
+
+
 
 type BoundingBox = {
     BottomRight: XYPos
@@ -227,9 +299,3 @@ let printStats() =
     |> List.iter (fun (name,st) -> 
         printfn "%s time: min=%.3fms max=%.3fms av=%.3fms samples:%d" name st.Min st.Max st.Av (int st.Num))
     executionStats <- Map [] // reset stats
-
-
-
-
-    
-
