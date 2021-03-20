@@ -1,4 +1,4 @@
-module Symbol
+﻿module Symbol
 open Fable.React
 open Fable.React.Props
 open Browser
@@ -96,14 +96,14 @@ let generatePortList compProps numOfPorts portType connectionDirection =
         | NbitsAdder _, PortType.Output, _ -> Some 1
 
         | Input bw, _, _ | Output bw, _, _ -> Some bw
-        | IOLabel, _, _ -> None
+        | IOLabel, _, _ -> Some 1 //this
 
-        | BusSelection _, PortType.Input, _ -> None
+        | BusSelection _, PortType.Input, _ -> Some 1 //this
         | BusSelection (bw,_), PortType.Output, _ -> Some bw
 
-        | MergeWires, _, _ -> None
+        | MergeWires, _, _ -> Some 1//this
         | SplitWire bw, PortType.Output, 0 -> Some bw
-        | SplitWire _, _, _ -> None
+        | SplitWire _, _, _ -> Some 1 //this
 
         | Register _, PortType.Input, 1 | RegisterE _, PortType.Input, 1 -> Some 1
         | Register bw, _, _ | RegisterE bw, _, _  -> Some bw
@@ -360,7 +360,7 @@ let testCustom = Custom {Name = "Custom Comp Test"; InputLabels = [("data-in",4)
 
 
 let init () =
-    List.allPairs [1..4] [1..2]
+    List.allPairs [1..4] [1..4]
     |> List.map (fun (x,y) -> {X = float (x*180+20); Y=float (y*220-60)})
     |> List.map (fun {X=x;Y=y} -> 
         match (x, y) with 
@@ -1047,6 +1047,8 @@ let getPosFromPort (port : Port) : XYPos = port.PortPos
 
 
 let getPortTypeFromPort (port : Port) : PortType = port.PortType
+
+let getPortIdFromPort (port: Port) : string = port.Id
 
 
 /// Returns the side of the symbol that the port is on 

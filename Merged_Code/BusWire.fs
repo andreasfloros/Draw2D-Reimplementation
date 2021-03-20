@@ -350,7 +350,8 @@ let init () =
                     |> List.map (fun s -> 
                                         Symbol.getPortsFromSymbol s
                                         |> List.filter (fun p -> Symbol.getPortTypeFromPort p = CommonTypes.PortType.Output))
-                    |> List.map (fun s -> (s.start))
+                    |> List.collect id
+                    |> List.map (fun p -> (Symbol.getPortIdFromPort p, p)) 
                                         
                     //|> Map.toList
                     //|> List.map snd
@@ -359,6 +360,8 @@ let init () =
                     |> List.map (fun s -> 
                                         Symbol.getPortsFromSymbol s
                                         |> List.filter (fun p -> Symbol.getPortTypeFromPort p = CommonTypes.PortType.Input))
+                    |> List.collect id
+                    |> List.map (fun p -> (Symbol.getPortIdFromPort p, p))
                     //|> Map.toList
                     //|> List.map snd
                     //|> List.collect Map.toList
@@ -367,8 +370,9 @@ let init () =
                 endPorts
                 |> List.map (fun eP ->
                                 let idx = rng.Next(4)
-                                generateWireId(), createWire (startPorts.[0].[idx].Id) (startPorts.[0].[idx]) (eP.[idx].Id) (eP.[idx])) 
+                                generateWireId(), createWire (fst startPorts.[idx]) (snd startPorts.[idx]) (fst eP) (snd eP)) 
                 |> Map.ofList
+
     {SymbolModel = initSymbolModel; Wires = wireMap}, Cmd.map Symbol symbolCmd
 
 
