@@ -1,5 +1,6 @@
 module CommonTypes
     open Fable.Core
+    open Helpers
 
     let draw2dCanvasWidth = 3000
     let draw2dCanvasHeight = 2000
@@ -7,6 +8,9 @@ module CommonTypes
     //==========================================//
     // Canvas state mapped to f# data structure //
     //==========================================//
+    
+    type SymbolId = | SymbolId of string
+    type PortId = string
 
     // Specify the position and type of a port in a JSComponent.
     type PortType = Input | Output
@@ -26,7 +30,11 @@ module CommonTypes
         // If the port is used in a Connection record as Source or Target, the Number is None. 
         PortNumber : int option
         PortType : PortType
-        HostId : string
+        PortPos : XYPos
+        RelativePortPos : XYPos  // This is relative to Pos of Component
+        BusWidth : int Option
+        ConnectionDirection : Dir
+        HostId : SymbolId
     }
 
     /// Name identified the LoadedComponent used.
@@ -59,7 +67,8 @@ module CommonTypes
         | BusSelection of OutputWidth: int * OutputLSBit: int
         | Constant of Width: int * ConstValue: int
         | Not | And | Or | Xor | Nand | Nor | Xnor |Decode4
-        | Mux2 | Demux2
+        | Mux2 | Demux2 | Mux4 | Demux4 
+        | MuxN of NumOfInputs: int| DemuxN of NumOfOutputs: int
         | NbitsAdder of BusWidth: int
         | Custom of CustomComponentType // schematic sheet used as component
         | MergeWires | SplitWire of BusWidth: int // int is bus width
@@ -67,20 +76,31 @@ module CommonTypes
         // No initial state for DFF or Register? Default 0.
         | DFF | DFFE | Register of BusWidth: int | RegisterE of BusWidth: int 
         | AsyncROM of Memory | ROM of Memory | RAM of Memory // memory is contents
+        | Circle
+
+
+    type CompOrientation = | Standard | Rotate90clk | Mirror | Rotate90antiClk
 
     /// JSComponent mapped to F# record.
     /// Id uniquely identifies the component within a sheet and is used by draw2d library.
     /// Label is optional descriptor displayed on schematic.
     type Component = {
-        Id : string
+        Id : SymbolId
         Type : ComponentType
         Label : string // All components have a label that may be empty.
-        InputPorts : Port list
-        OutputPorts : Port list
-        X : int
-        Y : int
-        H : int
-        W : int
+        Ports : Port list
+        NumOfInputs : int
+        NumOfOutputs : int
+        NumOfUpwardInputs : int // The number of upward input pins is included in NumOfInputs aswell
+        Pos : XYPos
+        H : float
+        W : float
+        CurrentH : float
+        CurrentW : float
+        LastDragPos : Helpers.XYPos //change to definition
+        IsDragging : bool 
+        IsSelected : bool
+        Orientation : CompOrientation
     }
 
     /// JSConnection mapped to F# record.
@@ -91,6 +111,15 @@ module CommonTypes
         Target : Port
         Vertices : (float * float) list
     }
+
+    type Color = |Red | Blue | Green | Grey
+        with 
+            member this.Text() =
+                match this with
+                | Red -> "Red"
+                | Blue -> "Blue"
+                | Green -> "Green"
+                | Grey -> "Grey"
 
     /// F# data describing the contents of a single schematic sheet.
     type CanvasState = Component list * Connection list
@@ -124,41 +153,34 @@ module CommonTypes
     // Used consistently they provide type protection that greatly reduces coding errors
 
     /// SHA hash unique to a component - common between JS and F#
-
     [<Erase>]
     type ComponentId      = | ComponentId of string
     /// SHA hash unique to a connection - common between JS and F#
-
     [<Erase>]
     type ConnectionId     = | ConnectionId of string
     /// Human-readable name of component as displayed on sheet.
     /// For I/O/labelIO components a width indication eg (7:0) is also displayed, but NOT included here
-
     [<Erase>]
     type ComponentLabel   = | ComponentLabel of string
     /// SHA hash unique to a component port - common between JS and F#.
     /// Connection ports and connected component ports have the same port Id
     /// InputPortId and OutputPortID wrap the hash to distinguish component
     /// inputs and outputs some times (e.g. in simulation)
-
     [<Erase>]
     type InputPortId      = | InputPortId of string
     /// SHA hash unique to a component port - common between JS and F#.
     /// Connection ports and connected component ports have the same port Id
     /// InputPortId and OutputPortID wrap the hash to distinguish component
     /// inputs and outputs some times (e.g. in simulation)
-
     [<Erase>]
     type OutputPortId     = | OutputPortId of string
 
     /// Port numbers are sequential unique with port lists.
     /// Inputs and Outputs are both numberd from 0 up.
-
     [<Erase>]
     type InputPortNumber  = | InputPortNumber of int
     /// Port numbers are sequential unique with port lists.
     /// Inputs and Outputs are both numberd from 0 up.
-
     [<Erase>]
     type OutputPortNumber = | OutputPortNumber of int
 
