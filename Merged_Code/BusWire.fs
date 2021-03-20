@@ -1,4 +1,4 @@
-﻿module BusWire
+module BusWire
 
 open Fable.React
 open Fable.React.Props
@@ -415,7 +415,13 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     // | DeleteWire wId -> 
     //     {model with Wires = Map.filter (fun w -> w.WireColor <> string(CommonTypes.Red)) model.Wires}, Cmd.none
 
-    // | RotSym symId -> model, Cmd.ofMsg (Symbol (Symbol.RotateSymbol symId))
+    | RotSym symId -> 
+        let sm,sCmd = Symbol.update (Symbol.RotateSymbol symId) model.SymbolModel
+        let movedPortsMap = Symbol.getPortsFromId symId sm
+        let newWires = autoRouteWires model.Wires movedPortsMap
+        model
+        |> updateWireModelWithWires newWires
+        |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
 
     // | Select wId -> 
     //     let w = model.Wires |> Map.map (fun w -> 
@@ -440,6 +446,3 @@ let findWire mousePos wireModel =
 
     wireMap
     |> Map.tryPick selectedSegmentOnWire
-
-
-
