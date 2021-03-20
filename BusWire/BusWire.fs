@@ -140,7 +140,8 @@ let singleWireView =
                             Fill "none"
                         ]
                         let firstSegmentStart = posToString props.Segments.Head.Start
-                        D ("M " + firstSegmentStart + segmentsToRoundedString props.Segments)
+                        D ("M " + firstSegmentStart + segmentsToRoundedString props.Segments) // for rounded corners, below line is normal
+                        //D ("M " + segmentsToString props.Segments)
                         SVGAttr.StrokeWidth props.Width
                         SVGAttr.Stroke (props.Color.Text())][]
                 text[X xLabel
@@ -161,7 +162,8 @@ let view (model:Model) (dispatch: Dispatch<Msg>)=
     g [] (symbolSVG :: wireSVG)
 
 // handle wire segment movement by the user
-let rec manualRouteWire segmentIndex mousePos (wireOption: Wire option) =
+let rec manualRouteWire segmentIndex mousePos wires wireId snap (wireOption: Wire option)=
+    
     let wire =
         match wireOption with
         | Some wire -> wire
@@ -169,6 +171,35 @@ let rec manualRouteWire segmentIndex mousePos (wireOption: Wire option) =
     let segments = getSegmentsFromWire wire
     let segmentOfInterest = segments.[segmentIndex]
     let segmentsMaxIdx = segments.Length - 1
+    
+    
+    
+    // called post manual routing
+    let snapToWire wire =
+        let commonOutputWires = Map.filter (fun id w -> getStartIdFromWire w = getStartIdFromWire wire) wires
+        let updatedSegmentOfInterest = (getSegmentsFromWire wire).[segmentIndex]
+        let snapSegment =
+            let closeEnoughSegment id w =
+                if lenOfSeg updatedSegmentOfInterest = 0. || segmentIndex = 0 || segmentIndex = segmentsMaxIdx then None // could optimise here
+                else
+                    getSegmentsFromWire w
+                    |> List.indexed
+                    |> List.tryPick (fun (idx,segx) ->
+                                            if lenOfSeg segx = 0. || (id = wireId && segmentIndex = idx) then None
+                                            else
+                                                if segmentsAreClose updatedSegmentOfInterest segx then
+                                                    Some (idx,segx)
+                                                else None)
+            Map.tryPick closeEnoughSegment commonOutputWires
+        match snapSegment with
+        | Some (idx,segx) ->
+            match manualRouteWire segmentIndex segx.Start wires wireId false (Some wire) with
+            | Some x -> 
+                printfn "Snapped to %d" idx // Debuggig message
+                x
+            | _ -> failwithf "Can't happen"
+        | None -> wire
+
 
     match segmentIndex = 0 || segmentIndex = segmentsMaxIdx || lenOfSeg segmentOfInterest = 0. with
     | true ->       
@@ -180,7 +211,7 @@ let rec manualRouteWire segmentIndex mousePos (wireOption: Wire option) =
         if lenOfSeg segmentOfInterest < 31. then wireOption // only split the connection if it is longer than the extension, this handles all 0 segments too!
         else                                                // note that the new segment will have length equal to the difference of the current length and the port length so we allow some extra room (i.e. < 11. instead < 10. in this case)                                
             let newSegments = splitSegmentsAtEndSeg (segmentIndex = 0) segments // split the wire further, if the user manages to drag perfectly in parallel to the segment this split will still happen
-            manualRouteWire (if segmentIndex  = 0 then 2 else segmentIndex) mousePos (Some (updateWireWithSegments wire newSegments))
+            manualRouteWire (if segmentIndex  = 0 then 2 else segmentIndex) mousePos wires wireId snap (Some (updateWireWithSegments wire newSegments))
     | false ->
         let newMovedSegment =
             match dirOfSeg segmentOfInterest |> isHorizontalDir with // dirOfSeg is safe here
@@ -193,19 +224,19 @@ let rec manualRouteWire segmentIndex mousePos (wireOption: Wire option) =
                                             | -1 -> segOf segment.Start newMovedSegment.Start
                                             | 1 ->  segOf newMovedSegment.End segment.End
                                             | _ -> segment)
-        Some (updateWireWithSegments wire newSegments)
+        Some (updateWireWithSegments wire newSegments |> if snap then snapToWire else id)
 
     // fromDir is where the source pt is headed
     // Resulting wire will attack the input port from a direction perpendicular to toDir
     // Note that the exact toDir does not matter, only whether it is perpendicular to fromDir does
 let rec manhattanAutoRoute fromPt fromDir toPt toDir=
-    if pointsAreClose fromPt toPt && arePerependicularDirs fromDir toDir then [] // base case
+    if pointsAreClose fromPt toPt (10. ** (-9.)) && arePerependicularDirs fromDir toDir then [] // base case
     else
         let newSegment, newDir = // the new direction must always be perpendicular to fromDir
             if fromDir |> isHorizontalDir then fromPt, toPt
             else toPt, fromPt
             ||> (fun pt1 pt2 ->
-                    match pointsAreCloseInDir (somePerpendicularDir fromDir) pt1 pt2 with
+                    match pointsAreCloseInDir (somePerpendicularDir fromDir) pt1 pt2 (10. ** (-9.)) with
                     | true -> segOf fromPt fromPt, somePerpendicularDir fromDir // generate a 0 length segment, this is optimal in terms of distance but ugly
                     | false ->
                         let newSegment = segOf fromPt (posOf pt1.X pt2.Y)
@@ -226,7 +257,7 @@ let routeFromStart startExtension endExtension =
 // a seperate function might have to be written for processing width inference changes (updating labels)
 // as of the demo this is purely used for routing
 let autoRouteWires wires portsMap =
-
+        
     let correctEndPtsAndAutoRoute (wire: Wire) ids =
         // if ports can change positions a similar function to correctEndPt could be written, correndEndDir
         // any additional changes could also be factored in here as they would only result in a change in the WireRenderProps of the affected wire
@@ -298,7 +329,7 @@ let autoRouteWires wires portsMap =
              |> Some
         | _ -> None
     wires
-    |> Map.map (fun _wireId wire ->
+    |> Map.map (fun wireId wire ->
                 match connectedToPorts wire with
                 | Some ids -> correctEndPtsAndAutoRoute wire ids
                 | None -> wire)
@@ -380,7 +411,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         |> updateWireModelWithSymbolModel newSymbolModel, Cmd.map Symbol newSymbolCmd
     | ManualRouting (wireId,segmentIndex,mousePos) ->
         let newWires = getWiresFromWireModel model
-                       |> Map.change wireId (manualRouteWire segmentIndex mousePos)
+                       |> Map.change wireId (manualRouteWire segmentIndex mousePos (getWiresFromWireModel model) wireId true)
         updateWireModelWithWires newWires model, Cmd.none
     | AutoRouteAll ->
         let newWires = getWiresFromWireModel model
