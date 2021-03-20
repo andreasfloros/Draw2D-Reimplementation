@@ -245,6 +245,13 @@ let autoRouteWires wires portsMap =
                     let segments = getSegmentsFromWire wire
                     if isOutput then segments.Head.Start else (List.rev segments).Head.End
             | _ -> Symbol.getPosFromPort (Map.find connectedPortId portsMap) // both ends exist within the port map (same symbol)
+        let correctEndDir ids connectedPortId isOutput =
+            match ids with
+            | id, None -> // one end exists within the port map and the other doesn't
+                if id = connectedPortId then Symbol.getDirFromPort (Map.find connectedPortId portsMap)
+                else 
+                    if isOutput then getEndDirFromWire wire else getStartDirFromWire wire
+            | _ -> Symbol.getDirFromPort (Map.find connectedPortId portsMap) // both ends exist within the port map (same symbol)
 
         let startId = getStartIdFromWire wire
         let endId = getEndIdFromWire wire
@@ -252,7 +259,8 @@ let autoRouteWires wires portsMap =
         let routeStart = correctEndPt ids startId true
         let routeEnd = correctEndPt ids endId false
         // setup for routing
-        let fromDir, toDir = getStartDirFromWire wire, getEndDirFromWire wire
+        let fromDir, toDir = correctEndDir ids startId true, correctEndDir ids endId false
+        let wire = {wire with EndDir = toDir; WireRenderProps = {getWirePropsFromWire wire with StartDir = fromDir}}
         let startExtension = getPortExtension routeStart fromDir true
         let endExtension = getPortExtension routeEnd toDir false
         let prevSegments = getSegmentsFromWire wire
@@ -285,8 +293,9 @@ let autoRouteWires wires portsMap =
                         if portId = endId then (swapSeg endExtension) :: betweenRoute @ routeSoFar |> swapRoute
                         else startExtension :: betweenRoute @ routeSoFar
             updateWireWithSegments wire route
-        else if prevSegmentsLength > 3 && snd ids <> None then // when dealing with a loop, simple translation of the path is done
-            let route = translateRoute routeStart prevSegments // note that prevSegmentsLength > 3 can be omitted here
+        // Route translation is problematic with directions that change could handle this case by case but for now it is commented out
+        //else if prevSegmentsLength > 3 && snd ids <> None then // when dealing with a loop, simple translation of the path is done
+        //    let route = translateRoute routeStart prevSegments // note that prevSegmentsLength > 3 can be omitted here
             updateWireWithSegments wire route
         else // route from the beginning if the wire is short
             let route = routeFromStart startExtension endExtension
@@ -392,6 +401,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
         | Symbol.EndDragging sId -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd
+        | Symbol.RotateSymbol sId ->
+            let movedPortsMap = Symbol.getPortsFromId sId sm
+            let newWires = autoRouteWires model.Wires movedPortsMap
+            model
+            |> updateWireModelWithWires newWires
+            |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
         | _ -> {model with SymbolModel=sm},Cmd.none
      
     | ManualRouting (wireId,segmentIndex,mousePos) ->
