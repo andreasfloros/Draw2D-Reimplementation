@@ -1,4 +1,4 @@
-﻿module Sheet
+module Sheet
 open Fable.React
 open Fable.React.Props
 open Browser
@@ -120,7 +120,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 |> Wire
                 |> Cmd.ofMsg
         | WireSegment (wireId, segmentIndex) ->
-            (if segmentIndex = 0 && (lenOfSeg (BusWire.getSegmentsFromWire (BusWire.getWireFromWireModel model.WireModel wireId)).Head) > 11. // ugly but works for now
+            (if segmentIndex = 0 && (lenOfSeg (BusWire.getSegmentsFromWire (BusWire.getWireFromWireModel model.WireModel wireId)).Head) > 31. // ugly but works for now
              then {model with SelectedItem = WireSegment (wireId,2)} else model),
             (wireId, segmentIndex, event.Pos)
                 |> BusWire.Msg.ManualRouting
