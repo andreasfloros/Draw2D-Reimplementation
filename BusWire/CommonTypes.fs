@@ -34,10 +34,10 @@ let getWidthFromPort port = port.PortWidth
 let getPortExtension pt dir isOutput=
     let ext =
         match dir with
-        | Helpers.Dir.Up -> Helpers.segOf pt (Helpers.posDiff pt (Helpers.posOf 0. 10.))
-        | Helpers.Dir.Down -> Helpers.segOf pt (Helpers.posAdd pt (Helpers.posOf 0. 10.))
-        | Helpers.Left -> Helpers.segOf pt (Helpers.posDiff pt (Helpers.posOf 10. 0.))
-        | Helpers.Right -> Helpers.segOf pt (Helpers.posAdd pt (Helpers.posOf 10. 0.))
+        | Helpers.Dir.Up -> Helpers.segOf pt (Helpers.posDiff pt (Helpers.posOf 0. 30.))
+        | Helpers.Dir.Down -> Helpers.segOf pt (Helpers.posAdd pt (Helpers.posOf 0. 30.))
+        | Helpers.Left -> Helpers.segOf pt (Helpers.posDiff pt (Helpers.posOf 30. 0.))
+        | Helpers.Right -> Helpers.segOf pt (Helpers.posAdd pt (Helpers.posOf 30. 0.))
     if isOutput then ext else Helpers.swapSeg ext
 
 type Color = |Red | Blue | Green | Grey
