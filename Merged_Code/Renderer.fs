@@ -1,4 +1,4 @@
-module Renderer
+﻿module Renderer
 
     open Elmish
     open Elmish.React
@@ -47,10 +47,10 @@ module Renderer
     let editMenu dispatch =
         makeMenu "Edit" 
                   [makeKeyItem "Default" "CmdOrCtrl+S" (fun () -> dispatch KeyboardMsg.CtrlS)
-                   makeKeyItem "Blue" "Alt+C" (fun () -> dispatch KeyboardMsg.AltC)
-                   makeKeyItem "Green" "Alt+V" (fun () -> dispatch KeyboardMsg.AltV)
+                  // makeKeyItem "Blue" "Alt+C" (fun () -> dispatch KeyboardMsg.AltC)
+                   //makeKeyItem "Green" "Alt+V" (fun () -> dispatch KeyboardMsg.AltV)
                    makeKeyItem "Delete Selected"  "backspace" (fun () -> dispatch KeyboardMsg.DEL)
-                   makeKeyItem "Red" "Alt+Z" (fun () -> dispatch KeyboardMsg.AltZ)
+                  // makeKeyItem "Red" "Alt+Z" (fun () -> dispatch KeyboardMsg.AltZ)
                    makeKeyItem "Reset Wires" "CmdOrCtrl+W" (fun () -> dispatch KeyboardMsg.CtrlW)
                    makeKeyItem "Select Multiple Mode" "Shift+A" (fun () -> dispatch KeyboardMsg.ShiftA)
                    makeKeyItem "Select Single Mode" "Shift+Q" (fun () -> dispatch KeyboardMsg.ShiftQ)

@@ -1,4 +1,4 @@
-module BusWire
+﻿module BusWire
 
 open Fable.React
 open Fable.React.Props
@@ -350,6 +350,8 @@ let init () =
                     |> List.map (fun s -> 
                                         Symbol.getPortsFromSymbol s
                                         |> List.filter (fun p -> Symbol.getPortTypeFromPort p = CommonTypes.PortType.Output))
+                    |> List.map (fun s -> (s.start))
+                                        
                     //|> Map.toList
                     //|> List.map snd
                     //|> List.collect Map.toList
@@ -399,53 +401,28 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         model
         |> updateWireModelWithWires newWires, Cmd.none
 
-    | StopMovingWire (wId:WireId) -> 
-        let newWires =  
-            model.Wires
-            |> Map.toList
-            |> List.map (fun (wireId,wire) -> 
-                if wId <> wireId then
-                    {wire with WireRenderProps = {wire.WireRenderProps with Color = CommonTypes.Grey}}
-                else
-                    if wire.BusWidth = 1 then
-                        {wire with WireRenderProps = {wire.WireRenderProps with Color = CommonTypes.Red}}
-                    else    
-                        {wire with WireRenderProps = {wire.WireRenderProps with Color = CommonTypes.Blue}})
-        {model with Wires=newWires}, Cmd.none
 
-    | Reset -> 
-        let newWires =  
-            model.Wires
-            |> List.map (fun wire -> 
-                let newVertices = defaultVertices wire.SourcePort wire.TargetPort
-                {wire with Vertices = newVertices
-                           BoundingBox = createBoundingBoxes newVertices
-                           Routed = false
-                           WireColor = string(CommonTypes.Grey)
-                           })
-        {model with Wires=newWires}, Cmd.none
+   // | SetColor c -> {model with Wires = Map.change }, Cmd.none
 
-    | SetColor c -> {model with Wires = List.map (fun w -> {w with WireColor = string(c)}) model.Wires}, Cmd.none //Anushka
-
-    | Unselect wId -> //Anushka
-                let w = model.Wires |> List.map (fun w ->  {w with WireColor = string(CommonTypes.Grey)})
-                {model with Wires = w}, Cmd.none
+    // | Unselect wId -> //Anushka
+    //             // let w = model.Wires |> Map.change (fun w ->  {w with WireColor = string(CommonTypes.Grey)})
+    //             {model with Wires = Map.change wId (fun w -> {w with WireRenderProps.Color = CommonTypes.Grey}) model.Wires}, Cmd.none
                                    
-    | DeleteWire wId -> //Anushka
-        {model with Wires = List.filter (fun w -> w.WireColor <> string(CommonTypes.Red)) model.Wires}, Cmd.none
+    // | DeleteWire wId -> 
+    //     {model with Wires = Map.filter (fun w -> w.WireColor <> string(CommonTypes.Red)) model.Wires}, Cmd.none
 
-    | RotSym symId -> model, Cmd.ofMsg (Symbol (Symbol.RotateSymbol symId))
+    // | RotSym symId -> model, Cmd.ofMsg (Symbol (Symbol.RotateSymbol symId))
 
-    | Select wId -> //Anushka
-        let w = model.Wires |> List.map (fun w -> 
-                            if w.WireId = wId then {w with WireColor = string(CommonTypes.Red)}
-                            else {w with WireColor = string(CommonTypes.Grey)})
-        {model with Wires = w}, Cmd.none
+    // | Select wId -> 
+    //     let w = model.Wires |> Map.map (fun w -> 
+    //                         if w.wireId = wId then {w with WireColor = string(CommonTypes.Red)}
+    //                         else {w with WireColor = string(CommonTypes.Grey)})
+    //     {model with Wires = w}, Cmd.none
 
 
 // Bounding Box function for sheet
 // could be optimised
-let wireHit mousePos wireModel =
+let findWire mousePos wireModel =
     let wireMap = getWiresFromWireModel wireModel
     let getWireBBoxes _wireId wire =
         let segments = getSegmentsFromWire wire
@@ -462,43 +439,3 @@ let wireHit mousePos wireModel =
 
 
 
-//------------------------------interface function definitions-----------------------------//
-
-// Returns the Wire part of the BusWire model
-let getWireListfromWireModel (model: Model) = 
-    model.Wires
-
-
-// Returns the Symbol part of the BusWire model
-let getSymbolModelFromWireModel (model: Model) = 
-    model.SymbolModel
-
-
-// Used by the wireHit function below
-// Returns a boolean list stating whether a click on the canvas hit each bounding box
-let clickInBBs (clickCoords: XYPos) (wire: Wire) =
-    let boundingBoxFoundOption = wire.BoundingBox
-                                 |> List.map (fun boundingBox -> containsPoint boundingBox clickCoords)
-                                 |> List.tryFindIndex (id)
-    (wire.WireId,boundingBoxFoundOption)
-
-
-// Used by Sheet. Checks if a click on the canvas is on a wire
-// Accepts as inputs the click coordinates as an XYPosition as well as the model itself
-// and returns either the wireID and the index of the segment if the click is on the
-// bounding box of a segment of that wire  or None if it is not
-let findWire (clickCoords: XYPos) (model: Model) = 
-    let wireIdSegmentIndex = 
-        model.Wires
-        |> Map.toList
-        |> List.map (fun (_,wire) -> clickInBBs clickCoords wire)
-        |> List.filter (fun (x,y) -> y <> None)
-
-    if List.isEmpty wireIdSegmentIndex then 
-        None
-    else
-        let wireSegment = wireIdSegmentIndex.[0]
-        match wireSegment with
-        | (wireId,segmentIndex) -> match segmentIndex with 
-                                   | Some x -> Some (wireId,x)
-                                   | _      -> failwithf "Don't care, never happens"

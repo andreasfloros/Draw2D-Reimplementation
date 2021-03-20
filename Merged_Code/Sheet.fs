@@ -1,4 +1,4 @@
-module Sheet
+﻿module Sheet
 open Fable.React
 open Fable.React.Props
 open Browser
@@ -22,7 +22,7 @@ type SelectedItem =
     }
 
 type KeyboardMsg =
-    | CtrlS | AltC | AltV | AltZ | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | ShiftA | ShiftQ | R
+    | CtrlS | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | ShiftA | ShiftQ | R
 
 type Msg =
     | Wire of BusWire.Msg
@@ -136,9 +136,6 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | AltShiftZ -> 
                 printStats() // print and reset the performance statistics in dev tools window
                 model, Cmd.none // do nothing else and return model unchanged
-        | AltC -> model, Cmd.ofMsg (Wire <| BusWire.SetColor CommonTypes.HighLightColor.Blue)
-        | AltV -> model, Cmd.ofMsg (Wire <| BusWire.SetColor CommonTypes.HighLightColor.Green)
-        | AltZ -> model, Cmd.ofMsg (Wire <| BusWire.SetColor CommonTypes.HighLightColor.Red)
         | DEL -> 
             let itemTobeDeleted = model.SelectedItem
             {model with SelectedItem = NoItem}, 
