@@ -49,21 +49,21 @@ let posAdd a b =
 
 let posOf x y = {X=x;Y=y}
 
-let pointsAreCloseInX pt1 pt2 =
+let pointsAreCloseInX pt1 pt2 thresh=
     let diff = posDiff pt1 pt2
-    diff.X * diff.X < 10. ** (-9.)
-let pointsAreCloseInY pt1 pt2 =
+    diff.X * diff.X < thresh
+let pointsAreCloseInY pt1 pt2 thresh=
     let diff = posDiff pt1 pt2
-    diff.Y * diff.Y < 10. ** (-9.) 
-let pointsAreClose pt1 pt2 =
-    pointsAreCloseInX pt1 pt2 && pointsAreCloseInY pt1 pt2
+    diff.Y * diff.Y < thresh 
+let pointsAreClose pt1 pt2 thresh=
+    pointsAreCloseInX pt1 pt2 thresh && pointsAreCloseInY pt1 pt2 thresh
 
 let posToString pos =
     sprintf "%f %f " pos.X pos.Y
 
-let pointsAreCloseInDir dir pt1 pt2 =
-    if dir |> isHorizontalDir then pointsAreCloseInX pt1 pt2
-    else pointsAreCloseInY pt1 pt2
+let pointsAreCloseInDir dir pt1 pt2 thresh=
+    if dir |> isHorizontalDir then pointsAreCloseInX pt1 pt2 thresh
+    else pointsAreCloseInY pt1 pt2 thresh
 
 type Segment = {
     Start : XYPos
@@ -193,8 +193,12 @@ let segmentsToRoundedString segments =
                                             " L " + posToString segment.End)
     |> List.reduce (+)
 
-
-
+// seg1 and seg2 are not 0 length
+let segmentsAreClose seg1 seg2 =
+    let snapThresh = 30.
+    dirOfSeg seg1 = dirOfSeg seg2 
+    && lenOfSeg (segOf seg1.Start seg2.Start) > 0. 
+    && pointsAreCloseInDir (somePerpendicularDir (dirOfSeg seg1)) seg1.Start seg2.Start snapThresh
 type BoundingBox = {
     BottomRight: XYPos
     TopLeft: XYPos
