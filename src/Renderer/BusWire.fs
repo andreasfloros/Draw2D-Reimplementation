@@ -145,8 +145,8 @@ let singleWireView =
                             Fill "none"
                         ]
                         let firstSegmentStart = posToString props.Segments.Head.Start
-                        D ("M " + firstSegmentStart + segmentsToRoundedString props.Segments) // for rounded corners, below line is normal
-                        //D ("M " + segmentsToString props.Segments)
+                        //D ("M " + firstSegmentStart + segmentsToRoundedString props.Segments) // for rounded corners, below line is normal
+                        D ("M " + segmentsToString props.Segments)
                         SVGAttr.StrokeWidth props.Width
                         SVGAttr.Stroke (props.Color.Text())][]
                 text[X xLabel
@@ -290,13 +290,14 @@ let autoRouteWires wires portsMap =
         let routeStart = correctEndPt ids startId true
         let routeEnd = correctEndPt ids endId false
         // setup for routing
-        let oldFromDir, oldToDir = getStartDirFromWire wire, getStartDirFromWire wire
+        let oldFromDir, oldToDir = getStartDirFromWire wire, getEndDirFromWire wire
         let fromDir, toDir = correctEndDir ids startId true, correctEndDir ids endId false
         let wire = {wire with EndDir = toDir; WireRenderProps = {getWirePropsFromWire wire with StartDir = fromDir}}
         let startExtension = getPortExtension routeStart fromDir true
         let endExtension = getPortExtension routeEnd toDir false
         let prevSegments = getSegmentsFromWire wire
         let prevSegmentsLength = prevSegments.Length
+        printfn "SEG LENGTH %A" prevSegmentsLength
         // if the wire is long then wire memory is kept and we don't route from the beginning
         if prevSegmentsLength > 3 && snd ids = None then
             let portId = fst ids

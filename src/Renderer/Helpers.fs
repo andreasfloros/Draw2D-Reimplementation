@@ -339,7 +339,6 @@ let segmentsToRoundedString segments =
                                             let currentSegmentDirection = dirOfSeg currentSegment
                                             let nextSegmentDirection = dirOfSeg nextSegment
 
-                                            printfn "%A" currentSegmentDirection
 
                                             let sameDirections = (currentSegmentDirection = nextSegmentDirection)
                                             let oppositeDirections = areOppositeDirs currentSegmentDirection nextSegmentDirection
@@ -356,7 +355,7 @@ let segmentsToRoundedString segments =
                                                     segmentToCurve currentSegment nextSegment 10.
                                                    
                                         else
-                                            printfn "%A" (dirOfSeg segment)
+  
                                             " L " + posToString segment.End)
     |> List.reduce (+)
 
