@@ -112,7 +112,7 @@ module CommonTypes
         Vertices : (float * float) list
     }
 
-    type Color = |Red | Blue | Green | Grey
+    type Color = | Red | Blue | Green | Grey
         with 
             member this.Text() =
                 match this with

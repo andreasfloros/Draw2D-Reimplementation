@@ -100,7 +100,6 @@ module Renderer
     let view'  = recordExecutionTimeStats "View" Sheet.view
     let printMsg (msg:Msg) =
         match msg with
-        | Wire (BusWire.Msg.MouseMsg busWireMouseMsg) -> sprintf "BusWireMsg:%A" busWireMouseMsg.Op
         | KeyPress key -> sprintf "%A" key
         | Wire (BusWire.Msg.Symbol (Symbol.Msg.MouseMsg symMouseMsg)) -> sprintf "SymbolMsg:%A"  symMouseMsg.Op
         | x -> sprintf "Other:%A" x

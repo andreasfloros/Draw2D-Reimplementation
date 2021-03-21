@@ -39,7 +39,6 @@ type Msg =
     | Dragging of sId : CommonTypes.SymbolId * pagePos: XYPos
     | EndDragging of sId : CommonTypes.SymbolId
     | Unselect of sId : CommonTypes.SymbolId 
-    | AddCircle of label: string * pagePos: XYPos // used by demo code to add a circle
     | AddSymbol of CompType: CommonTypes.ComponentType * label: string * pagePos: XYPos 
     | DeleteSymbol of sId:CommonTypes.SymbolId
     | RotateSymbol of sId:CommonTypes.SymbolId 
@@ -360,11 +359,11 @@ let testCustom = Custom {Name = "Custom Comp Test"; InputLabels = [("data-in",4)
 
 
 let init () =
-    List.allPairs [1..4] [1..4]
+    List.allPairs [1..1] [1..2]
     |> List.map (fun (x,y) -> {X = float (x*180+20); Y=float (y*220-60)})
     |> List.map (fun {X=x;Y=y} -> 
         match (x, y) with 
-        | 200., 160. -> (createNewSymbol (NbitsAdder 5) "label" {X=x;Y=y})
+        | 200., 160. -> (createNewSymbol (NbitsAdder 7) "label" {X=x;Y=y})
         | 200., 380. -> (createNewSymbol (DemuxN 7) "label" {X=x;Y=y})
         | 380., 160. -> (createNewSymbol (BusSelection (5,2)) "label" {X=x;Y=y})
         | 380., 380. -> (createNewSymbol (RegisterE 5) "label" {X=x;Y=y})
@@ -476,8 +475,6 @@ let symbolRotation sym =
 /// update function which displays symbols
 let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
     match msg with
-    | AddCircle (label, pos) -> 
-        (createNewSymbol CommonTypes.Circle label pos) :: model, Cmd.none 
     | AddSymbol (compType, label, pos) -> 
         (createNewSymbol compType label pos) :: model, Cmd.none
     | DeleteSymbol sId -> 
@@ -551,7 +548,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
             if sId = sym.Id then
                 //{sym with Color = Red}
                 {sym with IsSelected = true}  // temporarily put in to fill if statement
-            else sym 
+            else sym
         )
         , Cmd.none
 
@@ -561,46 +558,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
 
 /// Input to react component (which does not re-evaluate when inputs stay the same)
 /// This generates View (react virtual DOM SVG elements) for one symbol
-type private RenderCircleProps =
-    {
-        Sym : Symbol // name works for the demo!
-        Dispatch : Dispatch<Msg>
-        Key: string // special field used by react to detect whether lists have changed, set to symbol Id
-    }
-
 type private BasicSymbolProps =
     {
         Sym : Symbol // name works for the demo!
         Dispatch : Dispatch<Msg>
         Key: string // special field used by react to detect whether lists have changed, set to symbol Id
     }
-
-/// View for one symbol with caching for efficient execution when input does not change
-let private renderCircle =
-    FunctionComponent.Of(
-        fun (props : RenderCircleProps) ->
-
-            let color =
-                if props.Sym.IsSelected then
-                    "green"
-                else
-                    "grey"
-
-            circle
-                [ 
-                    Cx props.Sym.Pos.X
-                    Cy props.Sym.Pos.Y
-                    R 20.
-                    SVGAttr.Fill color
-                    SVGAttr.Stroke color
-                    SVGAttr.StrokeWidth 1
-                ]
-                [ ]
-
-                
-    , "Circle"
-    , equalsButFunctions
-    )
 
 
 let private clkTri (props:BasicSymbolProps) (color:string) _ =
@@ -962,21 +925,11 @@ let private renderBasicSymbol =
 
 
 let renderSymbols (dispatch : Msg -> unit) (symToRender : Symbol) : ReactElement  =
-        match symToRender.Type with 
-        | CommonTypes.Circle -> 
-            (renderCircle 
-            {
-                Sym = symToRender
-                Dispatch = dispatch
-                Key = string(symToRender.Id)
-            })
-        | _ -> 
-            (renderBasicSymbol 
-            {
-                Sym = symToRender
-                Dispatch = dispatch
-                Key = string(symToRender.Id)
-            })
+    (renderBasicSymbol {
+                            Sym = symToRender
+                            Dispatch = dispatch
+                            Key = string(symToRender.Id)
+                       })
 
 
 /// View function for symbol layer of SVG

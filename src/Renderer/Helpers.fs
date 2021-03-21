@@ -328,26 +328,38 @@ let segmentToCurve currentSegment nextSegment minimumLength =
 
 
 let segmentsToRoundedString segments =
-    segments
-    |> List.mapi (fun index segment  -> if index <> (segments.Length-1) then
-                                            let currentSegment = segments.[index]
-                                            let nextSegment = segments.[index+1]
+    let nonZeroSegments = List.filter (fun segment -> lenOfSeg segment <> 0.) segments
+
+    nonZeroSegments
+    |> List.mapi (fun index segment  -> if index <> (nonZeroSegments.Length-1) then
+                                            let currentSegment = nonZeroSegments.[index]
+                                            let nextSegment = nonZeroSegments.[index+1]
                                             let currentSegmentLength = lenOfSeg currentSegment
                                             let nextSegmentLength = lenOfSeg nextSegment
+                                            let currentSegmentDirection = dirOfSeg currentSegment
+                                            let nextSegmentDirection = dirOfSeg nextSegment
 
-                                            if ((currentSegmentLength <> 0.) && (nextSegmentLength <> 0.)) then
+                                            printfn "%A" currentSegmentDirection
 
+                                            let sameDirections = (currentSegmentDirection = nextSegmentDirection)
+                                            let oppositeDirections = areOppositeDirs currentSegmentDirection nextSegmentDirection
+
+                                            if sameDirections then 
+                                                ""
+                                            elif oppositeDirections then
+                                                " L " + posToString segment.End
+                                            else
                                                 if ((currentSegmentLength<20.) || (nextSegmentLength<20.)) then
                                                     let minimumLength = min currentSegmentLength nextSegmentLength
                                                     segmentToCurve currentSegment nextSegment (minimumLength/2.)
                                                 else
                                                     segmentToCurve currentSegment nextSegment 10.
-
-                                            else
-                                                ""
+                                                   
                                         else
+                                            printfn "%A" (dirOfSeg segment)
                                             " L " + posToString segment.End)
     |> List.reduce (+)
+
 
 let segmentsAreClose seg1 seg2 =
     let snapThresh = 30.

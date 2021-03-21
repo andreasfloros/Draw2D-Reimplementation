@@ -27,7 +27,7 @@ type KeyboardMsg =
 type Msg =
     | Wire of BusWire.Msg
     | KeyPress of KeyboardMsg
-    | MouseMsg of Helpers.MouseT
+    | MouseMsg of MouseT
     
 
 
@@ -40,7 +40,7 @@ type Msg =
 let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch<Msg>)=
     let sizeInPixels = sprintf "%.2fpx" ((1000. * zoom))
     /// Is the mouse button currently down?
-    let mDown (ev:Types.MouseEvent) =        
+    let mDown (ev:Types.MouseEvent) = 
         ev.buttons <> 0.
     /// Dispatch a BusWire MouseMsg message
     /// the screen mouse coordinates are compensated for the zoom transform
@@ -83,7 +83,7 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
 
                 [svgReact] // the application code
         ]
-    
+
 
 /// for the demo code
 let view (model:Model) (dispatch : Msg -> unit) =
@@ -161,9 +161,6 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | G -> newSymbol "Nor" model
         | H -> newSymbol "Decode4" model
         | W -> failwithf "Not yet implemented"
-        | CtrlW -> 
-                model, 
-                BusWire.Msg.Reset |> Wire |> Cmd.ofMsg
         
         | ShiftA -> 
             printf "SHIFT HAS BEEN PRESSED"
@@ -171,6 +168,9 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | ShiftQ -> 
             printf "SHIFT ENDED"
             {model with KeyPressShift = false}, Cmd.none
+
+        | CtrlW -> let wModel, wCmd = BusWire.update (BusWire.AutoRouteAll) model.Wire
+                   {model with Wire = wModel}, Cmd.map Wire wCmd
 
         | R -> 
             printf "HELLO YOU HAVE PRESSED rotate"
@@ -240,11 +240,6 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             symbolId
             |> Symbol.Msg.EndDragging
             |> BusWire.Msg.Symbol
-            |> Wire |> Cmd.ofMsg
-        | BusWire (wId, x) ->
-            model, 
-            wId 
-            |> BusWire.Msg.StopMovingWire
             |> Wire |> Cmd.ofMsg
         | NoItem -> model, Cmd.none
         | _ -> failwithf "not yet done"

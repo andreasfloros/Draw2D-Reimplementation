@@ -122,25 +122,22 @@ let getPropsFromId model wireId =
 type Msg =
     | Symbol of Symbol.Msg
     | ManualRouting of wireId : WireId * segmentIndex : int * mousePos : XYPos
-    | AutoRouteAll
-    | StopMovingWire of wireId: WireId
     | DeleteWire of wireId: WireId
-    | Reset
     | SetColor of CommonTypes.HighLightColor
-    | MouseMsg of MouseT
     | Unselect of wireId: WireId //CommonTypes.ConnectionId
     | Select of wireId : WireId //CommonTypes.ConnectionId
     | RotSym of CommonTypes.SymbolId
+    | AutoRouteAll
 
 let singleWireView =
     FunctionComponent.Of(
         fun (props: WireRenderProps) ->
-            let xLabel, yLabel =
+            let (xLabel, yLabel) =
                 match props.StartDir with // these label positions work fine
-                | Right -> props.Segments.Head.Start.X + 3., props.Segments.Head.Start.Y - 6.
-                | Left -> props.Segments.Head.Start.X - 7., props.Segments.Head.Start.Y - 6.
-                | Dir.Down -> props.Segments.Head.Start.X + 6., props.Segments.Head.Start.Y + 7.
-                | Dir.Up -> props.Segments.Head.Start.X + 6., props.Segments.Head.Start.Y - 3.
+                | Right -> props.Segments.Head.Start.X + 9., props.Segments.Head.Start.Y - 6.
+                | Left -> props.Segments.Head.Start.X - 19., props.Segments.Head.Start.Y - 6.
+                | Dir.Down -> props.Segments.Head.Start.X + 6., props.Segments.Head.Start.Y + 20.
+                | Dir.Up -> props.Segments.Head.Start.X + 6., props.Segments.Head.Start.Y - 8.
             g[] [
                 path [
                         Style[
@@ -154,7 +151,9 @@ let singleWireView =
                         SVGAttr.Stroke (props.Color.Text())][]
                 text[X xLabel
                      Y yLabel
-                     Style[FontSize "8px"]
+                     Style[FontSize "16px"
+                           FontWeight "Bold"
+                           Fill (props.Color.Text())]
                          ][props.Label |> str]
                 ])
 
@@ -179,9 +178,9 @@ let rec manualRouteWire segmentIndex mousePos wires wireId snap (wireOption: Wir
     let segments = getSegmentsFromWire wire
     let segmentOfInterest = segments.[segmentIndex]
     let segmentsMaxIdx = segments.Length - 1
-    
-    
-    
+
+
+
     // called post manual routing
     let snapToWire wire =
         let commonOutputWires = Map.filter (fun id w -> getStartIdFromWire w = getStartIdFromWire wire) wires
@@ -282,7 +281,7 @@ let autoRouteWires wires portsMap =
             | id, None -> // one end exists within the port map and the other doesn't
                 if id = connectedPortId then Symbol.getDirFromPort (Map.find connectedPortId portsMap)
                 else 
-                    if isOutput then getEndDirFromWire wire else getStartDirFromWire wire
+                    if isOutput then getStartDirFromWire wire else getEndDirFromWire wire
             | _ -> Symbol.getDirFromPort (Map.find connectedPortId portsMap) // both ends exist within the port map (same symbol)
 
         let startId = getStartIdFromWire wire
@@ -372,13 +371,13 @@ let createWire startId startPort endId endPort =
     let endExtension = getPortExtension endPortPos toDir false
     let segments = routeFromStart startExtension endExtension
     let portWidth = // for determining wire width and color
-        if Symbol.getWidthFromPort startPort <> Symbol.getWidthFromPort endPort then -1
+        if Symbol.getWidthFromPort startPort <> Symbol.getWidthFromPort endPort then 5
         else Symbol.getWidthFromPort startPort
     {StartId = startId                                  
      EndId = endId                                          
      WireRenderProps = {Segments = segments
-                        Color = if portWidth < 1 then CommonTypes.Color.Red else CommonTypes.Color.Green
-                        Width = if portWidth > 1 then 2.5 else 1.5
+                        Color = if portWidth < 1 then CommonTypes.Color.Red else CommonTypes.Color.Blue
+                        Width = if portWidth > 1 then 4. else 1.5
                         Label = if portWidth < 1 then "" else sprintf "%d" portWidth
                         StartDir = fromDir}
      EndDir = toDir
@@ -407,12 +406,9 @@ let init () =
                     //|> List.map snd
                     //|> List.collect Map.toList
     let rng = System.Random 0
-    let wireMap = 
-                endPorts
-                |> List.map (fun eP ->
-                                let idx = rng.Next(4)
-                                generateWireId(), createWire (fst startPorts.[idx]) (snd startPorts.[idx]) (fst eP) (snd eP)) 
-                |> Map.ofList
+
+    let wireMap = [(generateWireId(), createWire (fst startPorts.[3]) (snd startPorts.[3]) (fst endPorts.Head) (snd endPorts.Head))]
+                  |> Map.ofList
 
     {SymbolModel = initSymbolModel; Wires = wireMap}, Cmd.map Symbol symbolCmd
 
@@ -446,11 +442,6 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                        |> Map.change wireId (manualRouteWire segmentIndex mousePos (getWiresFromWireModel model) wireId true)
         updateWireModelWithWires newWires model, Cmd.none
 
-    | AutoRouteAll ->
-        let newWires = getWiresFromWireModel model
-                       |> Map.map autoRouteWire
-        model
-        |> updateWireModelWithWires newWires, Cmd.none
 
 
    // | SetColor c -> {model with Wires = Map.change }, Cmd.none
@@ -470,6 +461,11 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         |> updateWireModelWithWires newWires
         |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
 
+    | AutoRouteAll ->
+        let newWires = getWiresFromWireModel model
+                       |> Map.map autoRouteWire
+        model
+        |> updateWireModelWithWires newWires, Cmd.none
     // | Select wId -> 
     //     let w = model.Wires |> Map.map (fun w -> 
     //                         if w.wireId = wId then {w with WireColor = string(CommonTypes.Red)}
