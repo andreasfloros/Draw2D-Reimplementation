@@ -360,7 +360,7 @@ let testCustom = Custom {Name = "Custom Comp Test"; InputLabels = [("data-in",4)
 
 
 let init () =
-    List.allPairs [1..4] [1..4]
+    List.allPairs [1..1] [1..2]
     |> List.map (fun (x,y) -> {X = float (x*180+20); Y=float (y*220-60)})
     |> List.map (fun {X=x;Y=y} -> 
         match (x, y) with 
