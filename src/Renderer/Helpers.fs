@@ -1,4 +1,4 @@
-﻿module Helpers
+module Helpers
 open Browser.Types
 open Fable.Core
 open Fable.Core.JsInterop
@@ -30,6 +30,19 @@ type MouseT = {
     Pos: XYPos
     Op: MouseOp}
 
+type BB = {
+        TopLeft: XYPos 
+        BottomRight: XYPos 
+    }
+
+type Dir = Up | Down | Left | Right
+
+type Segment = {
+    Start : XYPos
+    End : XYPos
+}
+
+
 //--------------------------------------------------------------------------//
 //-----------------------------Helpers--------------------------------------//
 //--------------------------------------------------------------------------//
@@ -37,6 +50,18 @@ type MouseT = {
 /// return a v4 (random) universally unique identifier (UUID)
 let uuid():string = import "v4" "uuid"
 
+let posDiff a b =
+    {X=a.X-b.X; Y=a.Y-b.Y}
+
+let posAdd a b =
+    {X=a.X+b.X; Y=a.Y+b.Y}
+
+let posOf x y = {X=x;Y=y}
+
+let log2 x = 
+    log(float(x))/log(2.)
+    |> System.Math.Ceiling
+    |> int
 
 //-----------------Code to record and print execution time statistics-------//
 
@@ -95,12 +120,159 @@ let printStats() =
 
 //--------------------------------Constants----------------------------------//
 
+
+
+
 /// these determine the size of the canvas relative to the objects on it.
 let canvasUnscaledDimensions : XYPos = 
     {X = 1000. ; Y = 1000.}
 
 
+//------------------------ Bounding box functions -----------------------------
+//let me know if you need any more 
 
 
-    
+//is a point inside the box 
+let containsPoint  (box: BB) (point: XYPos) = 
+    point.X >= box.TopLeft.X && point.Y >= box.TopLeft.Y && point.X <= box.BottomRight.X && point.Y<= box.BottomRight.Y
 
+
+//dist between point and BB 
+let distFromPoint (point: XYPos) (box: BB) = 
+    let dist1 = ((point.X - box.TopLeft.X) ** 2.0) + ((point.Y - box.TopLeft.Y) ** 2.0)
+    let dist2 = ((point.X - box.BottomRight.X) ** 2.0) + ((point.Y - box.BottomRight.Y) ** 2.0)
+    min(dist1, dist2)
+
+
+//--------------------------- Buswire Helpers ------------------------------
+
+let areOppositeDirs dir1 dir2 =
+    match dir1, dir2 with
+    | Up, Down | Down, Up | Left, Right | Right, Left -> true
+    | _ -> false
+
+let arePerependicularDirs dir1 dir2 =
+    match dir1, dir2 with
+    | Up, Left | Up, Right | Down, Left | Down, Right | Left, Up | Left, Down | Right, Up | Right, Down -> true
+    | _ -> false
+
+let isHorizontalDir dir =
+    match dir with
+    | Left | Right -> true
+    | _ -> false
+
+let somePerpendicularDir dir =
+    match dir |> isHorizontalDir with
+    | true -> Dir.Down
+    | false -> Left
+
+let getOppositeDir dir =
+    match dir with
+    | Left -> Right
+    | Right -> Left
+    | Up -> Down
+    | Down -> Up
+
+let pointsAreCloseInX pt1 pt2 =
+    let diff = posDiff pt1 pt2
+    diff.X * diff.X < 10. ** (-9.)
+let pointsAreCloseInY pt1 pt2 =
+    let diff = posDiff pt1 pt2
+    diff.Y * diff.Y < 10. ** (-9.) 
+let pointsAreClose pt1 pt2 =
+    pointsAreCloseInX pt1 pt2 && pointsAreCloseInY pt1 pt2
+
+let posToString pos =
+    sprintf "%f %f " pos.X pos.Y
+
+let pointsAreCloseInDir dir pt1 pt2 =
+    if dir |> isHorizontalDir then pointsAreCloseInX pt1 pt2
+    else pointsAreCloseInY pt1 pt2
+
+let segOf pt1 pt2 =
+    {Start = pt1
+     End = pt2}
+
+let swapSeg segment =
+    {Start = segment.End
+     End = segment.Start}
+
+let lenOfSeg segment =
+    let dff = posDiff segment.End segment.Start
+    (dff.X * dff.X + dff.Y * dff.Y) ** (0.5)
+
+// Gives the direction of a segment. Will fail if the segment is 0 length.
+let dirOfSeg segment =
+    if lenOfSeg segment = 0. then failwithf "dirOfSeg Error: Function called with a 0 length segment" // for debugging, should never happen
+    else
+        let diff = posDiff segment.End segment.Start
+        if diff.X * diff.X < diff.Y * diff.Y then
+            match diff.Y > 0. with
+            | true -> Dir.Down
+            | false -> Dir.Up
+        else
+            match diff.X > 0. with
+            | true -> Right
+            | false -> Left
+
+let moveSegmentToX mousePos segment =
+    segOf (posOf mousePos.X segment.Start.Y) (posOf mousePos.X segment.End.Y)
+ 
+let moveSegmentToY mousePos segment =
+    segOf (posOf segment.Start.X mousePos.Y) (posOf segment.End.X mousePos.Y)
+
+let translateRoute newStart (segments: Segment list) =
+    let diff = posDiff newStart segments.Head.Start
+    segments
+    |> List.map (fun seg -> segOf (posAdd seg.Start diff) (posAdd seg.End diff))
+
+
+let swapRoute segments =
+    segments
+    |> List.map swapSeg
+    |> List.rev
+
+let segmentToString segment =
+    posToString segment.Start + posToString segment.End
+
+let segmentsToString segments =
+    segments
+    |> List.map segmentToString
+    |> List.reduce (+)
+
+let boxOf bottomRight topLeft = 
+    {
+        BottomRight = bottomRight
+        TopLeft = topLeft
+    }
+
+let isInsideBBox mousePos bBox =
+    let coordsMinusBottomRight = posDiff bBox.BottomRight mousePos
+    let topLeftMinusCoords = posDiff mousePos bBox.TopLeft
+    let isInFirstQuad pt = pt.X > 0.0 && pt.Y > 0.0
+    isInFirstQuad coordsMinusBottomRight && isInFirstQuad topLeftMinusCoords
+
+let bBoxesIntersect box1 box2 =
+    let topRight = posOf box1.BottomRight.X  box1.TopLeft.Y
+    let bottomLeft = posOf box1.TopLeft.X box1.BottomRight.Y 
+    isInsideBBox box1.TopLeft box2 || isInsideBBox box1.BottomRight box2 || isInsideBBox topRight box2 || isInsideBBox bottomLeft box2
+
+let getSegmentBBox segment =
+    if lenOfSeg segment = 0. then boxOf segment.Start segment.Start // catch this to prevent the failwithf in dirOfSeg
+    else    // this could definitely be rewritten in a better way
+        match dirOfSeg segment with
+        | Dir.Down -> boxOf (posAdd segment.End (posOf 5.0 5.0)) (posDiff segment.Start (posOf 5.0 5.0))
+        | Dir.Up -> boxOf (posAdd segment.Start (posOf 5.0 5.0)) (posDiff segment.End (posOf 5.0 5.0))
+        | Right -> boxOf (posAdd segment.End (posOf 5.0 5.0)) (posDiff segment.Start (posOf 5.0 5.0))
+        | Left -> boxOf (posAdd segment.Start (posOf 5.0 5.0)) (posDiff segment.End (posOf 5.0 5.0))
+
+// Extensions have a fixed length of 10.
+// This works for the demo and will probably be fine for later as well
+let getPortExtension pt dir isOutput=
+    let ext =
+        match dir with
+        | Dir.Up -> segOf pt (posDiff pt (posOf 0. 10.))
+        | Dir.Down -> segOf pt (posAdd pt (posOf 0. 10.))
+        | Left -> segOf pt (posDiff pt (posOf 10. 0.))
+        | Right -> segOf pt (posAdd pt (posOf 10. 0.))
+    if isOutput then ext else swapSeg ext
