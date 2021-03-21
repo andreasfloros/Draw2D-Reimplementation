@@ -42,6 +42,7 @@ type Segment = {
     End : XYPos
 }
 
+let portLength = 30.
 
 //--------------------------------------------------------------------------//
 //-----------------------------Helpers--------------------------------------//
@@ -173,21 +174,21 @@ let getOppositeDir dir =
     | Up -> Down
     | Down -> Up
 
-let pointsAreCloseInX pt1 pt2 =
+let pointsAreCloseInX pt1 pt2 thresh=
     let diff = posDiff pt1 pt2
-    diff.X * diff.X < 10. ** (-9.)
-let pointsAreCloseInY pt1 pt2 =
+    diff.X * diff.X < thresh
+let pointsAreCloseInY pt1 pt2 thresh=
     let diff = posDiff pt1 pt2
-    diff.Y * diff.Y < 10. ** (-9.) 
-let pointsAreClose pt1 pt2 =
-    pointsAreCloseInX pt1 pt2 && pointsAreCloseInY pt1 pt2
+    diff.Y * diff.Y < thresh 
+let pointsAreClose pt1 pt2 thresh=
+    pointsAreCloseInX pt1 pt2 thresh && pointsAreCloseInY pt1 pt2 thresh
 
 let posToString pos =
     sprintf "%f %f " pos.X pos.Y
 
-let pointsAreCloseInDir dir pt1 pt2 =
-    if dir |> isHorizontalDir then pointsAreCloseInX pt1 pt2
-    else pointsAreCloseInY pt1 pt2
+let pointsAreCloseInDir dir pt1 pt2 thresh=
+    if dir |> isHorizontalDir then pointsAreCloseInX pt1 pt2 thresh
+    else pointsAreCloseInY pt1 pt2 thresh
 
 let segOf pt1 pt2 =
     {Start = pt1
@@ -271,8 +272,85 @@ let getSegmentBBox segment =
 let getPortExtension pt dir isOutput=
     let ext =
         match dir with
-        | Dir.Up -> segOf pt (posDiff pt (posOf 0. 10.))
-        | Dir.Down -> segOf pt (posAdd pt (posOf 0. 10.))
-        | Left -> segOf pt (posDiff pt (posOf 10. 0.))
-        | Right -> segOf pt (posAdd pt (posOf 10. 0.))
+        | Dir.Up -> segOf pt (posDiff pt (posOf 0. portLength))
+        | Dir.Down -> segOf pt (posAdd pt (posOf 0. portLength))
+        | Left -> segOf pt (posDiff pt (posOf portLength 0.))
+        | Right -> segOf pt (posAdd pt (posOf portLength 0.))
     if isOutput then ext else swapSeg ext
+
+let verticesToString firstPoint secondPoint thirdPoint = 
+    " L " + (posToString firstPoint) + " Q " + (posToString secondPoint) + (posToString thirdPoint)
+
+
+let segmentToCurve currentSegment nextSegment minimumLength =
+    let currentSegmentDir = dirOfSeg currentSegment
+    let nextSegmentDir = dirOfSeg nextSegment
+
+    if currentSegmentDir = Right then
+        let firstPoint = {X = currentSegment.End.X - minimumLength ; Y = currentSegment.End.Y}
+        let secondPoint = currentSegment.End
+        if nextSegmentDir = Up then
+            let thirdPoint = {X = nextSegment.Start.X ; Y = nextSegment.Start.Y - minimumLength}
+            verticesToString firstPoint secondPoint thirdPoint
+        else
+            let thirdPoint = {X = nextSegment.Start.X ; Y = nextSegment.Start.Y + minimumLength}
+            verticesToString firstPoint secondPoint thirdPoint
+        
+    elif currentSegmentDir = Left then
+        let firstPoint = {X = currentSegment.End.X + minimumLength ; Y = currentSegment.End.Y}
+        let secondPoint = currentSegment.End
+        if nextSegmentDir = Up then
+            let thirdPoint = {X = nextSegment.Start.X ; Y = nextSegment.Start.Y - minimumLength}
+            verticesToString firstPoint secondPoint thirdPoint
+        else
+            let thirdPoint = {X = nextSegment.Start.X ; Y = nextSegment.Start.Y + minimumLength}
+            verticesToString firstPoint secondPoint thirdPoint
+
+    elif currentSegmentDir = Up then
+        let firstPoint = {X = currentSegment.End.X ; Y = currentSegment.End.Y + minimumLength }
+        let secondPoint = currentSegment.End
+        if nextSegmentDir = Left then
+            let thirdPoint = {X = nextSegment.Start.X - minimumLength ; Y = nextSegment.Start.Y}
+            verticesToString firstPoint secondPoint thirdPoint
+        else
+            let thirdPoint = {X = nextSegment.Start.X + minimumLength ; Y = nextSegment.Start.Y}
+            verticesToString firstPoint secondPoint thirdPoint
+
+    else
+        let firstPoint = {X = currentSegment.End.X ; Y = currentSegment.End.Y - minimumLength }
+        let secondPoint = currentSegment.End
+        if nextSegmentDir = Left then
+            let thirdPoint = {X = nextSegment.Start.X - minimumLength ; Y = nextSegment.Start.Y}
+            verticesToString firstPoint secondPoint thirdPoint
+        else
+            let thirdPoint = {X = nextSegment.Start.X + minimumLength ; Y = nextSegment.Start.Y}
+            verticesToString firstPoint secondPoint thirdPoint
+
+
+let segmentsToRoundedString segments =
+    segments
+    |> List.mapi (fun index segment  -> if index <> (segments.Length-1) then
+                                            let currentSegment = segments.[index]
+                                            let nextSegment = segments.[index+1]
+                                            let currentSegmentLength = lenOfSeg currentSegment
+                                            let nextSegmentLength = lenOfSeg nextSegment
+
+                                            if ((currentSegmentLength <> 0.) && (nextSegmentLength <> 0.)) then
+
+                                                if ((currentSegmentLength<20.) || (nextSegmentLength<20.)) then
+                                                    let minimumLength = min currentSegmentLength nextSegmentLength
+                                                    segmentToCurve currentSegment nextSegment (minimumLength/2.)
+                                                else
+                                                    segmentToCurve currentSegment nextSegment 10.
+
+                                            else
+                                                ""
+                                        else
+                                            " L " + posToString segment.End)
+    |> List.reduce (+)
+
+let segmentsAreClose seg1 seg2 =
+    let snapThresh = 30.
+    dirOfSeg seg1 = dirOfSeg seg2 
+    && lenOfSeg (segOf seg1.Start seg2.Start) > 0. 
+    && pointsAreCloseInDir (somePerpendicularDir (dirOfSeg seg1)) seg1.Start seg2.Start snapThresh
