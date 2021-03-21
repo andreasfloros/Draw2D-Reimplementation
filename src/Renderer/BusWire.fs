@@ -290,6 +290,7 @@ let autoRouteWires wires portsMap =
         let routeStart = correctEndPt ids startId true
         let routeEnd = correctEndPt ids endId false
         // setup for routing
+        let oldFromDir, oldToDir = getStartDirFromWire wire, getStartDirFromWire wire
         let fromDir, toDir = correctEndDir ids startId true, correctEndDir ids endId false
         let wire = {wire with EndDir = toDir; WireRenderProps = {getWirePropsFromWire wire with StartDir = fromDir}}
         let startExtension = getPortExtension routeStart fromDir true
@@ -318,8 +319,8 @@ let autoRouteWires wires portsMap =
                              |> List.map snd
                              |> (fun r -> if portId = endId then swapRoute r else r)
             let betweenRoute =  // exact toDir used in manhattanAutoRoute doesn't matter, the below works because by construction segments will alternate Dirs (i.e. Horizontal -> Vertical -> Horizontal...)
-                                if portId = endId then manhattanAutoRoute endExtension.Start (getOppositeDir toDir) autoRouteToPt (somePerpendicularDir toDir)
-                                else manhattanAutoRoute startExtension.End fromDir autoRouteToPt (somePerpendicularDir fromDir)
+                                if portId = endId then manhattanAutoRoute endExtension.Start (getOppositeDir toDir) autoRouteToPt (somePerpendicularDir oldToDir)
+                                else manhattanAutoRoute startExtension.End fromDir autoRouteToPt (somePerpendicularDir oldFromDir)
             let route =
                         if portId = endId then (swapSeg endExtension) :: betweenRoute @ routeSoFar |> swapRoute
                         else startExtension :: betweenRoute @ routeSoFar
