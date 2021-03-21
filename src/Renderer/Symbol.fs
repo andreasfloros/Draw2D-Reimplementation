@@ -1,4 +1,4 @@
-﻿module Symbol
+module Symbol
 open Fable.React
 open Fable.React.Props
 open Browser
@@ -1096,4 +1096,3 @@ let FindPort (mousePos: XYPos) (model: Model) =
     match List.filter (fun x -> x <> None) s with 
     | [] -> None 
     | s -> s.[0]
-
