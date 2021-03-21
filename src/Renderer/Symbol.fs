@@ -629,9 +629,30 @@ let private invertor (props:BasicSymbolProps) (color:string) (rectWidth:float) _
             SVGAttr.Points $"{rectWidth},{(props.Sym.H)/2.} {rectWidth},{(props.Sym.H)/4.} {props.Sym.W},{(props.Sym.H)/2.}"
             SVGAttr.StrokeWidth "2px"
             SVGAttr.Stroke "Black"
-            SVGAttr.FillOpacity 0.1
+            SVGAttr.FillOpacity 0.5
             SVGAttr.Fill color] []
     | _ -> text [] []
+
+
+let circmaker (sym: Symbol) (port: CommonTypes.Port) = 
+
+    let x = float(port.PortPos.X - sym.Pos.X)
+    let y = float(port.PortPos.Y - sym.Pos.Y)
+    
+    circle
+        [ 
+      
+        Cx x
+        Cy y
+        R 5.
+        SVGAttr.Fill "green"
+        SVGAttr.FillOpacity (if sym.IsSelected then 0.9 else 0.0)
+        SVGAttr.Stroke "Black"
+        SVGAttr.StrokeWidth 0
+            ] []
+            
+
+
 
 
 let private portLabels (sym:Symbol) (i:int) =
@@ -859,7 +880,7 @@ let private renderBasicSymbol =
 
             let color =
                 if props.Sym.IsSelected then
-                    "blue"
+                    "lightgreen"
                 else
                     "gray"
 
@@ -883,6 +904,8 @@ let private renderBasicSymbol =
                 | -90 -> {X = 0.; Y = props.Sym.W} 
                 | _ -> failwithf "should not occur"
 
+
+
             g   [ Style [ 
                 TransformOrigin "0px 0px" // so that rotation is around centre of line
                 Transform (sprintf "translate(%fpx,%fpx) rotate(%ddeg) scale(%A) " (fX+mirrorShift+rotateShift.X) (fY+rotateShift.Y) rotation scaleFactor )
@@ -896,7 +919,7 @@ let private renderBasicSymbol =
                             //SVGAttr.Points $"{cutLeftW},{cutLeftH} {vertex5.X},{vertex5.Y} {cutLeftW},{fH-cutLeftH} {fW-cutRightW},{fH-cutRightH} {vertex6.X},{vertex6.Y} {fW-cutRightW},{cutRightH}"
                             SVGAttr.StrokeWidth "2px"
                             SVGAttr.Stroke "Black"
-                            SVGAttr.FillOpacity 0.1
+                            SVGAttr.FillOpacity 0.5
                             SVGAttr.Fill color] []
 
                     text [ 
@@ -917,11 +940,13 @@ let private renderBasicSymbol =
             @ List.map (invertor props color fW) [0]
             @ List.map (clkTri props color) [0]
             @ List.map (clkLabel props) [0]
+            @ List.map (circmaker props.Sym) props.Sym.Ports
             ) 
   
     , "BasicSymbol"
     , equalsButFunctions
     )
+
 
 
 let renderSymbols (dispatch : Msg -> unit) (symToRender : Symbol) : ReactElement  =
