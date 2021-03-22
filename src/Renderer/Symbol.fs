@@ -1,4 +1,4 @@
-module Symbol
+﻿module Symbol
 open Fable.React
 open Fable.React.Props
 open Browser
@@ -363,8 +363,8 @@ let init () =
     |> List.map (fun (x,y) -> {X = float (x*180+20); Y=float (y*220-60)})
     |> List.map (fun {X=x;Y=y} -> 
         match (x, y) with 
-        | 200., 160. -> (createNewSymbol (NbitsAdder 7) "label" {X=x;Y=y})
-        | 200., 380. -> (createNewSymbol (DemuxN 7) "label" {X=x;Y=y})
+        | 200., 160. -> (createNewSymbol (NbitsAdder 7) "A1" {X=x;Y=y})
+        | 200., 380. -> (createNewSymbol (DemuxN 7) "Demux1" {X=x;Y=y})
         | 380., 160. -> (createNewSymbol (BusSelection (5,2)) "label" {X=x;Y=y})
         | 380., 380. -> (createNewSymbol (RegisterE 5) "label" {X=x;Y=y})
         | 560., 160. -> (createNewSymbol (MergeWires) "label" {X=x;Y=y})
@@ -771,6 +771,22 @@ let private portLabels (sym:Symbol) (i:int) =
         ] [str <| $"{portLabel}"] 
 
 
+let private symLabel (sym: Symbol) _ = 
+    
+    text [ 
+        X (sym.CurrentW / 2.); 
+        Y (-10.); 
+        Style [
+            TextAnchor "middle"
+            DominantBaseline "middle"
+            FontSize "13px"
+            FontWeight "Bold"
+            Fill "Gray" 
+            Transform (sprintf "translate(%fpx,%fpx) scale(%A) " 0. 0. (1.0, 1.0) )
+        ]
+    ] [str <| $"{sym.Label}"] 
+
+
 let private renderBasicSymbol = 
     FunctionComponent.Of(
         fun (props : BasicSymbolProps) ->
@@ -930,6 +946,7 @@ let private renderBasicSymbol =
                     ] [str <| sprintf $"{header}"] 
 
             ] 
+            @ List.map (symLabel props.Sym) [0]
             @ List.map (portLabels props.Sym) [0..numOfPorts-1]
             @ List.map (invertor props color fW) [0]
             @ List.map (clkTri props color) [0]
