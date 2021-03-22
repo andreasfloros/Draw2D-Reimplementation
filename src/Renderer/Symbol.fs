@@ -472,6 +472,50 @@ let symbolRotation sym =
                 CurrentW = sym.W
             }
 
+
+let closeTogether a b = 
+    match a, b with 
+    | v1, v2 when (v1 <= v2 + 2.) || (v1 >= v2 - 2.) -> true
+    | _ -> false
+
+let horizontalAlign x model =
+    let checkAlignment (s:Symbol) =
+        match (closeTogether x s.Pos.X), (closeTogether x (s.Pos.X + s.CurrentW)) with 
+        | false, false -> None
+        | true, false -> Some s.Pos.X
+        | false, true -> Some (s.Pos.X + s.CurrentW)
+        | true, true when abs(x - s.Pos.X) <= abs(x - (s.Pos.X + s.CurrentW))-> Some s.Pos.X
+        | true, true -> Some (s.Pos.X + s.CurrentW)
+    let allComparisons = List.map checkAlignment model
+    let keepClosest a b =
+        match a, b with
+        | None, None -> None 
+        | None, Some v -> Some v
+        | Some v, None -> Some v
+        | Some v, Some w when abs(x - v) <= abs(x - w) -> Some v
+        | Some v, Some w -> Some w
+    (None, allComparisons) ||> List.fold keepClosest
+
+
+let verticalAlign y model =
+    let checkAlignment (s:Symbol) =
+        match (closeTogether y s.Pos.Y), (closeTogether y (s.Pos.Y + s.CurrentH)) with 
+        | false, false -> None
+        | true, false -> Some s.Pos.Y
+        | false, true -> Some (s.Pos.Y + s.CurrentH)
+        | true, true when abs(y - s.Pos.Y) <= abs(y - (s.Pos.Y + s.CurrentH))-> Some s.Pos.Y
+        | true, true -> Some (s.Pos.Y + s.CurrentW)
+    let allComparisons = List.map checkAlignment model
+    let keepClosest a b =
+        match a, b with
+        | None, None -> None 
+        | None, Some v -> Some v
+        | Some v, None -> Some v
+        | Some v, Some w when abs(y - v) <= abs(y - w) -> Some v
+        | Some v, Some w -> Some w
+    (None, allComparisons) ||> List.fold keepClosest
+
+
 /// update function which displays symbols
 let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
     match msg with
@@ -658,7 +702,7 @@ let circmaker (sym: Symbol) (i:int) =
                     
         | _ -> {X = port.RelativePortPos.X  ; Y = port.RelativePortPos.Y  }
 
-
+   
     circle
         [ 
       
