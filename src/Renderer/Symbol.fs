@@ -359,15 +359,15 @@ let testCustom = Custom {Name = "Custom Comp Test"; InputLabels = [("data-in",4)
 
 
 let init () =
-    List.allPairs [1..1] [1..2]
+    List.allPairs [1..3] [1..1]
     |> List.map (fun (x,y) -> {X = float (x*180+20); Y=float (y*220-60)})
     |> List.map (fun {X=x;Y=y} -> 
         match (x, y) with 
         | 200., 160. -> (createNewSymbol (NbitsAdder 7) "A1" {X=x;Y=y})
         | 200., 380. -> (createNewSymbol (DemuxN 7) "Demux1" {X=x;Y=y})
-        | 380., 160. -> (createNewSymbol (BusSelection (5,2)) "label" {X=x;Y=y})
-        | 380., 380. -> (createNewSymbol (RegisterE 5) "label" {X=x;Y=y})
-        | 560., 160. -> (createNewSymbol (MergeWires) "label" {X=x;Y=y})
+        | 380., 160. -> (createNewSymbol (RegisterE 5) "Reg1" {X=x;Y=y})
+        | 380., 380. -> (createNewSymbol (BusSelection (5,2)) "label" {X=x;Y=y})
+        | 560., 160. -> (createNewSymbol (MergeWires) "label?" {X=x;Y=y})
         | 560., 380. -> (createNewSymbol (testRAM) "label" {X=x;Y=y})
         | 740., 160. -> (createNewSymbol (Mux2) "label" {X=x;Y=y})
         | 740., 380. -> (createNewSymbol (Nand) "label" {X=x;Y=y})
@@ -475,45 +475,71 @@ let symbolRotation sym =
 
 let closeTogether a b = 
     match a, b with 
-    | v1, v2 when (v1 <= v2 + 2.) || (v1 >= v2 - 2.) -> true
+    | v1, v2 when abs(v1 - v2) <= 6. -> true
     | _ -> false
 
-let horizontalAlign x model =
-    let checkAlignment (s:Symbol) =
-        match (closeTogether x s.Pos.X), (closeTogether x (s.Pos.X + s.CurrentW)) with 
-        | false, false -> None
-        | true, false -> Some s.Pos.X
-        | false, true -> Some (s.Pos.X + s.CurrentW)
-        | true, true when abs(x - s.Pos.X) <= abs(x - (s.Pos.X + s.CurrentW))-> Some s.Pos.X
-        | true, true -> Some (s.Pos.X + s.CurrentW)
-    let allComparisons = List.map checkAlignment model
-    let keepClosest a b =
+let horizontalAlign (sym:Symbol) xPos model =
+    let checkAlignment (w:float) (s:Symbol) =
+        let x = xPos + w
+        if sym.Id <> s.Id 
+        then
+            match (closeTogether x s.Pos.X), (closeTogether x (s.Pos.X + s.CurrentW)) with 
+            | false, false -> None
+            | true, false -> Some s.Pos.X
+            | false, true -> Some (s.Pos.X + s.CurrentW)
+            | true, true when abs(x - s.Pos.X) <= abs(x - (s.Pos.X + s.CurrentW))-> Some s.Pos.X
+            | true, true -> Some (s.Pos.X + s.CurrentW)
+        else 
+            None
+    let allComparisons w = List.map (checkAlignment w) model
+    let keepClosest w a b =
+        let x = xPos + w
         match a, b with
         | None, None -> None 
-        | None, Some v -> Some v
-        | Some v, None -> Some v
-        | Some v, Some w when abs(x - v) <= abs(x - w) -> Some v
-        | Some v, Some w -> Some w
-    (None, allComparisons) ||> List.fold keepClosest
+        | None, Some q -> Some q
+        | Some p, None -> Some p
+        | Some p, Some q when abs(x - p) <= abs(x - q) -> Some p
+        | Some p, Some q -> Some q
+    let leftSide = (None, (allComparisons 0.)) ||> List.fold (keepClosest 0.)
+    let rightSide = (None, (allComparisons sym.CurrentW)) ||> List.fold (keepClosest sym.CurrentW)
+    match leftSide, rightSide with
+    | None, None -> None
+    | Some p, None -> Some p
+    | None, Some q -> Some (q - sym.CurrentW)
+    | Some p, Some q when abs(xPos - p) <= abs(xPos + sym.CurrentW - q) -> Some p
+    | Some p, Some q -> Some (q - sym.CurrentW)
 
 
-let verticalAlign y model =
-    let checkAlignment (s:Symbol) =
-        match (closeTogether y s.Pos.Y), (closeTogether y (s.Pos.Y + s.CurrentH)) with 
-        | false, false -> None
-        | true, false -> Some s.Pos.Y
-        | false, true -> Some (s.Pos.Y + s.CurrentH)
-        | true, true when abs(y - s.Pos.Y) <= abs(y - (s.Pos.Y + s.CurrentH))-> Some s.Pos.Y
-        | true, true -> Some (s.Pos.Y + s.CurrentW)
-    let allComparisons = List.map checkAlignment model
-    let keepClosest a b =
+let verticalAlign (sym:Symbol) yPos model =
+    let checkAlignment h (s:Symbol) =
+        let y = yPos + h
+        if sym.Id <> s.Id 
+        then
+            match (closeTogether y s.Pos.Y), (closeTogether y (s.Pos.Y + s.CurrentH)) with 
+            | false, false -> None
+            | true, false -> Some s.Pos.Y
+            | false, true -> Some (s.Pos.Y + s.CurrentH)
+            | true, true when abs(y - s.Pos.Y) <= abs(y - (s.Pos.Y + s.CurrentH))-> Some s.Pos.Y
+            | true, true -> Some (s.Pos.Y + s.CurrentW)
+        else 
+            None
+    let allComparisons h = List.map (checkAlignment h) model
+    let keepClosest h a b =
+        let y = yPos + h
         match a, b with
         | None, None -> None 
-        | None, Some v -> Some v
-        | Some v, None -> Some v
-        | Some v, Some w when abs(y - v) <= abs(y - w) -> Some v
-        | Some v, Some w -> Some w
-    (None, allComparisons) ||> List.fold keepClosest
+        | None, Some q -> Some q
+        | Some p, None -> Some p
+        | Some p, Some q when abs(y - p) <= abs(y - q) -> Some p
+        | Some p, Some q -> Some q
+    let topSide = (None, (allComparisons 0.)) ||> List.fold (keepClosest 0.)
+    let bottomSide = (None, (allComparisons sym.CurrentH)) ||> List.fold (keepClosest sym.CurrentH)
+    match topSide, bottomSide with
+    | None, None -> None
+    | Some p, None -> Some p
+    | None, Some q -> Some (q - sym.CurrentH)
+    | Some p, Some q when abs(yPos - p) <= abs(yPos + sym.CurrentH - q) -> Some p
+    | Some p, Some q -> Some (q - sym.CurrentW)
 
 
 /// update function which displays symbols
@@ -556,18 +582,21 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
             else
                 let diff = posDiff pagePos sym.LastDragPos
                 let updatedPos = posAdd sym.Pos diff
-                let newX = 
-                    match horizontalAlign updatedPos.X model with
-                    | None -> updatedPos.X
-                    | Some x -> x
-                let newY = 
-                    match verticalAlign updatedPos.Y model with
-                    | None -> updatedPos.Y
-                    | Some y -> y
+                let newX, xAligned = 
+                    match horizontalAlign sym updatedPos.X model with
+                    | None -> updatedPos.X, false
+                    | Some x -> x, true
+                let newY, yAligned = 
+                    match verticalAlign sym updatedPos.Y model with
+                    | None -> updatedPos.Y, false
+                    | Some y -> y, true
                 { sym with
-                    Pos = updatedPos//{X = newX; Y = newY}
-                    Ports = List.map (fun port -> {port with PortPos = posAdd port.PortPos diff}) sym.Ports
+                    Pos = {X = newX; Y = newY} //updatedPos 
+                    Ports = List.map (fun port -> {port with PortPos = posAdd port.RelativePortPos sym.Pos}) sym.Ports
                     LastDragPos = pagePos
+                        // if ((xAligned = true) || (yAligned = true))
+                        // then sym.LastDragPos
+                        // else pagePos
                 }
         )
         , Cmd.none
@@ -578,7 +607,16 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
             if sId <> sym.Id then 
                 sym
             else
+                // let newX = 
+                //     match horizontalAlign sId sym.Pos.X model with
+                //     | None -> sym.Pos.X
+                //     | Some x -> x
+                // let newY = 
+                //     match verticalAlign sId sym.Pos.Y model with
+                //     | None -> sym.Pos.Y
+                //     | Some y -> y
                 { sym with
+                    //Pos = {X = newX; Y = newY}
                     IsDragging = false 
                 }
         )
