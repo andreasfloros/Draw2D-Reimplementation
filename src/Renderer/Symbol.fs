@@ -555,8 +555,17 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
                 sym
             else
                 let diff = posDiff pagePos sym.LastDragPos
+                let updatedPos = posAdd sym.Pos diff
+                let newX = 
+                    match horizontalAlign updatedPos.X model with
+                    | None -> updatedPos.X
+                    | Some x -> x
+                let newY = 
+                    match verticalAlign updatedPos.Y model with
+                    | None -> updatedPos.Y
+                    | Some y -> y
                 { sym with
-                    Pos = posAdd sym.Pos diff
+                    Pos = updatedPos//{X = newX; Y = newY}
                     Ports = List.map (fun port -> {port with PortPos = posAdd port.PortPos diff}) sym.Ports
                     LastDragPos = pagePos
                 }
@@ -838,9 +847,14 @@ let private portLabels (sym:Symbol) (i:int) =
 
 
 let private symLabel (sym: Symbol) _ = 
-    
+
+    let mirrorShift, scaleFactor = 
+            match sym.Orientation with
+            | Mirror -> (sym.W, (-1.0, 1.0))
+            | _ -> (0., (1.0, 1.0))
+
     text [ 
-        X (sym.CurrentW / 2.); 
+        X (sym.W / 2.); 
         Y (-10.); 
         Style [
             TextAnchor "middle"
@@ -848,7 +862,7 @@ let private symLabel (sym: Symbol) _ =
             FontSize "13px"
             FontWeight "Bold"
             Fill "Gray" 
-            Transform (sprintf "translate(%fpx,%fpx) scale(%A) " 0. 0. (1.0, 1.0) )
+            Transform (sprintf "translate(%fpx,%fpx) scale(%A) " mirrorShift 0. scaleFactor )
         ]
     ] [str <| $"{sym.Label}"] 
 
