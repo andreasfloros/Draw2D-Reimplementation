@@ -472,7 +472,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
    // | SetColor c -> {model with Wires = Map.change }, Cmd.none
                                    
     | DeleteWire wId -> 
-        {model with Wires = Map.filter (fun id w -> id <> wId}, Cmd.none
+        {model with Wires = Map.filter (fun id w -> id <> wId) model.Wires}, Cmd.none
 
 
     | AutoRouteAll ->
