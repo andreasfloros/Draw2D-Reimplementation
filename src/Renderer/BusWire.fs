@@ -51,6 +51,7 @@ type WireRenderProps = {
     Segments : Segment list // the shortest possible wire with the current implementation will have two segments
     Color : CommonTypes.Color
     Width : float
+    IsSelected : bool
     Label : string // for printing the width
     StartDir : Dir // for determining the position of the label
 }                  // start dir is both a render prop and an attribute used in routing algorithms
@@ -143,17 +144,18 @@ let singleWireView =
                         Style[
                             StrokeLinejoin "round"
                             Fill "none"
+                            UserSelect UserSelectOptions.None
                         ]
                         let firstSegmentStart = posToString props.Segments.Head.Start
-                        //D ("M " + firstSegmentStart + segmentsToRoundedString props.Segments) // for rounded corners, below line is normal
-                        D ("M " + segmentsToString props.Segments)
+                        D ("M " + firstSegmentStart + segmentsToRoundedString props.Segments) // for rounded corners, below line is normal
+                        //D ("M " + segmentsToString props.Segments)
                         SVGAttr.StrokeWidth props.Width
-                        SVGAttr.Stroke (props.Color.Text())][]
+                        SVGAttr.Stroke (if props.IsSelected then "Red" else props.Color.Text())][]
                 text[X xLabel
                      Y yLabel
                      Style[FontSize "16px"
                            FontWeight "Bold"
-                           Fill (props.Color.Text())]
+                           Fill (if props.IsSelected then "Red" else props.Color.Text())]
                          ][props.Label |> str]
                 ])
 
@@ -264,7 +266,26 @@ let routeFromStart startExtension endExtension =
 // a seperate function might have to be written for processing width inference changes (updating labels)
 // as of the demo this is purely used for routing
 let autoRouteWires wires portsMap =
+    let remove0Segs wire =
+        let segments = getSegmentsFromWire wire
+        let tripletToBeEradicated = 
+            let segmentsMaxIdx = segments.Length - 1
+            segments
+            |> List.indexed
+            |> List.tryPick (fun (idx,seg) ->
+                                    if idx > segmentsMaxIdx - 2 then None
+                                    else if lenOfSeg seg = 0. && lenOfSeg segments.[idx+1] = 0. && lenOfSeg segments.[idx+2] = 0.
+                                    then (Some idx) else None)
 
+        match tripletToBeEradicated with
+        | Some index ->
+            segments
+            |> List.mapi (fun idx seg ->
+                                if idx = index || idx = index + 2 then []
+                                else [seg])
+            |> List.collect id
+            |> updateWireWithSegments wire
+        | None -> wire
     let correctEndPtsAndAutoRoute (wire: Wire) ids =
         // if ports can change positions a similar function to correctEndPt could be written, correndEndDir
         // any additional changes could also be factored in here as they would only result in a change in the WireRenderProps of the affected wire
@@ -350,6 +371,7 @@ let autoRouteWires wires portsMap =
     |> Map.map (fun _wireId wire ->
                 match connectedToPorts wire with
                 | Some ids -> correctEndPtsAndAutoRoute wire ids
+                              |> remove0Segs
                 | None -> wire)
 
 // assumes wire has been initialised
@@ -381,7 +403,8 @@ let createWire startId startPort endId endPort =
                         Color = if portWidth < 1 then CommonTypes.Color.Red else CommonTypes.Color.Blue
                         Width = if portWidth > 1 then 4. else 1.5
                         Label = if portWidth < 1 then "" else sprintf "%d" portWidth
-                        StartDir = fromDir}
+                        StartDir = fromDir
+                        IsSelected = false}
      EndDir = toDir
     }
 
