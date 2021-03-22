@@ -585,7 +585,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
     | Dragging (rank, pagePos) ->
         model
         |> List.map (fun sym ->
-            if rank <> sym.Id then
+            if sym.IsSelected = false then
                 sym
             else
                 let diff = posDiff pagePos sym.LastDragPos
