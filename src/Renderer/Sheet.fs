@@ -281,7 +281,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                     |> Wire |> Cmd.ofMsg
             | BusWire (wId,x) -> 
                         newModel, 
-                        wId |> BusWire.Msg.Unselect
+                        wId |> BusWire.Msg.Deselect
                         |> Wire |> Cmd.ofMsg
             | NoItem -> newModel, Cmd.none
             | Port(portId, portType) -> failwith "Not Implemented"

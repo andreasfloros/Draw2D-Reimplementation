@@ -125,9 +125,8 @@ type Msg =
     | ManualRouting of wireId : WireId * segmentIndex : int * mousePos : XYPos
     | DeleteWire of wireId: WireId
     | SetColor of CommonTypes.HighLightColor
-    | Unselect of wireId: WireId //CommonTypes.ConnectionId
-    | Select of wireId : WireId //CommonTypes.ConnectionId
-    | RotSym of CommonTypes.SymbolId
+    | Deselect of wireId: WireId
+    | Select of wireId : WireId
     | AutoRouteAll
 
 let singleWireView =
@@ -144,7 +143,6 @@ let singleWireView =
                         Style[
                             StrokeLinejoin "round"
                             Fill "none"
-                            UserSelect UserSelectOptions.None
                         ]
                         let firstSegmentStart = posToString props.Segments.Head.Start
                         D ("M " + firstSegmentStart + segmentsToRoundedString props.Segments) // for rounded corners, below line is normal
@@ -155,7 +153,9 @@ let singleWireView =
                      Y yLabel
                      Style[FontSize "16px"
                            FontWeight "Bold"
-                           Fill (if props.IsSelected then "Red" else props.Color.Text())]
+                           Fill (if props.IsSelected then "Red" else props.Color.Text())
+                           UserSelect UserSelectOptions.None
+                           ]
                          ][props.Label |> str]
                 ])
 
@@ -470,32 +470,32 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
 
    // | SetColor c -> {model with Wires = Map.change }, Cmd.none
-
-    // | Unselect wId -> //Anushka
-    //             // let w = model.Wires |> Map.change (fun w ->  {w with WireColor = string(CommonTypes.Grey)})
-    //             {model with Wires = Map.change wId (fun w -> {w with WireRenderProps.Color = CommonTypes.Grey}) model.Wires}, Cmd.none
                                    
-    // | DeleteWire wId -> 
-    //     {model with Wires = Map.filter (fun w -> w.WireColor <> string(CommonTypes.Red)) model.Wires}, Cmd.none
+    | DeleteWire wId -> 
+        {model with Wires = Map.filter (fun id w -> id <> wId}, Cmd.none
 
-    | RotSym symId -> 
-        let sm,sCmd = Symbol.update (Symbol.RotateSymbol symId) model.SymbolModel
-        let movedPortsMap = Symbol.getPortsFromId symId sm
-        let newWires = autoRouteWires model.Wires movedPortsMap
-        model
-        |> updateWireModelWithWires newWires
-        |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
 
     | AutoRouteAll ->
         let newWires = getWiresFromWireModel model
                        |> Map.map autoRouteWire
         model
         |> updateWireModelWithWires newWires, Cmd.none
-    // | Select wId -> 
-    //     let w = model.Wires |> Map.map (fun w -> 
-    //                         if w.wireId = wId then {w with WireColor = string(CommonTypes.Red)}
-    //                         else {w with WireColor = string(CommonTypes.Grey)})
-    //     {model with Wires = w}, Cmd.none
+    | Select wId -> 
+        let newWires = model
+                       |> getWiresFromWireModel
+                       |> Map.map (fun id w -> if id = wId then 
+                                                    {w with WireRenderProps = {getWirePropsFromWire w with IsSelected = true}}
+                                               else 
+                                                    w)
+        updateWireModelWithWires newWires model, Cmd.none
+    | Deselect wId -> 
+        let newWires = model
+                       |> getWiresFromWireModel
+                       |> Map.map (fun id w -> if id = wId then 
+                                                    {w with WireRenderProps = {getWirePropsFromWire w with IsSelected = false}}
+                                               else 
+                                                    w)
+        updateWireModelWithWires newWires model, Cmd.none
 
 
 // Bounding Box function for sheet
