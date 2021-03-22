@@ -450,7 +450,11 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             let newWires = model
                            |> getWiresFromWireModel
                            |> Map.map (fun id w -> { w with WireRenderProps = {getWirePropsFromWire w with IsSelected = false} } )
-            {model with SymbolModel=sm; Wires= newWires}, Cmd.map Symbol sCmd
+            model
+            |> updateWireModelWithWires newWires
+            |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
+
+            //{model with SymbolModel=sm; Wires= newWires}, Cmd.map Symbol sCmd
         | Symbol.Dragging (sId,pos) -> 
             let movedPortsMap = Symbol.getPortsFromId sId sm
             let newWires = autoRouteWires model.Wires movedPortsMap
