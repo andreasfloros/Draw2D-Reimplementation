@@ -476,7 +476,7 @@ let symbolRotation sym =
 
 let closeTogether a b = 
     match a, b with 
-    | v1, v2 when abs(v1 - v2) <= 6. -> true
+    | v1, v2 when abs(v1 - v2) <= 0. -> true
     | _ -> false
 
 let horizontalAlign (sym:Symbol) xPos model =
