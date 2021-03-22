@@ -51,6 +51,7 @@ type WireRenderProps = {
     Segments : Segment list // the shortest possible wire with the current implementation will have two segments
     Color : CommonTypes.Color
     Width : float
+    IsSelected : bool
     Label : string // for printing the width
     StartDir : Dir // for determining the position of the label
 }                  // start dir is both a render prop and an attribute used in routing algorithms
@@ -143,17 +144,18 @@ let singleWireView =
                         Style[
                             StrokeLinejoin "round"
                             Fill "none"
+                            UserSelect UserSelectOptions.None
                         ]
                         let firstSegmentStart = posToString props.Segments.Head.Start
-                        //D ("M " + firstSegmentStart + segmentsToRoundedString props.Segments) // for rounded corners, below line is normal
-                        D ("M " + segmentsToString props.Segments)
+                        D ("M " + firstSegmentStart + segmentsToRoundedString props.Segments) // for rounded corners, below line is normal
+                        //D ("M " + segmentsToString props.Segments)
                         SVGAttr.StrokeWidth props.Width
-                        SVGAttr.Stroke (props.Color.Text())][]
+                        SVGAttr.Stroke (if props.IsSelected then "Red" else props.Color.Text())][]
                 text[X xLabel
                      Y yLabel
                      Style[FontSize "16px"
                            FontWeight "Bold"
-                           Fill (props.Color.Text())]
+                           Fill (if props.IsSelected then "Red" else props.Color.Text())]
                          ][props.Label |> str]
                 ])
 
@@ -401,7 +403,8 @@ let createWire startId startPort endId endPort =
                         Color = if portWidth < 1 then CommonTypes.Color.Red else CommonTypes.Color.Blue
                         Width = if portWidth > 1 then 4. else 1.5
                         Label = if portWidth < 1 then "" else sprintf "%d" portWidth
-                        StartDir = fromDir}
+                        StartDir = fromDir
+                        IsSelected = false}
      EndDir = toDir
     }
 
