@@ -95,14 +95,23 @@ let view (model:Model) (dispatch : Msg -> unit) =
 let getHit (click: XYPos) (model: Model) =
     let sModel = BusWire.getSymbolModelFromWireModel model.Wire
     match Symbol.FindPort click sModel with 
-    | Some (p,t) -> Port (p, t)
+    | Some (p,t) ->
+        printf "Get hit found a port" 
+        Port (p, t)
     | None -> 
         match Symbol.FindSymbol click sModel with 
-        | Some sId -> Symbol sId 
+        | Some sId -> 
+            printf "Get hit found a symbol"
+            Symbol sId 
         | None -> 
             match BusWire.findWire click model.Wire with 
-            | Some wId -> BusWire wId 
-            | None -> NoItem 
+            | Some wId -> 
+                printf "Get hit found a wire"
+                BusWire wId 
+
+            | None -> 
+                printf "Get hit found nothing"
+                NoItem 
 
 let getStringtoComponentType (s : string) = 
     match s with 
@@ -179,10 +188,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 | Symbol symbolID ->
                     model,
                     symbolID
-                    |> BusWire.Msg.RotSym
+                    |> Symbol.Msg.RotateSymbol
+                    |> BusWire.Msg.Symbol
                     |> Wire |> Cmd.ofMsg
                 | BusWire _ -> model,Cmd.none
                 | NoItem -> model,Cmd.none
+                | Port(portId, portType) -> failwith "Not Implemented"
 
         | _ -> failwithf "not yet done"
 
@@ -218,7 +229,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             else 
                 newModel, 
                 wireId 
-                |> BusWire.Msg.Unselect 
+                |> BusWire.Msg.Deselect 
                 |> Wire |> Cmd.ofMsg
             
         | NoItem -> 
@@ -229,8 +240,10 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 sId |> Symbol.Msg.Unselect |> BusWire.Msg.Symbol |> Wire |> Cmd.ofMsg
             | BusWire (wId,x) -> 
                 newModel, 
-                wId |> BusWire.Msg.Unselect |> Wire |> Cmd.ofMsg
+                wId |> BusWire.Msg.Deselect |> Wire |> Cmd.ofMsg
             | NoItem -> model, Cmd.none
+            | Port(portId, portType) -> failwith "Not Implemented"
+        | Port(portId, portType) -> failwith "Not Implemented"
 
 
     | MouseMsg event when event.Op = MouseOp.Up -> 
@@ -269,9 +282,10 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                     |> Wire |> Cmd.ofMsg
             | BusWire (wId,x) -> 
                         newModel, 
-                        wId |> BusWire.Msg.Unselect
+                        wId |> BusWire.Msg.Deselect
                         |> Wire |> Cmd.ofMsg
             | NoItem -> newModel, Cmd.none
+            | Port(portId, portType) -> failwith "Not Implemented"
         | _ -> failwithf "not yet done"
 
     | MouseMsg event -> model, Cmd.none 

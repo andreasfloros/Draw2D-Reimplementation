@@ -49,7 +49,7 @@ module Renderer
                   [makeKeyItem "Default" "CmdOrCtrl+S" (fun () -> dispatch KeyboardMsg.CtrlS)
                   // makeKeyItem "Blue" "Alt+C" (fun () -> dispatch KeyboardMsg.AltC)
                    //makeKeyItem "Green" "Alt+V" (fun () -> dispatch KeyboardMsg.AltV)
-                   makeKeyItem "Delete Selected"  "backspace" (fun () -> dispatch KeyboardMsg.DEL)
+                   makeKeyItem "Delete Selected"  "Delete" (fun () -> dispatch KeyboardMsg.DEL)
                   // makeKeyItem "Red" "Alt+Z" (fun () -> dispatch KeyboardMsg.AltZ)
                    makeKeyItem "Reset Wires" "CmdOrCtrl+W" (fun () -> dispatch KeyboardMsg.CtrlW)
                    makeKeyItem "Select Multiple Mode" "Shift+A" (fun () -> dispatch KeyboardMsg.ShiftA)

@@ -51,6 +51,7 @@ type WireRenderProps = {
     Segments : Segment list // the shortest possible wire with the current implementation will have two segments
     Color : CommonTypes.Color
     Width : float
+    IsSelected : bool
     Label : string // for printing the width
     StartDir : Dir // for determining the position of the label
 }                  // start dir is both a render prop and an attribute used in routing algorithms
@@ -124,9 +125,8 @@ type Msg =
     | ManualRouting of wireId : WireId * segmentIndex : int * mousePos : XYPos
     | DeleteWire of wireId: WireId
     | SetColor of CommonTypes.HighLightColor
-    | Unselect of wireId: WireId //CommonTypes.ConnectionId
-    | Select of wireId : WireId //CommonTypes.ConnectionId
-    | RotSym of CommonTypes.SymbolId
+    | Deselect of wireId: WireId
+    | Select of wireId : WireId
     | AutoRouteAll
 
 let singleWireView =
@@ -145,15 +145,17 @@ let singleWireView =
                             Fill "none"
                         ]
                         let firstSegmentStart = posToString props.Segments.Head.Start
-                        //D ("M " + firstSegmentStart + segmentsToRoundedString props.Segments) // for rounded corners, below line is normal
-                        D ("M " + segmentsToString props.Segments)
+                        D ("M " + firstSegmentStart + segmentsToRoundedString props.Segments) // for rounded corners, below line is normal
+                        //D ("M " + segmentsToString props.Segments)
                         SVGAttr.StrokeWidth props.Width
-                        SVGAttr.Stroke (props.Color.Text())][]
+                        SVGAttr.Stroke (if props.IsSelected then "Red" else props.Color.Text())][]
                 text[X xLabel
                      Y yLabel
                      Style[FontSize "16px"
                            FontWeight "Bold"
-                           Fill (props.Color.Text())]
+                           Fill (if props.IsSelected then "Red" else props.Color.Text())
+                           UserSelect UserSelectOptions.None
+                           ]
                          ][props.Label |> str]
                 ])
 
@@ -264,7 +266,26 @@ let routeFromStart startExtension endExtension =
 // a seperate function might have to be written for processing width inference changes (updating labels)
 // as of the demo this is purely used for routing
 let autoRouteWires wires portsMap =
+    let remove0Segs wire =
+        let segments = getSegmentsFromWire wire
+        let tripletToBeEradicated = 
+            let segmentsMaxIdx = segments.Length - 1
+            segments
+            |> List.indexed
+            |> List.tryPick (fun (idx,seg) ->
+                                    if idx > segmentsMaxIdx - 2 then None
+                                    else if lenOfSeg seg = 0. && lenOfSeg segments.[idx+1] = 0. && lenOfSeg segments.[idx+2] = 0.
+                                    then (Some idx) else None)
 
+        match tripletToBeEradicated with
+        | Some index ->
+            segments
+            |> List.mapi (fun idx seg ->
+                                if idx = index || idx = index + 2 then []
+                                else [seg])
+            |> List.collect id
+            |> updateWireWithSegments wire
+        | None -> wire
     let correctEndPtsAndAutoRoute (wire: Wire) ids =
         // if ports can change positions a similar function to correctEndPt could be written, correndEndDir
         // any additional changes could also be factored in here as they would only result in a change in the WireRenderProps of the affected wire
@@ -350,6 +371,7 @@ let autoRouteWires wires portsMap =
     |> Map.map (fun _wireId wire ->
                 match connectedToPorts wire with
                 | Some ids -> correctEndPtsAndAutoRoute wire ids
+                              |> remove0Segs
                 | None -> wire)
 
 // assumes wire has been initialised
@@ -381,7 +403,8 @@ let createWire startId startPort endId endPort =
                         Color = if portWidth < 1 then CommonTypes.Color.Red else CommonTypes.Color.Blue
                         Width = if portWidth > 1 then 4. else 1.5
                         Label = if portWidth < 1 then "" else sprintf "%d" portWidth
-                        StartDir = fromDir}
+                        StartDir = fromDir
+                        IsSelected = false}
      EndDir = toDir
     }
 
@@ -423,7 +446,11 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | Symbol sMsg -> 
         let sm,sCmd = Symbol.update sMsg model.SymbolModel
         match sMsg with
-        | Symbol.StartDragging (sId, pos) -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd
+        | Symbol.StartDragging (sId, pos) ->
+            let newWires = model
+                           |> getWiresFromWireModel
+                           |> Map.map (fun id w -> { w with WireRenderProps = {getWirePropsFromWire w with IsSelected = false} } )
+            {model with SymbolModel=sm; Wires= newWires}, Cmd.map Symbol sCmd
         | Symbol.Dragging (sId,pos) -> 
             let movedPortsMap = Symbol.getPortsFromId sId sm
             let newWires = autoRouteWires model.Wires movedPortsMap
@@ -447,32 +474,33 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
 
    // | SetColor c -> {model with Wires = Map.change }, Cmd.none
-
-    // | Unselect wId -> //Anushka
-    //             // let w = model.Wires |> Map.change (fun w ->  {w with WireColor = string(CommonTypes.Grey)})
-    //             {model with Wires = Map.change wId (fun w -> {w with WireRenderProps.Color = CommonTypes.Grey}) model.Wires}, Cmd.none
                                    
-    // | DeleteWire wId -> 
-    //     {model with Wires = Map.filter (fun w -> w.WireColor <> string(CommonTypes.Red)) model.Wires}, Cmd.none
+    | DeleteWire wId -> 
+        {model with Wires = Map.filter (fun id w -> id <> wId) model.Wires } , Cmd.none
 
-    | RotSym symId -> 
-        let sm,sCmd = Symbol.update (Symbol.RotateSymbol symId) model.SymbolModel
-        let movedPortsMap = Symbol.getPortsFromId symId sm
-        let newWires = autoRouteWires model.Wires movedPortsMap
-        model
-        |> updateWireModelWithWires newWires
-        |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
 
     | AutoRouteAll ->
         let newWires = getWiresFromWireModel model
                        |> Map.map autoRouteWire
         model
         |> updateWireModelWithWires newWires, Cmd.none
-    // | Select wId -> 
-    //     let w = model.Wires |> Map.map (fun w -> 
-    //                         if w.wireId = wId then {w with WireColor = string(CommonTypes.Red)}
-    //                         else {w with WireColor = string(CommonTypes.Grey)})
-    //     {model with Wires = w}, Cmd.none
+    | Select wId -> 
+        let sm,sCmd = Symbol.update Symbol.Deselect model.SymbolModel
+        let newWires = model
+                       |> getWiresFromWireModel
+                       |> Map.map (fun id w -> if id = wId then 
+                                                    {w with WireRenderProps = {getWirePropsFromWire w with IsSelected = true}}
+                                               else 
+                                                    w)
+        updateWireModelWithWires newWires {model with SymbolModel = sm}, Cmd.none
+    | Deselect wId -> 
+        let newWires = model
+                       |> getWiresFromWireModel
+                       |> Map.map (fun id w -> if id = wId then 
+                                                    {w with WireRenderProps = {getWirePropsFromWire w with IsSelected = false}}
+                                               else 
+                                                    w)
+        updateWireModelWithWires newWires model, Cmd.none
 
 
 // Bounding Box function for sheet
@@ -491,3 +519,11 @@ let findWire mousePos wireModel =
 
     wireMap
     |> Map.tryPick selectedSegmentOnWire
+
+
+let getSelectedWireList model =
+    model
+    |> getWiresFromWireModel
+    |> Map.filter (fun id w -> w.WireRenderProps.IsSelected = true)
+    |> Map.toList
+    |> List.map fst
