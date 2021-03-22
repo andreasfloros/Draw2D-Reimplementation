@@ -94,6 +94,10 @@ let generatePortList compProps numOfPorts portType connectionDirection =
         | NbitsAdder bw, PortType.Input, _ -> Some bw
         | NbitsAdder bw, PortType.Output, 0 -> Some bw
         | NbitsAdder _, PortType.Output, _ -> Some 1
+        
+        | Mux4, PortType.Input, 4 | Demux4, PortType.Output, 1 -> Some 2
+        | MuxN n, PortType.Input, i when i = n -> Some (log2 n)
+        | DemuxN n, PortType.Input, 1 -> Some (log2 n)
 
         | Input bw, _, _ | Output bw, _, _ -> Some bw
         | IOLabel, _, _ -> Some 1 //this
@@ -124,8 +128,8 @@ let generatePortList compProps numOfPorts portType connectionDirection =
         let portDists = compProps.W/float(numOfPorts+1)
         let relativePortPos i = 
             match compProps.Type with
-            | Mux2 | Mux4 | MuxN _ -> {X = float(i)*portDists ; Y = compProps.H - float(i*10)}
-            | Demux2 | Demux4 | DemuxN _ -> {X = float(i)*portDists ; Y = compProps.H - compProps.FooterMargin + float(i*10)}
+            | Mux2 | Mux4 | MuxN _ -> {X = float(i)*portDists ; Y = compProps.H - float(i*15)}
+            | Demux2 | Demux4 | DemuxN _ -> {X = float(i)*portDists ; Y = compProps.H - compProps.FooterMargin + float(i*15)}
             | _ -> {X = float(i)*portDists ; Y = compProps.H}
         [1..numOfPorts] 
         |> List.map (fun i -> 
@@ -264,10 +268,10 @@ let generateCompWithUpwardInputs compType compId compPos =
         match compType with 
         | Mux2 -> (2, 1, 1)
         | Demux2 -> (1, 1, 2)
-        | Mux4 -> (4, 2, 1)
-        | Demux4 -> (1, 2, 4)
-        | MuxN n -> (n, (log2 n), 1)
-        | DemuxN n -> (1, (log2 n), n)
+        | Mux4 -> (4, 1, 1)
+        | Demux4 -> (1, 1, 4)
+        | MuxN n -> (n, 1, 1)
+        | DemuxN n -> (1, 1, n)
         | DFFE | RegisterE _ -> (1, 1, 1)
         | _ -> failwithf "Error: Component I/O not repcified"
 
@@ -275,7 +279,7 @@ let generateCompWithUpwardInputs compType compId compPos =
     /// do not have access to.
     let headerMargin = 
         match compType with 
-        | Mux2 | Demux2 | Mux4 | Demux4 | MuxN _ | DemuxN _ ->  20. + float(numOfUpwardInputs*10)
+        | Mux2 | Demux2 | Mux4 | Demux4 | MuxN _ | DemuxN _ -> 40. //20. + float(numOfUpwardInputs*10)
         | DFFE | RegisterE _ -> 20.
         | _ -> 0.
 
@@ -283,7 +287,7 @@ let generateCompWithUpwardInputs compType compId compPos =
     /// do not have access to. 
     let footerMargin = 
         match compType with 
-        | Mux2 | Demux2 | Mux4 | Demux4 | MuxN _ | DemuxN _ -> 10. + float(numOfUpwardInputs*10)
+        | Mux2 | Demux2 | Mux4 | Demux4 | MuxN _ | DemuxN _ -> 30. //10. + float(numOfUpwardInputs*10)
         | DFFE | RegisterE _ -> 15.
         | _ -> 0.
 
@@ -294,7 +298,7 @@ let generateCompWithUpwardInputs compType compId compPos =
 
     let width = 
         match compType with 
-        | Mux2 | Demux2 | Mux4 | Demux4 | MuxN _ | DemuxN _ -> 25. + float(25*numOfUpwardInputs)
+        | Mux2 | Demux2 | Mux4 | Demux4 | MuxN _ | DemuxN _ -> 70. //25. + float(25*numOfUpwardInputs)
         | DFFE -> 100.
         | RegisterE _ -> 130.
         | _ -> 50.
@@ -360,7 +364,7 @@ let testCustom = Custom {Name = "Custom Comp Test"; InputLabels = [("data-in",4)
 
 
 let init () =
-    List.allPairs [1..3] [1..1]
+    List.allPairs [1..4] [1..2]
     |> List.map (fun (x,y) -> {X = float (x*180+20); Y=float (y*220-60)})
     |> List.map (fun {X=x;Y=y} -> 
         match (x, y) with 
@@ -371,7 +375,7 @@ let init () =
         | 560., 160. -> (createNewSymbol (MergeWires) "label?" {X=x;Y=y})
         | 560., 380. -> (createNewSymbol (testRAM) "label" {X=x;Y=y})
         | 740., 160. -> (createNewSymbol (Mux2) "label" {X=x;Y=y})
-        | 740., 380. -> (createNewSymbol (Nand) "label" {X=x;Y=y})
+        | 740., 380. -> (createNewSymbol (Demux4) "label" {X=x;Y=y})
         | _ -> (createNewSymbol (Xor) "label" {X=x;Y=y}) )
         
     , Cmd.none
@@ -476,7 +480,7 @@ let symbolRotation sym =
 
 let closeTogether a b = 
     match a, b with 
-    | v1, v2 when abs(v1 - v2) <= 6. -> true
+    | v1, v2 when abs(v1 - v2) <= 0. -> true
     | _ -> false
 
 let horizontalAlign (sym:Symbol) xPos model =
@@ -821,13 +825,13 @@ let private portLabels (sym:Symbol) (i:int) =
                     | _ -> failwithf "should not occur"
                 match port.PortType, port.PortNumber with
                 | PortType.Input, Some i when i < numOfDataPins -> "i" + string(i)
-                | PortType.Input, _ -> "s" + string(i-sym.NumOfInputs+sym.NumOfUpwardInputs)
+                | PortType.Input, _ -> "sel" //"s" + string(i-sym.NumOfInputs+sym.NumOfUpwardInputs)
                 | PortType.Output, _ -> "out" 
 
             | Demux2 | Demux4 | DemuxN _ ->
                 match port.PortType, port.PortNumber with
                 | PortType.Input, Some 0 -> "in" 
-                | PortType.Input, _ -> "s" + string(i-sym.NumOfInputs+sym.NumOfUpwardInputs)
+                | PortType.Input, _ -> "sel" //"s" + string(i-sym.NumOfInputs+sym.NumOfUpwardInputs)
                 | PortType.Output, _ -> "" + string(i-sym.NumOfInputs)
 
             | Decode4 -> 
@@ -928,16 +932,16 @@ let private renderBasicSymbol =
 
             let muxCut = 
                 match props.Sym.Type with 
-                | Mux2 -> 20.
-                | Mux4 -> 30.
-                | MuxN n -> 10. + float(log2 n)*10.
+                | Mux2 -> 30. //20.
+                | Mux4 -> 30. //30.
+                | MuxN n -> 30. //10. + float(log2 n)*10.
                 | _ -> 0.
 
             let demuxCut = 
                 match props.Sym.Type with 
-                | Demux2 -> 20.
-                | Demux4 -> 30.
-                | DemuxN n -> 10. + float(log2 n)*10.
+                | Demux2 -> 30. //20.
+                | Demux4 -> 30. //30.
+                | DemuxN n -> 30. //10. + float(log2 n)*10.
                 | _ -> 0.
 
             let (p1:XYPos, p2:XYPos, p3:XYPos, p4:XYPos, p5:XYPos, p6:XYPos, p7:XYPos, p8:XYPos, p9:XYPos) =
