@@ -446,7 +446,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | Symbol sMsg -> 
         let sm,sCmd = Symbol.update sMsg model.SymbolModel
         match sMsg with
-        | Symbol.StartDragging (sId, pos) -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd
+        | Symbol.StartDragging (sId, pos) -> 
+            {model with SymbolModel=sm}, Cmd.map Symbol sCmd
         | Symbol.Dragging (sId,pos) -> 
             let movedPortsMap = Symbol.getPortsFromId sId sm
             let newWires = autoRouteWires model.Wires movedPortsMap
@@ -472,7 +473,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
    // | SetColor c -> {model with Wires = Map.change }, Cmd.none
                                    
     | DeleteWire wId -> 
-        {model with Wires = Map.filter (fun id w -> id <> wId}, Cmd.none
+        {model with Wires = Map.filter (fun id w -> id <> wId) model.Wires } , Cmd.none
 
 
     | AutoRouteAll ->
@@ -481,13 +482,14 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         model
         |> updateWireModelWithWires newWires, Cmd.none
     | Select wId -> 
+        let sm,sCmd = Symbol.update Symbol.Deselect model.SymbolModel
         let newWires = model
                        |> getWiresFromWireModel
                        |> Map.map (fun id w -> if id = wId then 
                                                     {w with WireRenderProps = {getWirePropsFromWire w with IsSelected = true}}
                                                else 
                                                     w)
-        updateWireModelWithWires newWires model, Cmd.none
+        updateWireModelWithWires newWires {model with SymbolModel = sm}, Cmd.none
     | Deselect wId -> 
         let newWires = model
                        |> getWiresFromWireModel

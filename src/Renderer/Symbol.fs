@@ -44,6 +44,7 @@ type Msg =
     | RotateSymbol of sId:CommonTypes.SymbolId 
     | UpdateSymbolModelWithComponent of CommonTypes.Component // Issie interface
     | MultipleSelect of sId : CommonTypes.SymbolId 
+    | Deselect
 
 
 //---------------------------------helper types and functions----------------//
@@ -547,7 +548,10 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
                 }
         )
         , Cmd.none
-
+    | Deselect ->
+        model
+        |> List.map (fun sym -> {sym with IsSelected = false}), Cmd.none
+                
     | Dragging (rank, pagePos) ->
         model
         |> List.map (fun sym ->
