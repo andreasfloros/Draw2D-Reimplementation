@@ -593,7 +593,7 @@ let private clkTri (props:BasicSymbolProps) (color:string) _ =
             SVGAttr.Points $"{0.},{props.Sym.H-2.} {0.},{props.Sym.H-16.} {10.},{props.Sym.H-9.}"
             SVGAttr.StrokeWidth "2px"
             SVGAttr.Stroke "Black"
-            SVGAttr.FillOpacity 0.1
+            SVGAttr.FillOpacity 0.5
             SVGAttr.Fill color] []
     | _ -> text [] []
 
@@ -632,6 +632,23 @@ let private invertor (props:BasicSymbolProps) (color:string) (rectWidth:float) _
             SVGAttr.FillOpacity 0.1
             SVGAttr.Fill color] []
     | _ -> text [] []
+
+let circmaker (sym: Symbol) (port: CommonTypes.Port) = 
+
+    let x = float(port.PortPos.X - sym.Pos.X)
+    let y = float(port.PortPos.Y - sym.Pos.Y)
+    
+    circle
+        [ 
+      
+        Cx x
+        Cy y
+        R 5.
+        SVGAttr.Fill "blue"
+        SVGAttr.FillOpacity (if sym.IsSelected then 1. else 0.0)
+        SVGAttr.Stroke "Black"
+        SVGAttr.StrokeWidth 0
+            ] []
 
 
 let private portLabels (sym:Symbol) (i:int) =
@@ -859,7 +876,7 @@ let private renderBasicSymbol =
 
             let color =
                 if props.Sym.IsSelected then
-                    "blue"
+                    "lightblue"
                 else
                     "gray"
 
@@ -896,7 +913,7 @@ let private renderBasicSymbol =
                             //SVGAttr.Points $"{cutLeftW},{cutLeftH} {vertex5.X},{vertex5.Y} {cutLeftW},{fH-cutLeftH} {fW-cutRightW},{fH-cutRightH} {vertex6.X},{vertex6.Y} {fW-cutRightW},{cutRightH}"
                             SVGAttr.StrokeWidth "2px"
                             SVGAttr.Stroke "Black"
-                            SVGAttr.FillOpacity 0.1
+                            SVGAttr.FillOpacity 0.5
                             SVGAttr.Fill color] []
 
                     text [ 
@@ -917,8 +934,8 @@ let private renderBasicSymbol =
             @ List.map (invertor props color fW) [0]
             @ List.map (clkTri props color) [0]
             @ List.map (clkLabel props) [0]
-            ) 
-  
+            @ List.map (circmaker props.Sym) props.Sym.Ports
+            )
     , "BasicSymbol"
     , equalsButFunctions
     )
