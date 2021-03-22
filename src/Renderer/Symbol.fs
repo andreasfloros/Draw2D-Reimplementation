@@ -664,6 +664,7 @@ let private clkLabel (props:BasicSymbolProps) _ =
             X labelPosX; 
             Y (props.Sym.H-9.); 
             Style [
+                UserSelect UserSelectOptions.None
                 TextAnchor textAnchor
                 DominantBaseline "middle"
                 FontSize "13px"
@@ -836,6 +837,7 @@ let private portLabels (sym:Symbol) (i:int) =
             X labelPos.X; 
             Y labelPos.Y; 
             Style [
+                UserSelect UserSelectOptions.None
                 TextAnchor textAnchor
                 DominantBaseline dominantBaseline
                 FontSize "13px"
@@ -857,6 +859,7 @@ let private symLabel (sym: Symbol) _ =
         X (sym.W / 2.); 
         Y (-10.); 
         Style [
+            UserSelect UserSelectOptions.None
             TextAnchor "middle"
             DominantBaseline "middle"
             FontSize "13px"
@@ -1016,6 +1019,7 @@ let private renderBasicSymbol =
                         X (fW/2.); 
                         Y headerPositionY; 
                         Style [
+                            UserSelect UserSelectOptions.None
                             TextAnchor headerTextAnchor
                             DominantBaseline "middle" 
                             FontSize headerFontSize
