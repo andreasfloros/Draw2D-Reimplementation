@@ -40,7 +40,7 @@ type Msg =
     | EndDragging of sId : CommonTypes.SymbolId
     | Unselect of sId : CommonTypes.SymbolId 
     | AddSymbol of CompType: CommonTypes.ComponentType * label: string * pagePos: XYPos 
-    | DeleteSymbol of sId:CommonTypes.SymbolId
+    | DeleteSymbol 
     | RotateSymbol of sId:CommonTypes.SymbolId 
     | UpdateSymbolModelWithComponent of CommonTypes.Component // Issie interface
     | MultipleSelect of sId : CommonTypes.SymbolId 
@@ -522,8 +522,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
     match msg with
     | AddSymbol (compType, label, pos) -> 
         (createNewSymbol compType label pos) :: model, Cmd.none
-    | DeleteSymbol sId -> 
-        List.filter (fun sym -> sym.Id <> sId) model, Cmd.none
+    | DeleteSymbol -> 
+        List.filter (fun sym -> sym.IsSelected = false) model, Cmd.none
     | RotateSymbol sId ->
         model
         |> List.map (fun sym ->

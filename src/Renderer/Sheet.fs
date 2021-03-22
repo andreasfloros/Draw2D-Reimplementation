@@ -146,20 +146,25 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 printStats() // print and reset the performance statistics in dev tools window
                 model, Cmd.none // do nothing else and return model unchanged
         | DEL -> 
-            let itemTobeDeleted = model.SelectedItem
-            {model with SelectedItem = NoItem}, 
-            match itemTobeDeleted with 
-            | Port (p,t) -> Cmd.none                
-            | Symbol sId ->
-                    sId
-                    |> Symbol.Msg.DeleteSymbol
-                    |> BusWire.Msg.Symbol
-                    |> Wire |> Cmd.ofMsg
-            | BusWire (wId, x) -> 
-                    wId 
-                    |> BusWire.Msg.DeleteWire 
-                    |> Wire |> Cmd.ofMsg
-            | NoItem -> Cmd.none
+             model,
+                Symbol.Msg.DeleteSymbol
+                |> BusWire.Msg.Symbol
+                |> Wire |> Cmd.ofMsg
+
+            // let itemTobeDeleted = model.SelectedItem
+            // {model with SelectedItem = NoItem}, 
+            // match itemTobeDeleted with 
+            // | Port (p,t) -> Cmd.none                
+            // | Symbol sId ->
+            //         sId
+            //         |> Symbol.Msg.DeleteSymbol
+            //         |> BusWire.Msg.Symbol
+            //         |> Wire |> Cmd.ofMsg
+            // | BusWire (wId, x) -> 
+            //         wId 
+            //         |> BusWire.Msg.DeleteWire 
+            //         |> Wire |> Cmd.ofMsg
+            // | NoItem -> Cmd.none
 
         | A -> newSymbol "Xnor" model
         | B -> newSymbol "And" model
@@ -223,9 +228,14 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
         | BusWire (wireId,x) -> 
             if selected <> model.SelectedItem then
-                {model with SelectedItem = selected}, 
-                wireId 
-                |> BusWire.Msg.Select |> Wire |> Cmd.ofMsg
+                if model.KeyPressShift then 
+                    {model with SelectedItem = selected}, 
+                    wireId 
+                    |> BusWire.Msg.MultipleSelect |> Wire |> Cmd.ofMsg
+                else
+                    {model with SelectedItem = selected}, 
+                    wireId 
+                    |> BusWire.Msg.Select |> Wire |> Cmd.ofMsg
             else 
                 newModel, 
                 wireId 
@@ -233,16 +243,21 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 |> Wire |> Cmd.ofMsg
             
         | NoItem -> 
-            let s = model.SelectedItem
-            match s with
-            | Symbol sId ->
-                newModel,
-                sId |> Symbol.Msg.Unselect |> BusWire.Msg.Symbol |> Wire |> Cmd.ofMsg
-            | BusWire (wId,x) -> 
-                newModel, 
-                wId |> BusWire.Msg.Deselect |> Wire |> Cmd.ofMsg
-            | NoItem -> model, Cmd.none
-            | Port(portId, portType) -> failwith "Not Implemented"
+
+            let sId = null 
+
+            model,sId |> BusWire.Msg.Select 
+                      |> Wire |> Cmd.ofMsg
+            // let s = model.SelectedItem
+            // match s with
+            // | Symbol sId ->
+            //     newModel,
+            //     sId |> Symbol.Msg.Unselect |> BusWire.Msg.Symbol |> Wire |> Cmd.ofMsg
+            // | BusWire (wId,x) -> 
+            //     newModel, 
+            //     wId |> BusWire.Msg.Deselect |> Wire |> Cmd.ofMsg
+            // | NoItem -> model, Cmd.none
+            // | Port(portId, portType) -> failwith "Not Implemented"
         | Port(portId, portType) -> failwith "Not Implemented"
 
 
