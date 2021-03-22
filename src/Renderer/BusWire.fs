@@ -127,6 +127,7 @@ type Msg =
     | SetColor of CommonTypes.HighLightColor
     | Deselect of wireId: WireId
     | Select of wireId : WireId
+    | MultipleSelect of wireId : WireId
     | AutoRouteAll
 
 let singleWireView =
@@ -498,6 +499,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             model
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
+
+        | Symbol.DeleteSymbol ->
+            let newWires = Map.filter (fun id w -> w.WireRenderProps.IsSelected = false) model.Wires
+            model
+            |> updateWireModelWithWires newWires
+            |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
         | _ -> {model with SymbolModel=sm},Cmd.none
      
     | ManualRouting (wireId,segmentIndex,mousePos) ->
@@ -525,8 +532,17 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                        |> Map.map (fun id w -> if id = wId then 
                                                     {w with WireRenderProps = {getWirePropsFromWire w with IsSelected = true}}
                                                else 
-                                                    w)
+                                                    {w with WireRenderProps = {getWirePropsFromWire w with IsSelected = false}})
         updateWireModelWithWires newWires {model with SymbolModel = sm}, Cmd.none
+    | MultipleSelect wId -> 
+        //let sm,sCmd = Symbol.update Symbol.Deselect model.SymbolModel
+        let newWires = model
+                       |> getWiresFromWireModel
+                       |> Map.map (fun id w -> if id = wId then 
+                                                    {w with WireRenderProps = {getWirePropsFromWire w with IsSelected = true}}
+                                               else 
+                                                    w)
+        updateWireModelWithWires newWires model, Cmd.none
     | Deselect wId -> 
         let newWires = model
                        |> getWiresFromWireModel
