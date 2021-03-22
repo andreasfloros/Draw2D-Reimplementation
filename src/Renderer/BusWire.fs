@@ -446,7 +446,11 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | Symbol sMsg -> 
         let sm,sCmd = Symbol.update sMsg model.SymbolModel
         match sMsg with
-        | Symbol.StartDragging (sId, pos) -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd
+        | Symbol.StartDragging (sId, pos) ->
+            let newWires = model
+                           |> getWiresFromWireModel
+                           |> Map.map (fun id w -> { w with WireRenderProps = {getWirePropsFromWire w with IsSelected = false} } )
+            {model with SymbolModel=sm; Wires= newWires}, Cmd.map Symbol sCmd
         | Symbol.Dragging (sId,pos) -> 
             let movedPortsMap = Symbol.getPortsFromId sId sm
             let newWires = autoRouteWires model.Wires movedPortsMap
