@@ -514,3 +514,11 @@ let findWire mousePos wireModel =
 
     wireMap
     |> Map.tryPick selectedSegmentOnWire
+
+
+let getSelectedWireList model =
+    model
+    |> getWiresFromWireModel
+    |> Map.filter (fun id w -> w.WireRenderProps.IsSelected = true)
+    |> Map.toList
+    |> List.map fst
