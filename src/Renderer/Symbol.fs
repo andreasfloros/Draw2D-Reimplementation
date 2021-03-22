@@ -44,6 +44,7 @@ type Msg =
     | RotateSymbol of sId:CommonTypes.SymbolId 
     | UpdateSymbolModelWithComponent of CommonTypes.Component // Issie interface
     | MultipleSelect of sId : CommonTypes.SymbolId 
+    | MouseMove of pagePos : XYPos
     | Deselect
 
 
@@ -61,6 +62,27 @@ let FindSymbol (mousePos: XYPos) (model: Model) =
     match List.tryFind (fun sym -> containsPoint (createBB sym (sym.CurrentH,sym.CurrentW)) mousePos) model with 
     | Some sym -> Some sym.Id
     | None -> None
+
+///////new funcs for port bubbles
+let createBBMouseHover (sym: Symbol) (h,w: float) =
+    {
+        TopLeft = {X =  sym.Pos.X - 50.; Y = sym.Pos.Y - 50.}
+        BottomRight = {X =  sym.Pos.X + w + 50.; Y = sym.Pos.Y + h + 50.}
+    }
+
+
+let distFromBB (symPos: XYPos)  (h,w: float)  (mPos : XYPos)  : float=
+    
+    if mPos.X < symPos.X  then  (abs(  symPos.X - mPos.X - 50.)) / 50.
+   
+    else match  mPos.X > (symPos.X + w) with
+         | true -> (abs(mPos.X - symPos.X - w - 50.))/50.
+         | false -> if mPos.Y > (symPos.Y + h)
+                    then (abs(mPos.Y - symPos.Y - h - 50.))/50.
+                    else  (abs(symPos.Y - mPos.Y - 50.))/50.
+
+///////
+
 
 
 //-----------------------------Skeleton Model Type for symbols----------------//
@@ -355,6 +377,7 @@ let createNewSymbol (compType:CommonTypes.ComponentType) (label:string) (pos:XYP
         IsDragging = false 
         IsSelected = false
         Orientation = Standard
+        MouseNear = 0.0
     } 
 
 let testAsyncROM = AsyncROM {AddressWidth = 4; WordWidth = 2; Data = Map.ofList [(int64(5),int64(2))]}
@@ -629,6 +652,28 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
                 }
         )
         , Cmd.none
+    | MouseMove pos ->
+        model
+        |> List.map (fun sym ->
+            //let symCenter = getSymbolCenter sym.Pos sym.W sym.H
+            //let dist = calcPointDist symCenter pos
+            let pointchecker = containsPoint (createBBMouseHover sym ((sym.CurrentH),(sym.CurrentW ))) pos
+            
+            match pointchecker with
+            |true -> if containsPoint (createBB sym ((sym.CurrentH),(sym.CurrentW ))) pos
+                     then { sym with 
+                                MouseNear = 1.0
+                          }
+
+                     else { sym with 
+                                MouseNear = distFromBB sym.Pos  (sym.CurrentH,sym.CurrentW)  pos
+                          }
+            |false -> 
+                    { sym with 
+                        MouseNear = 0.0
+                    }
+        )
+        , Cmd.none
 
     | Unselect sId ->
         model
@@ -733,7 +778,6 @@ let private invertor (props:BasicSymbolProps) (color:string) (rectWidth:float) _
             SVGAttr.Fill color] []
     | _ -> text [] []
 
-
 let circmaker (sym: Symbol) (i:int) = 
 
     let port = sym.Ports.[i]
@@ -758,7 +802,7 @@ let circmaker (sym: Symbol) (i:int) =
                     
         | _ -> {X = port.RelativePortPos.X  ; Y = port.RelativePortPos.Y  }
 
-   
+
     circle
         [ 
       
@@ -766,11 +810,12 @@ let circmaker (sym: Symbol) (i:int) =
         Cy circPos.Y
         R 5.
         SVGAttr.Fill "blue"
-        SVGAttr.FillOpacity (if sym.IsSelected then 1. else 0.0)
+        SVGAttr.FillOpacity (if sym.IsSelected then 1. else sym.MouseNear)
         SVGAttr.Stroke "Black"
         SVGAttr.StrokeWidth 0
         SVGAttr.Transform (sprintf "translate(%fpx,%fpx) scale(%A) " mirrorShift 0. scaleFactor )
             ] []
+
 
 
 let private portLabels (sym:Symbol) (i:int) =

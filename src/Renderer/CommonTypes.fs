@@ -101,6 +101,7 @@ module CommonTypes
         IsDragging : bool 
         IsSelected : bool
         Orientation : CompOrientation
+        MouseNear : float
     }
 
     /// JSConnection mapped to F# record.
