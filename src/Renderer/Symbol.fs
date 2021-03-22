@@ -63,7 +63,7 @@ let FindSymbol (mousePos: XYPos) (model: Model) =
     | Some sym -> Some sym.Id
     | None -> None
 
-///////new funcs for port bubbles
+
 let createBBMouseHover (sym: Symbol) (h,w: float) =
     {
         TopLeft = {X =  sym.Pos.X - 50.; Y = sym.Pos.Y - 50.}
@@ -81,7 +81,6 @@ let distFromBB (symPos: XYPos)  (h,w: float)  (mPos : XYPos)  : float=
                     then (abs(mPos.Y - symPos.Y - h - 50.))/50.
                     else  (abs(symPos.Y - mPos.Y - 50.))/50.
 
-///////
 
 
 

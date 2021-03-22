@@ -272,18 +272,13 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | NoItem -> model, Cmd.none
         | _ -> failwithf "not yet done"
 
-    | MouseMsg event when event.Op = MouseOp.Move -> 
-   
+    | MouseMsg event when event.Op = MouseOp.Move ->  
        
             model,
             event.Pos
             |> Symbol.Msg.MouseMove
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
-       
-     
-
-
 
     | MouseMsg event when event.Op = Drag -> 
         match model.SelectedItem with 
