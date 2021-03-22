@@ -177,7 +177,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             let selected = model.SelectedItem
             match selected with 
                 | Symbol symbolID ->
-                    {model with SelectedItem = NoItem},
+                    model,
                     symbolID
                     |> BusWire.Msg.RotSym
                     |> Wire |> Cmd.ofMsg

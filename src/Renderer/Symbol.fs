@@ -629,25 +629,47 @@ let private invertor (props:BasicSymbolProps) (color:string) (rectWidth:float) _
             SVGAttr.Points $"{rectWidth},{(props.Sym.H)/2.} {rectWidth},{(props.Sym.H)/4.} {props.Sym.W},{(props.Sym.H)/2.}"
             SVGAttr.StrokeWidth "2px"
             SVGAttr.Stroke "Black"
-            SVGAttr.FillOpacity 0.1
+            SVGAttr.FillOpacity 0.5
             SVGAttr.Fill color] []
     | _ -> text [] []
 
-let circmaker (sym: Symbol) (port: CommonTypes.Port) = 
 
-    let x = float(port.PortPos.X - sym.Pos.X)
-    let y = float(port.PortPos.Y - sym.Pos.Y)
-    
+let circmaker (sym: Symbol) (i:int) = 
+
+    let port = sym.Ports.[i]
+
+    let mirrorShift, scaleFactor = 
+        match sym.Orientation with
+        | Mirror -> (sym.W, (-1.0, 1.0))
+        | _ -> (0., (1.0, 1.0))
+
+
+    let circPos : XYPos =
+        match sym.Orientation with 
+        | Rotate90clk -> {X = port.RelativePortPos.Y ; Y = sym.H - (port.RelativePortPos.X )}
+        | Rotate90antiClk -> {X = sym.W - (port.RelativePortPos.Y)  ; Y = (port.RelativePortPos.X )}
+        | Mirror -> match  port.ConnectionDirection  with 
+                    
+                    |Dir.Up -> if port.PortType = PortType.Input then {X = port.RelativePortPos.X ; Y = port.RelativePortPos.Y  }
+                                else {X = port.RelativePortPos.X + sym.W  ; Y = port.RelativePortPos.Y  }
+        
+                    |_ ->  if port.PortType = PortType.Input then {X = port.RelativePortPos.X - sym.W  ; Y = port.RelativePortPos.Y  }
+                           else {X = port.RelativePortPos.X + sym.W  ; Y = port.RelativePortPos.Y  }
+                    
+        | _ -> {X = port.RelativePortPos.X  ; Y = port.RelativePortPos.Y  }
+
+
     circle
         [ 
       
-        Cx x
-        Cy y
+        Cx circPos.X
+        Cy circPos.Y
         R 5.
         SVGAttr.Fill "blue"
         SVGAttr.FillOpacity (if sym.IsSelected then 1. else 0.0)
         SVGAttr.Stroke "Black"
         SVGAttr.StrokeWidth 0
+        SVGAttr.Transform (sprintf "translate(%fpx,%fpx) scale(%A) " mirrorShift 0. scaleFactor )
             ] []
 
 
@@ -951,7 +973,7 @@ let private renderBasicSymbol =
             @ List.map (invertor props color fW) [0]
             @ List.map (clkTri props color) [0]
             @ List.map (clkLabel props) [0]
-            @ List.map (circmaker props.Sym) props.Sym.Ports
+            @ List.map (circmaker props.Sym) [0..numOfPorts-1]
             )
     , "BasicSymbol"
     , equalsButFunctions
