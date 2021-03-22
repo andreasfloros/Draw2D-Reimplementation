@@ -271,14 +271,17 @@ let autoRouteWires wires portsMap =
         let segments = getSegmentsFromWire wire
         let tripletToBeEradicated = 
             let segmentsMaxIdx = segments.Length - 1
-            segments
+            segments // could optimise...
             |> List.indexed
             |> List.tryPick (fun (idx,seg) ->
                                     if idx > segmentsMaxIdx - 2 then None
                                     else if lenOfSeg seg = 0. && lenOfSeg segments.[idx+1] = 0. && lenOfSeg segments.[idx+2] = 0.
-                                    then (Some idx) else None)
+                                    then 
+                                        printfn "0 0 0  FOUND" 
+                                        (Some idx) 
+                                    else None)
 
-        match tripletToBeEradicated with
+        match tripletToBeEradicated with    
         | Some index ->
             segments
             |> List.mapi (fun idx seg ->
@@ -287,6 +290,32 @@ let autoRouteWires wires portsMap =
             |> List.collect id
             |> updateWireWithSegments wire
         | None -> wire
+        
+    let removeKinkySegs wire =
+        let segments = getSegmentsFromWire wire
+        let tripletToBeEradicated = 
+            let segmentsMaxIdx = segments.Length - 1
+            segments // could optimise...
+            |> List.indexed
+            |> List.tryPick (fun (idx,seg) ->
+                                    if idx > segmentsMaxIdx - 4  || idx < 1 then None
+                                    else if lenOfSeg seg <> 0. && lenOfSeg segments.[idx+2] <> 0. && lenOfSeg segments.[idx+1] = 0. && areOppositeDirs (dirOfSeg seg) (dirOfSeg segments.[idx+2])
+                                    then
+                                        printfn "OPPOSITE FOUND" 
+                                        (Some idx)
+                                    else None)
+
+        match tripletToBeEradicated with
+        | Some index ->
+            segments
+            |> List.mapi (fun idx seg ->
+                                if idx = index || idx = index + 1 then []
+                                else if idx = index + 2 then [segOf segments.[index].Start seg.End]
+                                else [seg])
+            |> List.collect id
+            |> updateWireWithSegments wire      
+        | None -> wire
+        
     let correctEndPtsAndAutoRoute (wire: Wire) ids =
         // if ports can change positions a similar function to correctEndPt could be written, correndEndDir
         // any additional changes could also be factored in here as they would only result in a change in the WireRenderProps of the affected wire
@@ -373,6 +402,7 @@ let autoRouteWires wires portsMap =
                 match connectedToPorts wire with
                 | Some ids -> correctEndPtsAndAutoRoute wire ids
                               |> remove0Segs
+                              |> removeKinkySegs
                 | None -> wire)
 
 // assumes wire has been initialised
