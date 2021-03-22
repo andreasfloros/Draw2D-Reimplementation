@@ -113,12 +113,12 @@ let generatePortList compProps numOfPorts portType connectionDirection =
         | Register bw, _, _ | RegisterE bw, _, _  -> Some bw
 
         | AsyncROM memory, PortType.Input, _ | ROM memory, PortType.Input, _ | RAM memory, PortType.Input, 0 -> Some memory.AddressWidth
-        | AsyncROM memory, PortType.Output, _ | ROM memory, PortType.Output, _ 
+        | AsyncROM memory, PortType.Output, _ | ROM memory, PortType.Output, _  
         | RAM memory, PortType.Input, 1 | RAM memory, PortType.Output, _ -> Some memory.WordWidth
         | RAM memory, PortType.Input, _ -> Some 1
 
-        | Custom features, PortType.Input, i -> Some ((fun (_,y) -> y) features.InputLabels.[i])
-        | Custom features, PortType.Output, i -> Some ((fun (_,y) -> y) features.OutputLabels.[i])
+        | Custom features, PortType.Input, _ -> Some 5 //(snd features.InputLabels.[portNum])
+        | Custom features, PortType.Output, _ -> Some 5 //(snd (features.OutputLabels.[i]))
 
         | _ -> Some 1
 
@@ -205,7 +205,7 @@ let generateBasicComp compType compId compPos =
         | SplitWire _ -> (1, 2)
         | RAM _ -> (3, 1)
         | Custom features -> ((List.length features.InputLabels), (List.length features.OutputLabels))
-        | _ -> failwithf "Error: Component I/O not repcified"
+        | _ -> failwithf "Error: Component I/O not specified"
 
     /// A vertical extension at the top of the symbol that Left/Right Ports 
     /// do not have access to.
@@ -373,7 +373,7 @@ let init () =
         | 380., 160. -> (createNewSymbol (RegisterE 5) "Reg1" {X=x;Y=y})
         | 380., 380. -> (createNewSymbol (BusSelection (5,2)) "label" {X=x;Y=y})
         | 560., 160. -> (createNewSymbol (MergeWires) "label?" {X=x;Y=y})
-        | 560., 380. -> (createNewSymbol (testRAM) "label" {X=x;Y=y})
+        | 560., 380. -> (createNewSymbol (testCustom) "label" {X=x;Y=y})
         | 740., 160. -> (createNewSymbol (Mux2) "label" {X=x;Y=y})
         | 740., 380. -> (createNewSymbol (Demux4) "label" {X=x;Y=y})
         | _ -> (createNewSymbol (Xor) "label" {X=x;Y=y}) )
@@ -870,8 +870,8 @@ let private portLabels (sym:Symbol) (i:int) =
 
             | Custom features ->
                 match port.PortType, port.PortNumber with
-                | PortType.Input, Some i -> ((fun (x,_) -> x) features.InputLabels.[i])
-                | PortType.Output, Some i -> ((fun (x,_) -> x) features.OutputLabels.[i])
+                | PortType.Input, Some i -> (fst features.InputLabels.[i])
+                | PortType.Output, Some i -> (fst features.OutputLabels.[i])
                 | _ -> failwithf "should not occur"
 
             | _ ->
