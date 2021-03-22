@@ -188,7 +188,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 | Symbol symbolID ->
                     model,
                     symbolID
-                    |> BusWire.Msg.RotSym
+                    |> Symbol.Msg.RotateSymbol
+                    |> BusWire.Msg.Symbol
                     |> Wire |> Cmd.ofMsg
                 | BusWire _ -> model,Cmd.none
                 | NoItem -> model,Cmd.none
@@ -228,7 +229,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             else 
                 newModel, 
                 wireId 
-                |> BusWire.Msg.Unselect 
+                |> BusWire.Msg.Deselect 
                 |> Wire |> Cmd.ofMsg
             
         | NoItem -> 
@@ -239,7 +240,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 sId |> Symbol.Msg.Unselect |> BusWire.Msg.Symbol |> Wire |> Cmd.ofMsg
             | BusWire (wId,x) -> 
                 newModel, 
-                wId |> BusWire.Msg.Unselect |> Wire |> Cmd.ofMsg
+                wId |> BusWire.Msg.Deselect |> Wire |> Cmd.ofMsg
             | NoItem -> model, Cmd.none
             | Port(portId, portType) -> failwith "Not Implemented"
         | Port(portId, portType) -> failwith "Not Implemented"
