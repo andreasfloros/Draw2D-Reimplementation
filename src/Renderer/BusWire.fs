@@ -446,8 +446,11 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | Symbol sMsg -> 
         let sm,sCmd = Symbol.update sMsg model.SymbolModel
         match sMsg with
-        | Symbol.StartDragging (sId, pos) -> 
-            {model with SymbolModel=sm}, Cmd.map Symbol sCmd
+        | Symbol.StartDragging (sId, pos) ->
+            let newWires = model
+                           |> getWiresFromWireModel
+                           |> Map.map (fun id w -> { w with WireRenderProps = {getWirePropsFromWire w with IsSelected = false} } )
+            {model with SymbolModel=sm; Wires= newWires}, Cmd.map Symbol sCmd
         | Symbol.Dragging (sId,pos) -> 
             let movedPortsMap = Symbol.getPortsFromId sId sm
             let newWires = autoRouteWires model.Wires movedPortsMap
@@ -516,3 +519,11 @@ let findWire mousePos wireModel =
 
     wireMap
     |> Map.tryPick selectedSegmentOnWire
+
+
+let getSelectedWireList model =
+    model
+    |> getWiresFromWireModel
+    |> Map.filter (fun id w -> w.WireRenderProps.IsSelected = true)
+    |> Map.toList
+    |> List.map fst
