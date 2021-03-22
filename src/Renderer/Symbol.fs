@@ -1257,3 +1257,15 @@ let FindPort (mousePos: XYPos) (model: Model) =
     match List.filter (fun x -> x <> None) s with 
     | [] -> None 
     | s -> s.[0]
+
+let getSelectedSymbolList model =
+    model
+    |> List.filter (fun s -> s.IsSelected)
+    |> List.map (fun s -> s.Id)
+
+let getPortsOfSelectedSymbolList model =
+    model
+    |> List.filter (fun s -> s.IsSelected)
+    |> List.collect (fun s -> s.Ports)
+    |> List.map (fun p -> p.Id)
+    
