@@ -130,6 +130,33 @@ type Msg =
     | MultipleSelect of wireId : WireId
     | AutoRouteAll
 
+let addVerticesIfSelected props =
+    if props.IsSelected then
+        props.Segments
+        |> List.mapi (fun index segment -> if index <> props.Segments.Length-1 then
+                                                let middlePointX = segment.End.X
+                                                let middlePointY = segment.End.Y
+                                                let topLeft = string (middlePointX-4.) + "," + string (middlePointY-4.) + " "
+                                                let topRight = string (middlePointX+4.) + "," + string (middlePointY-4.) + " "
+                                                let bottomLeft = string (middlePointX-4.) + "," + string (middlePointY+4.) + " "
+                                                let bottomRight = string (middlePointX+4.) + "," + string (middlePointY+4.) + " "
+                                                let vertexCoordinates = topLeft + topRight + bottomRight + bottomLeft
+
+                                                [polygon
+                                                    [
+                                                    SVGAttr.Points (vertexCoordinates)
+                                                    SVGAttr.StrokeWidth "1px"
+                                                    SVGAttr.Stroke "Black"
+                                                    SVGAttr.FillOpacity 0.9
+                                                    SVGAttr.Fill "Grey"] []]
+                                           else
+                                                [])
+        |> List.concat
+    else
+        []
+
+
+
 let singleWireView =
     FunctionComponent.Of(
         fun (props: WireRenderProps) ->
@@ -139,26 +166,31 @@ let singleWireView =
                 | Left -> props.Segments.Head.Start.X - 19., props.Segments.Head.Start.Y - 6.
                 | Dir.Down -> props.Segments.Head.Start.X + 6., props.Segments.Head.Start.Y + 20.
                 | Dir.Up -> props.Segments.Head.Start.X + 6., props.Segments.Head.Start.Y - 8.
-            g[] [
+            g[] ([
                 path [
-                        Style[
-                            StrokeLinejoin "round"
-                            Fill "none"
-                        ]
+                        Style [
+                                StrokeLinejoin "round"
+                                Fill "none"
+                              ]
                         let firstSegmentStart = posToString props.Segments.Head.Start
                         D ("M " + firstSegmentStart + segmentsToRoundedString props.Segments) // for rounded corners, below line is normal
                         //D ("M " + segmentsToString props.Segments)
                         SVGAttr.StrokeWidth props.Width
                         SVGAttr.Stroke (if props.IsSelected then "Red" else props.Color.Text())][]
-                text[X xLabel
-                     Y yLabel
-                     Style[FontSize "16px"
-                           FontWeight "Bold"
-                           Fill (if props.IsSelected then "Red" else props.Color.Text())
-                           UserSelect UserSelectOptions.None
-                           ]
+
+                text [  X xLabel
+                        Y yLabel
+                        Style [
+                                FontSize "16px"
+                                FontWeight "Bold"
+                                Fill (if props.IsSelected then "Red" else props.Color.Text())
+                                UserSelect UserSelectOptions.None
+                              ]
                          ][props.Label |> str]
-                ])
+                
+              
+
+                ] @ addVerticesIfSelected props))
 
 
 let view (model:Model) (dispatch: Dispatch<Msg>)=
