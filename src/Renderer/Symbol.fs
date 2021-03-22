@@ -1265,7 +1265,9 @@ let getSelectedSymbolList model =
 
 let getPortsOfSelectedSymbolList model =
     model
-    |> List.filter (fun s -> s.IsSelected)
+    |> List.filter (fun s -> if s.IsSelected then 
+                                true 
+                             else false)
     |> List.collect (fun s -> s.Ports)
     |> List.map (fun p -> p.Id)
     

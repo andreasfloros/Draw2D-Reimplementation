@@ -534,8 +534,9 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
 
         | Symbol.DeleteSymbol ->
-            let deletedPorts = Symbol.getPortsOfSelectedSymbolList sm
-            printfn "%A" deletedPorts
+            let deletedPorts = model 
+                               |> getSymbolModelFromWireModel
+                               |> Symbol.getPortsOfSelectedSymbolList
             let newWires = Map.filter (fun id w ->
                                             match List.tryFind (fun pId -> getStartIdFromWire w = pId) deletedPorts with
                                             | Some x -> false
