@@ -246,8 +246,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | NoItem -> 
 
             let sId = null 
-
-            model,sId |> BusWire.Msg.Select 
+            {model with SelectedItem = selected},
+            sId |> BusWire.Msg.Select 
                       |> Wire |> Cmd.ofMsg
                       
         | Port(port, portType) -> 
