@@ -464,13 +464,9 @@ let autoRouteWires wires portsMap =
         let matchingStartOrEnd portId _port=
             if getStartIdFromWire wire = portId || getEndIdFromWire wire = portId
             then Some portId else None
-        match Map.tryPick matchingStartOrEnd portsMap with
-        | Some x ->
-            (x,
-             portsMap // Handles the exceptional case of a wire being connected to only one symbol (feedback loop)
-             |> Map.filter (fun pId _p -> pId <> x)
-             |> Map.tryPick matchingStartOrEnd)
-             |> Some
+        match Map.tryFind (getStartIdFromWire wire) portsMap, Map.tryFind (getEndIdFromWire wire) portsMap with
+        | Some x, Some y -> Some (x.Id, Some y.Id)
+        | Some x, None | None, Some x -> Some (x.Id,None)
         | _ -> None
     wires
     |> Map.map (fun _wireId wire ->
