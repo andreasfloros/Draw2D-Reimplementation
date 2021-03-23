@@ -99,15 +99,15 @@ let getHit (click: XYPos) (model: Model) =
         printf "Get hit found a port" 
         Port (p, t)
     | None -> 
-        match Symbol.FindSymbol click sModel with 
-        | Some sId -> 
-            printf "Get hit found a symbol"
-            Symbol sId 
+        match BusWire.findWire click model.Wire with 
+        | Some wId -> 
+            printf "Get hit found a wire"
+            BusWire wId 
         | None -> 
-            match BusWire.findWire click model.Wire with 
-            | Some wId -> 
-                printf "Get hit found a wire"
-                BusWire wId 
+            match Symbol.FindSymbol click sModel with 
+            | Some sId -> 
+                printf "Get hit found a symbol"
+                Symbol sId 
 
             | None -> 
                 printf "Get hit found nothing"
