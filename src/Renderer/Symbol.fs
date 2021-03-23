@@ -842,12 +842,6 @@ let circmaker (sym: Symbol) (i:int) =
 
     let port = sym.Ports.[i]
 
-    let mirrorShift, scaleFactor = 
-        match sym.Orientation with
-        | Mirror -> (sym.W, (-1.0, 1.0))
-        | _ -> (0., (1.0, 1.0))
-
-
     let circPos : XYPos =
         match sym.Orientation with 
         | Rotate90clk -> {X = port.RelativePortPos.Y ; Y = sym.H - (port.RelativePortPos.X )}
@@ -862,7 +856,6 @@ let circmaker (sym: Symbol) (i:int) =
                     
         | _ -> {X = port.RelativePortPos.X  ; Y = port.RelativePortPos.Y  }
 
-
     circle
         [ 
       
@@ -873,7 +866,7 @@ let circmaker (sym: Symbol) (i:int) =
         SVGAttr.FillOpacity (if sym.IsSelected then 1. else sym.MouseNear)
         SVGAttr.Stroke "Black"
         SVGAttr.StrokeWidth 0
-        SVGAttr.Transform (sprintf "translate(%fpx,%fpx) scale(%A) " mirrorShift 0. scaleFactor )
+
             ] []
 
 

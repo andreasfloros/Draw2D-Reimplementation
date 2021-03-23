@@ -161,13 +161,6 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | G -> newSymbol "Nor" model
         | H -> newSymbol "Decode4" model
         | W -> failwithf "Not yet implemented"
-        
-        // | ShiftA -> 
-        //     printf "SHIFT HAS BEEN PRESSED"
-        //     {model with KeyPressShift = true}, Cmd.none
-        // | ShiftQ -> 
-        //     printf "SHIFT ENDED"
-        //     {model with KeyPressShift = false}, Cmd.none
 
         | CtrlW -> let wModel, wCmd = BusWire.update (BusWire.AutoRouteAll) model.Wire
                    {model with Wire = wModel}, Cmd.map Wire wCmd
@@ -241,21 +234,13 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 |> Wire |> Cmd.ofMsg
 
         | NoItem -> 
-
             let sId = null 
             {model with SelectedItem = selected},
             sId |> BusWire.Msg.Select 
                       |> Wire |> Cmd.ofMsg
                       
         | Port(port, portType) -> 
-            match model.SelectedItem with
-            | Port (prevPort,prevPortType) when prevPortType <> portType ->
-                {model with SelectedItem = NoItem}, 
-                (if portType = CommonTypes.PortType.Input then prevPort, port else port, prevPort) 
-                |> BusWire.Msg.CreateWire 
-                |> Wire |> Cmd.ofMsg
-            | _ -> {model with SelectedItem = selected}, Cmd.none
-
+            {model with SelectedItem = selected}, Cmd.none
 
     | MouseMsg event when event.Op = MouseOp.Up -> 
        let isPortSelected = getHit event.Pos model
@@ -265,20 +250,26 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             Symbol.Msg.EndDragging
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
-        | (Port (p1, o)), (Port (p2, i)) -> 
-            model, BusWire.Msg.CreateWire (p1, p2)
-                   |> Wire |> Cmd.ofMsg
+        | (Port (p1, type1)), (Port (p2, type2)) when type1 <> type2-> 
+            {model with SelectedItem = NoItem}, 
+            (if type1 = CommonTypes.PortType.Input then p1,p2 else p2,p1)
+            |> BusWire.Msg.CreateWire
+            |> Wire |> Cmd.ofMsg
         | NoItem, _ -> 
             model, 
             Cmd.none
-        | _, BusWire (wid, x)-> 
+        | (Port (p1, o)), _ -> 
             model, 
-            "temp" |> BusWire.Msg.DeleteWire |> Wire |> Cmd.ofMsg
+            BusWire.Msg.DeleteSheetWire |> Wire |> Cmd.ofMsg
 
         | _ -> failwithf "not yet done"
 
-    | MouseMsg event when event.Op = MouseOp.Move ->  
-       
+    | MouseMsg event when event.Op = MouseOp.Move ->   
+        match model.SelectedItem with 
+        | Port (p, pType) -> {model with SelectedItem = NoItem}, 
+                              BusWire.Msg.DeleteSheetWire 
+                              |> Wire |> Cmd.ofMsg
+        | _ -> 
             model,
             event.Pos
             |> Symbol.Msg.MouseMove

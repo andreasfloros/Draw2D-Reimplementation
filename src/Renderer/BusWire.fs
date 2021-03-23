@@ -54,7 +54,6 @@ type WireRenderProps = {
     IsSelected : bool
     Label : string // for printing the width
     StartDir : Dir // for determining the position of the label
-    isSheetWire : bool
 }                  // start dir is both a render prop and an attribute used in routing algorithms
                    
 type Wire = {
@@ -132,8 +131,9 @@ type Msg =
     | Select of wireId : WireId
     | MultipleSelect of wireId : WireId
     | AutoRouteAll
-    | CreateWire of outputPort : CommonTypes.Port * inputPort : CommonTypes.Port
+    | CreateWire of port1 : CommonTypes.Port * port2 : CommonTypes.Port
     | CreateSheetWire of port : CommonTypes.Port * pos : XYPos
+    | DeleteSheetWire
 
 let addVerticesIfSelected props =
     if props.IsSelected then
@@ -187,17 +187,12 @@ let singleWireView =
                 text [  X xLabel
                         Y yLabel
                         Style [
-                                FontSize "16px"
+                                FontSize "14px"
                                 FontWeight "Bold"
                                 Fill (if props.IsSelected then "Red" else props.Color.Text())
                                 UserSelect UserSelectOptions.None
                               ]
                          ][props.Label |> str]
-               
-                if props.isSheetWire 
-                then     
-                    line [X1 props.Segments.[0].Start.X; Y1 props.Segments.[0].Start.Y; X2 props.Segments.[0].End.X; Y2 props.Segments.[0].End.Y ; Style [Stroke "Black"]] []
-                
 
                 ] @ addVerticesIfSelected props))
 
@@ -211,7 +206,20 @@ let view (model:Model) (dispatch: Dispatch<Msg>)=
         |> Map.toList
         |> List.map snd
     let symbolSVG = Symbol.view model.SymbolModel (fun symbolMsg -> dispatch (Symbol symbolMsg))
-    g [] (symbolSVG :: wireSVG)
+    let sheetWire =
+        match model.SheetWire with
+        | Some x -> [line [
+                            X1 x.WireRenderProps.Segments.Head.Start.X
+                            Y1 x.WireRenderProps.Segments.Head.Start.Y
+                            X2 x.WireRenderProps.Segments.Head.End.X
+                            Y2 x.WireRenderProps.Segments.Head.End.Y
+                            Style [
+                                    Stroke "LightGreen"
+                                    StrokeWidth "2px"
+                                    StrokeDasharray "5"
+                                  ]] []]
+        | None -> []
+    g [] (symbolSVG :: wireSVG @ sheetWire)
 
 // handle wire segment movement by the user
 let rec manualRouteWire segmentIndex mousePos wires wireId snap (wireOption: Wire option)=
@@ -456,13 +464,9 @@ let autoRouteWires wires portsMap =
         let matchingStartOrEnd portId _port=
             if getStartIdFromWire wire = portId || getEndIdFromWire wire = portId
             then Some portId else None
-        match Map.tryPick matchingStartOrEnd portsMap with
-        | Some x ->
-            (x,
-             portsMap // Handles the exceptional case of a wire being connected to only one symbol (feedback loop)
-             |> Map.filter (fun pId _p -> pId <> x)
-             |> Map.tryPick matchingStartOrEnd)
-             |> Some
+        match portsMap.TryFind (getStartIdFromWire wire), portsMap.TryFind (getEndIdFromWire wire) with
+        | Some x, Some y -> Some (x.Id, Some y.Id)
+        | Some x, None | None, Some x -> Some (x.Id,None)
         | _ -> None
     wires
     |> Map.map (fun _wireId wire ->
@@ -488,6 +492,13 @@ let autoRouteWire _wireId wire =
 // for custom wires with props decided by the user use the updateWireWithProps function
 let createWire startId startPort endId endPort =
     // setup for the router
+    let startPort, startId, endPort, endId =
+            if Symbol.getPortTypeFromPort startPort <> Symbol.getPortTypeFromPort endPort then
+                if Symbol.getPortTypeFromPort startPort = CommonTypes.PortType.Output
+                then startPort, startId, endPort, endId else endPort, endId, startPort, startId
+            else
+                failwithf "createWire Error: Attempted to connect input/input, output/output"
+
     let startPortPos, endPortPos = Symbol.getPosFromPort startPort, Symbol.getPosFromPort endPort
     let fromDir, toDir = Symbol.getDirFromPort startPort, Symbol.getDirFromPort endPort
     let startExtension = getPortExtension startPortPos fromDir true
@@ -504,8 +515,7 @@ let createWire startId startPort endId endPort =
                         Width = if portWidth > 1 then 4. else 1.5
                         Label = if portWidth < 1 then "" else sprintf "%d" portWidth
                         StartDir = fromDir
-                        IsSelected = false
-                        isSheetWire = false}
+                        IsSelected = false}
      EndDir = toDir
     }
 
@@ -518,8 +528,7 @@ let sheetWire (startPort: CommonTypes.Port) (endPos: XYPos) =
                         Width = 1.5
                         Label = null
                         StartDir = startPort.ConnectionDirection
-                        IsSelected = false
-                        isSheetWire = true}
+                        IsSelected = false}
      EndDir = startPort.ConnectionDirection
     }
 
@@ -575,7 +584,6 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             model
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
-        //| Symbol.EndDragging -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd
         | Symbol.EndDragging -> 
             let movedPortsMap = Symbol.getPortsMapOfSelectedSymbolList sm 
             let newWires = autoRouteWires model.Wires movedPortsMap
@@ -613,20 +621,16 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         let newWires = getWiresFromWireModel model
                        |> Map.change wireId (manualRouteWire segmentIndex mousePos (getWiresFromWireModel model) wireId true)
         updateWireModelWithWires newWires model, Cmd.none
-
-
-
-   // | SetColor c -> {model with Wires = Map.change }, Cmd.none
                                    
     | DeleteWire wId -> 
         {model with Wires = Map.filter (fun id w -> id <> wId) model.Wires } , Cmd.none
-
 
     | AutoRouteAll ->
         let newWires = getWiresFromWireModel model
                        |> Map.map autoRouteWire
         model
         |> updateWireModelWithWires newWires, Cmd.none
+
     | Select wId -> 
         let sm,sCmd = Symbol.update Symbol.Deselect model.SymbolModel
         let newWires = model
@@ -636,8 +640,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                                                else 
                                                     {w with WireRenderProps = {getWirePropsFromWire w with IsSelected = false}})
         updateWireModelWithWires newWires {model with SymbolModel = sm}, Cmd.none
+
     | MultipleSelect wId -> 
-        //let sm,sCmd = Symbol.update Symbol.Deselect model.SymbolModel
         let newWires = model
                        |> getWiresFromWireModel
                        |> Map.map (fun id w -> if id = wId then 
@@ -653,15 +657,16 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                                                else 
                                                     w)
         updateWireModelWithWires newWires model, Cmd.none
-    | CreateWire (outputPort,inputPort) ->
-        printfn "%A" (outputPort, inputPort)
-        let newWires = model
+    | CreateWire (port1,port2) ->
+        let newModel = {model with SheetWire = None}
+        let newWires = newModel
                        |> getWiresFromWireModel
-                       |> Map.add (generateWireId()) (createWire outputPort.Id outputPort inputPort.Id inputPort)
-                       |> Map.filter (fun id w -> id <> "temp") 
-        updateWireModelWithWires newWires {model with SheetWire = None}, Cmd.none        
+                       |> Map.add (generateWireId()) (createWire port1.Id port1 port2.Id port2)
+        updateWireModelWithWires newWires newModel, Cmd.none       
     | CreateSheetWire (port, pos) -> 
-        {model with SheetWire = Some (sheetWire port pos)}, Cmd.none               
+        {model with SheetWire = Some (sheetWire port pos)}, pos |> Symbol.Msg.MouseMove |> Symbol |> Cmd.ofMsg
+    | DeleteSheetWire ->
+        {model with SheetWire = None}, Cmd.none              
                        
           
 
