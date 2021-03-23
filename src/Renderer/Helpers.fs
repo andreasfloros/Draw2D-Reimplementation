@@ -26,6 +26,8 @@ type MouseOp =
     /// Move with button Down
     | Drag
 
+    | Shift
+
 type MouseT = {
     Pos: XYPos
     Op: MouseOp}

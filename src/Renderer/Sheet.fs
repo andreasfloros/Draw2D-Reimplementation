@@ -18,11 +18,10 @@ type SelectedItem =
  type Model = {
     Wire: BusWire.Model
     SelectedItem: SelectedItem
-    KeyPressShift: bool 
     }
 
 type KeyboardMsg =
-    | CtrlS | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | ShiftA | ShiftQ | R
+    | CtrlS | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | R
 
 type Msg =
     | Wire of BusWire.Msg
@@ -42,6 +41,9 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
     /// Is the mouse button currently down?
     let mDown (ev:Types.MouseEvent) = 
         ev.buttons <> 0.
+    
+    let mShift (ev:Types.MouseEvent) = 
+        ev.shiftKey = true
     /// Dispatch a BusWire MouseMsg message
     /// the screen mouse coordinates are compensated for the zoom transform
     let mouseOp op (ev:Types.MouseEvent) = 
@@ -57,8 +59,11 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
             ] 
 
           OnMouseDown (fun ev -> 
-                        (MouseMsg {Op = MouseOp.Down; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch))
+                        if mShift ev
+                        then (MouseMsg {Op = MouseOp.Shift; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch)
+                        else (MouseMsg {Op = MouseOp.Down; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch))
 
+         
 
           OnMouseUp (fun ev -> (MouseMsg {Op = MouseOp.Up; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch))
 
@@ -157,12 +162,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | H -> newSymbol "Decode4" model
         | W -> failwithf "Not yet implemented"
         
-        | ShiftA -> 
-            printf "SHIFT HAS BEEN PRESSED"
-            {model with KeyPressShift = true}, Cmd.none
-        | ShiftQ -> 
-            printf "SHIFT ENDED"
-            {model with KeyPressShift = false}, Cmd.none
+        // | ShiftA -> 
+        //     printf "SHIFT HAS BEEN PRESSED"
+        //     {model with KeyPressShift = true}, Cmd.none
+        // | ShiftQ -> 
+        //     printf "SHIFT ENDED"
+        //     {model with KeyPressShift = false}, Cmd.none
 
         | CtrlW -> let wModel, wCmd = BusWire.update (BusWire.AutoRouteAll) model.Wire
                    {model with Wire = wModel}, Cmd.map Wire wCmd
@@ -183,24 +188,40 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
         | _ -> failwithf "not yet done"
 
+    | MouseMsg event when event.Op = MouseOp.Shift ->
+        let selected = getHit event.Pos model
+        match selected with
+        | Symbol symbolId ->             
+            {model with SelectedItem = selected}, 
+                    (symbolId, event.Pos) //Zaid: added event.Pos
+                    |> Symbol.Msg.MultipleSelect
+                    |> BusWire.Msg.Symbol 
+                    |> Wire |> Cmd.ofMsg
+
+        | BusWire (wireId,x) -> 
+            {model with SelectedItem = selected}, 
+                    wireId 
+                    |> BusWire.Msg.MultipleSelect |> Wire |> Cmd.ofMsg
+            
+        | NoItem -> 
+
+            let sId = null 
+            {model with SelectedItem = selected},
+            sId |> BusWire.Msg.Select 
+                      |> Wire |> Cmd.ofMsg
+
+
     | MouseMsg event when event.Op = MouseOp.Down -> 
         let selected = getHit event.Pos model 
         let newModel = {model with SelectedItem = NoItem}
         match selected with 
         | Symbol symbolId ->             
             if selected <> model.SelectedItem then 
-                if model.KeyPressShift then 
-                    {model with SelectedItem = selected}, 
-                    (symbolId, event.Pos) //Zaid: added event.Pos
-                    |> Symbol.Msg.MultipleSelect
-                    |> BusWire.Msg.Symbol 
-                    |> Wire |> Cmd.ofMsg
-                else 
-                    {model with SelectedItem = selected}, 
-                    (symbolId, event.Pos)
-                    |> Symbol.Msg.StartDragging
-                    |> BusWire.Msg.Symbol
-                    |> Wire |> Cmd.ofMsg
+                {model with SelectedItem = selected}, 
+                (symbolId, event.Pos)
+                |> Symbol.Msg.StartDragging
+                |> BusWire.Msg.Symbol
+                |> Wire |> Cmd.ofMsg
             else 
                 {model with SelectedItem = NoItem}, 
                 symbolId 
@@ -210,20 +231,15 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
         | BusWire (wireId,x) -> 
             if selected <> model.SelectedItem then
-                if model.KeyPressShift then 
-                    {model with SelectedItem = selected}, 
-                    wireId 
-                    |> BusWire.Msg.MultipleSelect |> Wire |> Cmd.ofMsg
-                else
-                    {model with SelectedItem = selected}, 
-                    wireId 
-                    |> BusWire.Msg.Select |> Wire |> Cmd.ofMsg
+                {model with SelectedItem = selected}, 
+                wireId 
+                |> BusWire.Msg.Select |> Wire |> Cmd.ofMsg
             else 
                 newModel, 
                 wireId 
                 |> BusWire.Msg.Deselect 
                 |> Wire |> Cmd.ofMsg
-            
+
         | NoItem -> 
 
             let sId = null 
@@ -317,6 +333,5 @@ let init() =
     {
         Wire = model
         SelectedItem = NoItem
-        KeyPressShift = false 
 
     }, Cmd.map Wire cmds
