@@ -464,7 +464,7 @@ let autoRouteWires wires portsMap =
         let matchingStartOrEnd portId _port=
             if getStartIdFromWire wire = portId || getEndIdFromWire wire = portId
             then Some portId else None
-        match Map.tryFind (getStartIdFromWire wire) portsMap, Map.tryFind (getEndIdFromWire wire) portsMap with
+        match portsMap.TryFind (getStartIdFromWire wire), portsMap.TryFind (getEndIdFromWire wire) with
         | Some x, Some y -> Some (x.Id, Some y.Id)
         | Some x, None | None, Some x -> Some (x.Id,None)
         | _ -> None
@@ -585,12 +585,11 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
         | Symbol.EndDragging -> 
-            // let movedPortsMap = Symbol.getPortsMapOfSelectedSymbolList sm 
-            // let newWires = autoRouteWires model.Wires movedPortsMap
-            // model
-            // |> updateWireModelWithWires newWires
-            // |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
-            model, Cmd.map Symbol sCmd
+            let movedPortsMap = Symbol.getPortsMapOfSelectedSymbolList sm 
+            let newWires = autoRouteWires model.Wires movedPortsMap
+            model
+            |> updateWireModelWithWires newWires
+            |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
         | Symbol.MouseMove pos -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd///// Shaheer /// for port bubbles
         | Symbol.RotateSymbol sId ->
             let movedPortsMap = Symbol.getPortsFromId sId sm
