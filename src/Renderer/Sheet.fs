@@ -210,7 +210,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             if selected <> model.SelectedItem then 
                 if model.KeyPressShift then 
                     {model with SelectedItem = selected}, 
-                    symbolId |> Symbol.Msg.MultipleSelect
+                    (symbolId, event.Pos) //Zaid: added event.Pos
+                    |> Symbol.Msg.MultipleSelect
                     |> BusWire.Msg.Symbol 
                     |> Wire |> Cmd.ofMsg
                 else 

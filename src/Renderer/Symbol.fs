@@ -43,7 +43,7 @@ type Msg =
     | DeleteSymbol 
     | RotateSymbol of sId:CommonTypes.SymbolId 
     | UpdateSymbolModelWithComponent of CommonTypes.Component // Issie interface
-    | MultipleSelect of sId : CommonTypes.SymbolId 
+    | MultipleSelect of sId : CommonTypes.SymbolId * pagePos: XYPos
     | MouseMove of pagePos : XYPos
     | Deselect
 
@@ -138,7 +138,7 @@ let generatePortList compProps numOfPorts portType connectionDirection =
         | RAM memory, PortType.Input, 1 | RAM memory, PortType.Output, _ -> Some memory.WordWidth
         | RAM memory, PortType.Input, _ -> Some 1
 
-        | Custom features, PortType.Input, _ -> Some 5 //(snd features.InputLabels.[portNum])
+        | Custom features, PortType.Input, i -> Some 5 //(snd features.InputLabels.[portNum])
         | Custom features, PortType.Output, _ -> Some 5 //(snd (features.OutputLabels.[i]))
 
         | _ -> Some 1
@@ -730,13 +730,20 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
         )
         , Cmd.none
 
-    | MultipleSelect sId -> //Anushka
+    | MultipleSelect (sId, pagePos) -> //Anushka
         model
         |> List.map (fun sym ->
             if sId = sym.Id then
                 //{sym with Color = Red}
-                {sym with IsSelected = true}  // temporarily put in to fill if statement
-            else sym
+                {sym with 
+                    LastDragPos = pagePos //Zaid
+                    IsSelected = true
+                }  // temporarily put in to fill if statement
+            else if sym.IsSelected = true then //Zaid 
+                    {sym with 
+                        LastDragPos = pagePos 
+                    } 
+                else sym
         )
         , Cmd.none
 
