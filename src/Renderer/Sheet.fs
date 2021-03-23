@@ -146,7 +146,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 printStats() // print and reset the performance statistics in dev tools window
                 model, Cmd.none // do nothing else and return model unchanged
         | DEL -> 
-             model,
+            model,
                 Symbol.Msg.DeleteSymbol
                 |> BusWire.Msg.Symbol
                 |> Wire |> Cmd.ofMsg
@@ -249,16 +249,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
             model,sId |> BusWire.Msg.Select 
                       |> Wire |> Cmd.ofMsg
-            // let s = model.SelectedItem
-            // match s with
-            // | Symbol sId ->
-            //     newModel,
-            //     sId |> Symbol.Msg.Unselect |> BusWire.Msg.Symbol |> Wire |> Cmd.ofMsg
-            // | BusWire (wId,x) -> 
-            //     newModel, 
-            //     wId |> BusWire.Msg.Deselect |> Wire |> Cmd.ofMsg
-            // | NoItem -> model, Cmd.none
-            // | Port(portId, portType) -> failwith "Not Implemented"
+                      
         | Port(portId, portType) -> failwith "Not Implemented"
 
 
@@ -266,8 +257,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
        match model.SelectedItem with 
         | Symbol symbolId ->
             model,
-            symbolId
-            |> Symbol.Msg.EndDragging
+            Symbol.Msg.EndDragging
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
         | NoItem -> model, Cmd.none
@@ -285,7 +275,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         match model.SelectedItem with 
         | Symbol symbolId -> 
             model,
-            (symbolId, event.Pos) 
+            event.Pos 
             |> Symbol.Msg.Dragging 
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg

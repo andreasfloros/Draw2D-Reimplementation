@@ -517,14 +517,14 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
 
-            //{model with SymbolModel=sm; Wires= newWires}, Cmd.map Symbol sCmd
-        | Symbol.Dragging (sId,pos) -> 
-            let movedPortsMap = Symbol.getPortsFromId sId sm
-            let newWires = autoRouteWires model.Wires movedPortsMap
+        | Symbol.Dragging pos -> //thisss
+            let selectedSyms = Symbol.getSelectedSymbols sm
+            let movedPortsMap = List.map (fun sId -> Symbol.getPortsFromId sId sm) selectedSyms 
+            let newWires = autoRouteWires model.Wires movedPortsMap.[0]
             model
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
-        | Symbol.EndDragging sId -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd
+        | Symbol.EndDragging -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd
         | Symbol.MouseMove pos -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd///// Shaheer /// for port bubbles
         | Symbol.RotateSymbol sId ->
             let movedPortsMap = Symbol.getPortsFromId sId sm

@@ -36,8 +36,8 @@ type Msg =
     /// coords not adjusted for top-level zoom
     | StartDragging of sId : CommonTypes.SymbolId * pagePos: XYPos
     /// coords not adjusted for top-level zoom
-    | Dragging of sId : CommonTypes.SymbolId * pagePos: XYPos
-    | EndDragging of sId : CommonTypes.SymbolId
+    | Dragging of pagePos: XYPos
+    | EndDragging 
     | Unselect of sId : CommonTypes.SymbolId 
     | AddSymbol of CompType: CommonTypes.ComponentType * label: string * pagePos: XYPos 
     | DeleteSymbol 
@@ -63,6 +63,13 @@ let FindSymbol (mousePos: XYPos) (model: Model) =
     | Some sym -> Some sym.Id
     | None -> None
 
+let getSelectedSymbols (model: Model) = 
+    model |> List.filter (fun sym -> (sym.IsSelected = true))
+          |> List.map (fun s -> s.Id)
+
+
+let IsNoSymbolSelected model = List.isEmpty (getSelectedSymbols model)
+    
 
 let createBBMouseHover (sym: Symbol) (h,w: float) =
     {
@@ -648,7 +655,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
         model
         |> List.map (fun sym -> {sym with IsSelected = false}), Cmd.none
                 
-    | Dragging (rank, pagePos) ->
+    | Dragging pagePos ->
         model
         |> List.map (fun sym ->
             if sym.IsSelected = false then
@@ -675,10 +682,10 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
         )
         , Cmd.none
 
-    | EndDragging sId ->
+    | EndDragging ->
         model
         |> List.map (fun sym ->
-            if sId <> sym.Id then 
+            if sym.IsSelected = false then 
                 sym
             else
                 let newX = 
@@ -722,7 +729,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
     | Unselect sId ->
         model
         |> List.map (fun sym ->
-            if sId = sym.Id then
+            if sym.IsSelected then
                 {sym with 
                    IsSelected = false 
                 }
@@ -730,15 +737,14 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
         )
         , Cmd.none
 
-    | MultipleSelect (sId, pagePos) -> //Anushka
+    | MultipleSelect (sId, pagePos) ->
         model
         |> List.map (fun sym ->
             if sId = sym.Id then
-                //{sym with Color = Red}
                 {sym with 
                     LastDragPos = pagePos //Zaid
                     IsSelected = true
-                }  // temporarily put in to fill if statement
+                }  
             else if sym.IsSelected = true then //Zaid 
                     {sym with 
                         LastDragPos = pagePos 
@@ -764,27 +770,8 @@ type private BasicSymbolProps =
 let private clkTri (props:BasicSymbolProps) (color:string) _ =
     match props.Sym.Type with
     | DFF | DFFE | Register _ | RegisterE _ | ROM _ | RAM _ -> 
-        let handleMouseMove =
-                Hooks.useRef(fun (ev : Types.Event) ->
-                    let ev = ev :?> Types.MouseEvent
-                    // x,y coordinates here do not compensate for transform in Sheet
-                    // and are wrong unless zoom=1.0 MouseMsg coordinates are correctly compensated.
-                    Dragging(props.Sym.Id, posOf ev.pageX ev.pageY)
-                    |> props.Dispatch
-                )
 
         polygon [
-            OnMouseUp (fun ev -> 
-                document.removeEventListener("mousemove", handleMouseMove.current)
-                EndDragging props.Sym.Id
-                |> props.Dispatch
-            )
-            OnMouseDown (fun ev -> 
-                // See note above re coords wrong if zoom <> 1.0
-                StartDragging (props.Sym.Id, posOf ev.pageX ev.pageY)
-                |> props.Dispatch
-                document.addEventListener("mousemove", handleMouseMove.current)
-            )
             SVGAttr.Points $"{0.},{props.Sym.H-2.} {0.},{props.Sym.H-16.} {10.},{props.Sym.H-9.}"
             SVGAttr.StrokeWidth "2px"
             SVGAttr.Stroke "Black"
