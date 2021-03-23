@@ -229,7 +229,8 @@ let generateBasicComp compType compId compPos =
         | And | Or | Xor | Nand | Nor | Xnor | MergeWires -> (2, 1)
         | Decode4 -> (2, 4)
         | NbitsAdder _ -> (3, 2)
-        | Input _ | Output _ | Constant _ -> (0, 1)
+        | Input _ | Constant _ -> (0, 1)
+        | Output _ -> (1, 0)
         | SplitWire _ -> (1, 2)
         | RAM _ -> (3, 1)
         | Custom features -> ((List.length features.InputLabels), (List.length features.OutputLabels))
@@ -397,11 +398,11 @@ let init () =
     |> List.map (fun (x,y) -> {X = float (x*180+20); Y=float (y*220-60)})
     |> List.map (fun {X=x;Y=y} -> 
         match (x, y) with 
-        | 200., 160. -> (createNewSymbol (Input 7) "A1" {X=x;Y=y})
-        | 200., 380. -> (createNewSymbol (MergeWires) "Demux1" {X=x;Y=y})
-        | 380., 160. -> (createNewSymbol (RegisterE 5) "Reg1" {X=x;Y=y})
-        | 380., 380. -> (createNewSymbol (OldBusSelection (5,2)) "label" {X=x;Y=y})
-        | 560., 160. -> (createNewSymbol (DemuxN 7) "label?" {X=x;Y=y})
+        | 200., 160. -> (createNewSymbol (Input 7) "Input Example" {X=x;Y=y})
+        | 200., 380. -> (createNewSymbol (MergeWires) "label" {X=x;Y=y})
+        | 380., 160. -> (createNewSymbol (BusSelection (5,2)) "New BusSelect" {X=x;Y=y})
+        | 380., 380. -> (createNewSymbol (OldBusSelection (5,2)) "Old BusSelect" {X=x;Y=y})
+        | 560., 160. -> (createNewSymbol (DemuxN 7) "label" {X=x;Y=y})
         | 560., 380. -> (createNewSymbol (testCustom) "label" {X=x;Y=y})
         | 740., 160. -> (createNewSymbol (Output 6) "label" {X=x;Y=y})
         | 740., 380. -> (createNewSymbol (Demux4) "label" {X=x;Y=y})
@@ -817,6 +818,26 @@ let private invertor (props:BasicSymbolProps) (color:string) (rectWidth:float) _
             SVGAttr.Fill color] []
     | _ -> text [] []
 
+
+// let private busSelectionLabels (sym: Symbol) _ =
+//     match sym.Type with
+//     | BusSelection _ -> 
+//         text [ 
+//             X labelPosX; 
+//             Y (props.Sym.H-9.); 
+//             Style [
+//                 UserSelect UserSelectOptions.None
+//                 TextAnchor textAnchor
+//                 DominantBaseline "middle"
+//                 FontSize "13px"
+//                 FontWeight "Bold"
+//                 Fill "Black" 
+//                 Transform (sprintf "translate(%fpx,%fpx) scale(%A) " 0. 0. scaleFactor )
+//             ]
+//         ] [str <| "clk"] 
+//     | _ -> text [] []
+
+
 let circmaker (sym: Symbol) (i:int) = 
 
     let port = sym.Ports.[i]
@@ -860,7 +881,7 @@ let circmaker (sym: Symbol) (i:int) =
 let private portLabels (sym:Symbol) (i:int) =
     match sym.Type with
     | Not | And | Or | Xor | Nand | Nor | Xnor 
-    | Input _ | Output _ | IOLabel | Constant _ | BusSelection _ 
+    | Input _ | Output _ | IOLabel | Constant _ | OldBusSelection _ 
     | MergeWires | SplitWire _ -> text [] []
     | _ -> 
         let port = sym.Ports.[i]
@@ -871,25 +892,48 @@ let private portLabels (sym:Symbol) (i:int) =
             | _ -> (0., (1.0, 1.0))
 
         let (xMargin, yMargin, textAnchor, dominantBaseline) = 
-            match sym.Orientation with
-            | Rotate90clk ->
-                match port.ConnectionDirection with 
-                | Right -> (5., 0., "middle", "auto")
-                | Left -> (-5., 0., "middle", "hanging")
-                | Up -> (0., -6., "end", "middle")
-                | Down -> (0., 6., "start", "middle")
-            | Rotate90antiClk ->
-                match port.ConnectionDirection with 
-                | Right -> (5., 0., "middle", "hanging")
-                | Left -> (-5., 0., "middle", "auto")
-                | Up -> (0., 6., "start", "middle")
-                | Down -> (0., -6., "end", "middle")
+            match sym.Type with 
+
+            | BusSelection _ -> 
+                match port.PortType with
+                | PortType.Input -> 
+                    match sym.Orientation with
+                    | Standard -> (7., -8., "middle", "middle")
+                    | Rotate90clk -> (8., 7., "middle", "middle")
+                    | Mirror -> (-7., -8., "middle", "middle")
+                    | Rotate90antiClk -> (-8., 7., "middle", "middle")
+                | PortType.Output -> 
+                    match sym.Orientation with
+                    | Standard -> (-7., -8., "middle", "middle")
+                    | Rotate90clk -> (8., -7., "middle", "middle")
+                    | Mirror -> (7., -8., "middle", "middle")
+                    | Rotate90antiClk -> (-8., -7., "middle", "middle")
+
             | _ ->
-                match port.ConnectionDirection with 
-                | Right -> (5., 0., "start", "middle")
-                | Left -> (-5., 0., "end", "middle")
-                | Up -> (0., -6., "middle", "auto")
-                | Down -> (0., 6., "middle", "hanging")
+                match sym.Orientation with
+                | Rotate90clk ->
+                    match port.ConnectionDirection with 
+                    | Right -> (5., 0., "middle", "auto")
+                    | Left -> (-5., 0., "middle", "hanging")
+                    | Up -> (0., -6., "end", "middle")
+                    | Down -> (0., 6., "start", "middle")
+                | Rotate90antiClk ->
+                    match port.ConnectionDirection with 
+                    | Right -> (5., 0., "middle", "hanging")
+                    | Left -> (-5., 0., "middle", "auto")
+                    | Up -> (0., 6., "start", "middle")
+                    | Down -> (0., -6., "end", "middle")
+                | _ ->
+                    match port.ConnectionDirection with 
+                    | Right -> (5., 0., "start", "middle")
+                    | Left -> (-5., 0., "end", "middle")
+                    | Up -> (0., -6., "middle", "auto")
+                    | Down -> (0., 6., "middle", "hanging")
+
+        let fontSize =
+            match sym.Type with 
+            | BusSelection _ -> "10px"
+            | _ -> "13px"
 
         let labelPos : XYPos =
             match sym.Orientation with 
@@ -933,6 +977,15 @@ let private portLabels (sym:Symbol) (i:int) =
                 | PortType.Output, Some 1 -> "Cout"
                 | _ -> failwithf "should not occur"
 
+            | BusSelection (outBW, outLSB) ->
+                let inputMSB bw =
+                    match bw with 
+                    | Some x -> string(x)
+                    | None -> "?"
+                match port.PortType with
+                | PortType.Input -> "[" + (inputMSB port.BusWidth) + "..0]"
+                | PortType.Output -> "[" + string(outBW + outLSB - 1) + ".." + string(outLSB) + "]"
+
             | DFF | DFFE -> 
                 match port.PortType, port.PortNumber with
                 | PortType.Input, Some 0 -> "D"
@@ -970,7 +1023,7 @@ let private portLabels (sym:Symbol) (i:int) =
                 UserSelect UserSelectOptions.None
                 TextAnchor textAnchor
                 DominantBaseline dominantBaseline
-                FontSize "13px"
+                FontSize fontSize
                 FontWeight "Bold"
                 Fill "Black" 
                 Transform (sprintf "translate(%fpx,%fpx) scale(%A) " mirrorShift 0. scaleFactor )
@@ -1054,9 +1107,12 @@ let private renderBasicSymbol =
                 | Constant _ -> 
                     {X = 0.; Y = 0.}, {X = 0.; Y = fH}, {X = 2.*fW/5.; Y = fH/2.}, {X = fW; Y = fH/2.}, {X = 2.*fW/5.; Y = fH/2.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}
 
-                | BusSelection _ -> 
+                | OldBusSelection _ -> 
                     {X = 0.; Y = 0.}, {X = 0.; Y = fH}, {X = fW/2.; Y = fH}, {X = 3.*fW/4.; Y = 4.*fH/5.}, {X = fW; Y = 4.*fH/5.}, {X = fW; Y = fH/5.}, {X = 3.*fW/4.; Y = fH/5.}, {X = fW/2.; Y = 0.}, {X = 0.; Y = 0.}
   
+                | BusSelection _ -> 
+                    {X = 0.; Y = fH/2.}, {X = fW; Y = fH/2.}, {X = fW/2.; Y = fH/2.}, {X = fW/2.; Y = 0.}, {X = fW/2.; Y = fH}, {X = fW/2.; Y = fH/2.}, {X = 0.; Y = fH/2.}, {X = 0.; Y = fH/2.}, {X = 0.; Y = fH/2.}
+
                 | MergeWires -> 
                     {X = 0.; Y = 0.}, {X = fW/2.; Y = 0.}, {X = fW/2.; Y = fH/2.}, {X = fW; Y = fH/2.}, {X = fW/2.; Y = fH/2.}, {X = fW/2.; Y = fH}, {X = 0.; Y = fH}, {X = fW/2.; Y = fH}, {X = fW/2.; Y = 0.}
 
