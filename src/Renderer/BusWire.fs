@@ -214,9 +214,9 @@ let view (model:Model) (dispatch: Dispatch<Msg>)=
                             X2 x.WireRenderProps.Segments.Head.End.X
                             Y2 x.WireRenderProps.Segments.Head.End.Y
                             Style [
-                                    Stroke "Black"
-                                    StrokeWidth "3px"
-                                    StrokeDasharray "8"
+                                    Stroke "LightGreen"
+                                    StrokeWidth "2px"
+                                    StrokeDasharray "5"
                                   ]] []]
         | None -> []
     g [] (symbolSVG :: wireSVG @ sheetWire)
