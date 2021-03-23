@@ -572,6 +572,9 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                                                 match List.tryFind (fun pId -> getEndIdFromWire w = pId) deletedPorts with
                                                 | Some x -> false
                                                 | None -> true) model.Wires
+            
+            let newWires = Map.filter (fun id w -> w.WireRenderProps.IsSelected <> true) newWires
+                                                
             model
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
