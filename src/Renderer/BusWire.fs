@@ -187,7 +187,7 @@ let singleWireView =
                 text [  X xLabel
                         Y yLabel
                         Style [
-                                FontSize "16px"
+                                FontSize "14px"
                                 FontWeight "Bold"
                                 Fill (if props.IsSelected then "Red" else props.Color.Text())
                                 UserSelect UserSelectOptions.None
@@ -208,7 +208,16 @@ let view (model:Model) (dispatch: Dispatch<Msg>)=
     let symbolSVG = Symbol.view model.SymbolModel (fun symbolMsg -> dispatch (Symbol symbolMsg))
     let sheetWire =
         match model.SheetWire with
-        | Some x -> [line [X1 x.WireRenderProps.Segments.Head.Start.X; Y1 x.WireRenderProps.Segments.Head.Start.Y; X2 x.WireRenderProps.Segments.Head.End.X; Y2 x.WireRenderProps.Segments.Head.End.Y ; Style [Stroke "Black"]] []]
+        | Some x -> [line [
+                            X1 x.WireRenderProps.Segments.Head.Start.X
+                            Y1 x.WireRenderProps.Segments.Head.Start.Y
+                            X2 x.WireRenderProps.Segments.Head.End.X
+                            Y2 x.WireRenderProps.Segments.Head.End.Y
+                            Style [
+                                    Stroke "Black"
+                                    StrokeWidth "3px"
+                                    StrokeDasharray "8"
+                                  ]] []]
         | None -> []
     g [] (symbolSVG :: wireSVG @ sheetWire)
 
