@@ -496,10 +496,10 @@ let autoRouteWire _wireId wire =
 // for custom wires with props decided by the user use the updateWireWithProps function
 let createWire startId startPort endId endPort =
     // setup for the router
-    let startPort, endPort =
+    let startPort, startId, endPort, endId =
             if Symbol.getPortTypeFromPort startPort <> Symbol.getPortTypeFromPort endPort then
                 if Symbol.getPortTypeFromPort startPort = CommonTypes.PortType.Output
-                then startPort, endPort else endPort, startPort
+                then startPort, startId, endPort, endId else endPort, endId, startPort, startId
             else
                 failwithf "createWire Error: Attempted to connect input/input, output/output"
 
@@ -589,11 +589,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
         | Symbol.EndDragging -> 
-            let movedPortsMap = Symbol.getPortsMapOfSelectedSymbolList sm 
-            let newWires = autoRouteWires model.Wires movedPortsMap
-            model
-            |> updateWireModelWithWires newWires
-            |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
+            // let movedPortsMap = Symbol.getPortsMapOfSelectedSymbolList sm 
+            // let newWires = autoRouteWires model.Wires movedPortsMap
+            // model
+            // |> updateWireModelWithWires newWires
+            // |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
+            model, Cmd.map Symbol sCmd
         | Symbol.MouseMove pos -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd///// Shaheer /// for port bubbles
         | Symbol.RotateSymbol sId ->
             let movedPortsMap = Symbol.getPortsFromId sId sm
@@ -661,12 +662,11 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                                                else 
                                                     w)
         updateWireModelWithWires newWires model, Cmd.none
-    | CreateWire (outputPort,inputPort) ->
-        printfn "%A" (outputPort, inputPort)
+    | CreateWire (port1,port2) ->
         let newModel = {model with SheetWire = None}
         let newWires = newModel
                        |> getWiresFromWireModel
-                       |> Map.add (generateWireId()) (createWire outputPort.Id outputPort inputPort.Id inputPort)
+                       |> Map.add (generateWireId()) (createWire port1.Id port1 port2.Id port2)
         updateWireModelWithWires newWires newModel, Cmd.none       
     | CreateSheetWire (port, pos) -> 
         {model with SheetWire = Some (sheetWire port pos)}, pos |> Symbol.Msg.MouseMove |> Symbol |> Cmd.ofMsg
