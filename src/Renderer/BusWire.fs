@@ -487,6 +487,13 @@ let autoRouteWire _wireId wire =
 // for custom wires with props decided by the user use the updateWireWithProps function
 let createWire startId startPort endId endPort =
     // setup for the router
+    let startPort, endPort =
+            if Symbol.getPortTypeFromPort startPort <> Symbol.getPortTypeFromPort endPort then
+                if Symbol.getPortTypeFromPort startPort = CommonTypes.PortType.Output
+                then startPort, endPort else endPort, startPort
+            else
+                failwithf "createWire Error: Attempted to connect input/input, output/output"
+
     let startPortPos, endPortPos = Symbol.getPosFromPort startPort, Symbol.getPosFromPort endPort
     let fromDir, toDir = Symbol.getDirFromPort startPort, Symbol.getDirFromPort endPort
     let startExtension = getPortExtension startPortPos fromDir true
