@@ -266,7 +266,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
         | (Port (p1, type1)), (Port (p2, type2)) when type1 <> type2-> 
-            model, 
+            {model with SelectedItem = NoItem}, 
             (if type1 = CommonTypes.PortType.Input then p1,p2 else p2,p1)
             |> BusWire.Msg.CreateWire
             |> Wire |> Cmd.ofMsg
