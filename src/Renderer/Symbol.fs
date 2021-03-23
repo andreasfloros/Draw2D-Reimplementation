@@ -870,7 +870,6 @@ let circmaker (sym: Symbol) (i:int) =
             ] []
 
 
-
 let private portLabels (sym:Symbol) (i:int) =
     match sym.Type with
     | Not | And | Or | Xor | Nand | Nor | Xnor 
@@ -1051,6 +1050,43 @@ let private symLabel (sym: Symbol) _ =
     ] [str <| $"{symLabel}"] 
 
 
+let gridLines (W: int) (H: int) =
+    let boxLen = 15
+    let opacity = 0.15
+    
+
+    ([0..boxLen..W]
+    |> List.map (fun x -> 
+    line [
+                            X1 (float x)
+                            Y1 0.
+                            X2 (float x)
+                            Y2 H
+                            Style [
+                                    Stroke "Grey"
+                                    StrokeWidth "1px"
+                                    
+                                    Opacity opacity
+                                  ]] [])
+            
+    )
+
+    @ ([0..boxLen..H]
+    |> List.map (fun x -> 
+    line [
+                            X1 0.
+                            Y1 (float x)
+                            X2 W
+                            Y2 (float x)
+                            Style [
+                                    Stroke "Grey"
+                                    StrokeWidth "1px"
+                                    
+                                    Opacity opacity
+                                  ]] [])
+    ) 
+    
+
 let private renderBasicSymbol = 
     FunctionComponent.Of(
         fun (props : BasicSymbolProps) ->
@@ -1196,7 +1232,7 @@ let private renderBasicSymbol =
                             //SVGAttr.Points $"{cutLeftW},{cutLeftH} {vertex5.X},{vertex5.Y} {cutLeftW},{fH-cutLeftH} {fW-cutRightW},{fH-cutRightH} {vertex6.X},{vertex6.Y} {fW-cutRightW},{cutRightH}"
                             SVGAttr.StrokeWidth "2px"
                             SVGAttr.Stroke "Black"
-                            SVGAttr.FillOpacity 0.5
+                            SVGAttr.FillOpacity 0.6
                             SVGAttr.Fill color] []
 
                     text [ 
@@ -1226,18 +1262,16 @@ let private renderBasicSymbol =
     )
 
 
-let renderSymbols (dispatch : Msg -> unit) (symToRender : Symbol) : ReactElement  =
-    (renderBasicSymbol {
-                            Sym = symToRender
-                            Dispatch = dispatch
-                            Key = string(symToRender.Id)
-                       })
-
 
 /// View function for symbol layer of SVG
 let view (model : Model) (dispatch : Msg -> unit) : ReactElement = 
     model
-    |> List.map (renderSymbols dispatch) 
+    |> List.map (  fun sym -> renderBasicSymbol {    Sym = sym 
+                                                     Dispatch = dispatch      
+                                                     Key = string(sym.Id)  
+                                                     })
+
+    |> List.append (gridLines 1000 1000)
     |> ofList
 
 
