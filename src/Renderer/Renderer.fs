@@ -52,8 +52,8 @@ module Renderer
                    makeKeyItem "Delete Selected"  "Delete" (fun () -> dispatch KeyboardMsg.DEL)
                   // makeKeyItem "Red" "Alt+Z" (fun () -> dispatch KeyboardMsg.AltZ)
                    makeKeyItem "Reset Wires" "CmdOrCtrl+W" (fun () -> dispatch KeyboardMsg.CtrlW)
-                   makeKeyItem "Select Multiple Mode" "Shift+A" (fun () -> dispatch KeyboardMsg.ShiftA)
-                   makeKeyItem "Select Single Mode" "Shift+Q" (fun () -> dispatch KeyboardMsg.ShiftQ)
+                //    makeKeyItem "Select Multiple Mode" "Shift+A" (fun () -> dispatch KeyboardMsg.ShiftA)
+                //    makeKeyItem "Select Single Mode" "Shift+Q" (fun () -> dispatch KeyboardMsg.ShiftQ)
                    makeKeyItem "Rotate Symbol" "R" (fun () -> dispatch KeyboardMsg.R)
                    menuSeparator
                    makeKeyItem "Print Statistics" "Alt+Shift+Z" (fun () -> dispatch KeyboardMsg.AltShiftZ)
