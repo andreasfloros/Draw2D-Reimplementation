@@ -161,13 +161,6 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | G -> newSymbol "Nor" model
         | H -> newSymbol "Decode4" model
         | W -> failwithf "Not yet implemented"
-        
-        // | ShiftA -> 
-        //     printf "SHIFT HAS BEEN PRESSED"
-        //     {model with KeyPressShift = true}, Cmd.none
-        // | ShiftQ -> 
-        //     printf "SHIFT ENDED"
-        //     {model with KeyPressShift = false}, Cmd.none
 
         | CtrlW -> let wModel, wCmd = BusWire.update (BusWire.AutoRouteAll) model.Wire
                    {model with Wire = wModel}, Cmd.map Wire wCmd
@@ -241,21 +234,13 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 |> Wire |> Cmd.ofMsg
 
         | NoItem -> 
-
             let sId = null 
             {model with SelectedItem = selected},
             sId |> BusWire.Msg.Select 
                       |> Wire |> Cmd.ofMsg
                       
         | Port(port, portType) -> 
-            match model.SelectedItem with
-            | Port (prevPort,prevPortType) when prevPortType <> portType ->
-                {model with SelectedItem = NoItem}, 
-                (if portType = CommonTypes.PortType.Input then prevPort, port else port, prevPort) 
-                |> BusWire.Msg.CreateWire 
-                |> Wire |> Cmd.ofMsg
-            | _ -> {model with SelectedItem = selected}, Cmd.none
-
+            {model with SelectedItem = selected}, Cmd.none
 
     | MouseMsg event when event.Op = MouseOp.Up -> 
        let isPortSelected = getHit event.Pos model
@@ -279,8 +264,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
         | _ -> failwithf "not yet done"
 
-    | MouseMsg event when event.Op = MouseOp.Move ->  
-       
+    | MouseMsg event when event.Op = MouseOp.Move ->   
+        match model.SelectedItem with 
+        | Port (p, pType) -> {model with SelectedItem = NoItem}, 
+                              BusWire.Msg.DeleteSheetWire 
+                              |> Wire |> Cmd.ofMsg
+        | _ -> 
             model,
             event.Pos
             |> Symbol.Msg.MouseMove

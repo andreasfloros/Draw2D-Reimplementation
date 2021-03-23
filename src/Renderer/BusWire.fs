@@ -588,7 +588,6 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             model
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
-        //| Symbol.EndDragging -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd
         | Symbol.EndDragging -> 
             let movedPortsMap = Symbol.getPortsMapOfSelectedSymbolList sm 
             let newWires = autoRouteWires model.Wires movedPortsMap
@@ -626,20 +625,16 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         let newWires = getWiresFromWireModel model
                        |> Map.change wireId (manualRouteWire segmentIndex mousePos (getWiresFromWireModel model) wireId true)
         updateWireModelWithWires newWires model, Cmd.none
-
-
-
-   // | SetColor c -> {model with Wires = Map.change }, Cmd.none
                                    
     | DeleteWire wId -> 
         {model with Wires = Map.filter (fun id w -> id <> wId) model.Wires } , Cmd.none
-
 
     | AutoRouteAll ->
         let newWires = getWiresFromWireModel model
                        |> Map.map autoRouteWire
         model
         |> updateWireModelWithWires newWires, Cmd.none
+
     | Select wId -> 
         let sm,sCmd = Symbol.update Symbol.Deselect model.SymbolModel
         let newWires = model
@@ -649,8 +644,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                                                else 
                                                     {w with WireRenderProps = {getWirePropsFromWire w with IsSelected = false}})
         updateWireModelWithWires newWires {model with SymbolModel = sm}, Cmd.none
+
     | MultipleSelect wId -> 
-        //let sm,sCmd = Symbol.update Symbol.Deselect model.SymbolModel
         let newWires = model
                        |> getWiresFromWireModel
                        |> Map.map (fun id w -> if id = wId then 
@@ -668,12 +663,13 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         updateWireModelWithWires newWires model, Cmd.none
     | CreateWire (outputPort,inputPort) ->
         printfn "%A" (outputPort, inputPort)
-        let newWires = model
+        let newModel = {model with SheetWire = None}
+        let newWires = newModel
                        |> getWiresFromWireModel
                        |> Map.add (generateWireId()) (createWire outputPort.Id outputPort inputPort.Id inputPort)
-        updateWireModelWithWires newWires {model with SheetWire = None}, Cmd.none       
+        updateWireModelWithWires newWires newModel, Cmd.none       
     | CreateSheetWire (port, pos) -> 
-        {model with SheetWire = Some (sheetWire port pos)}, Cmd.none
+        {model with SheetWire = Some (sheetWire port pos)}, pos |> Symbol.Msg.MouseMove |> Symbol |> Cmd.ofMsg
     | DeleteSheetWire ->
         {model with SheetWire = None}, Cmd.none              
                        
