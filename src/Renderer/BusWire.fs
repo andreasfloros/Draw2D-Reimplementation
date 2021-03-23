@@ -133,6 +133,7 @@ type Msg =
     | AutoRouteAll
     | CreateWire of outputPort : CommonTypes.Port * inputPort : CommonTypes.Port
     | CreateSheetWire of port : CommonTypes.Port * pos : XYPos
+    | DeleteSheetWire
 
 let addVerticesIfSelected props =
     if props.IsSelected then
@@ -656,7 +657,9 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                        |> Map.add (generateWireId()) (createWire outputPort.Id outputPort inputPort.Id inputPort)
         updateWireModelWithWires newWires {model with SheetWire = None}, Cmd.none       
     | CreateSheetWire (port, pos) -> 
-        {model with SheetWire = Some (sheetWire port pos)}, Cmd.none               
+        {model with SheetWire = Some (sheetWire port pos)}, Cmd.none
+    | DeleteSheetWire ->
+        {model with SheetWire = None}, Cmd.none              
                        
           
 

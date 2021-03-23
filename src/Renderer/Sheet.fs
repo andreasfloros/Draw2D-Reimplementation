@@ -271,9 +271,9 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | NoItem, _ -> 
             model, 
             Cmd.none
-        | _, BusWire (wid, x)-> 
+        | (Port (p1, o)), NoItem -> 
             model, 
-            "temp" |> BusWire.Msg.DeleteWire |> Wire |> Cmd.ofMsg
+            BusWire.Msg.DeleteSheetWire |> Wire |> Cmd.ofMsg
 
         | _ -> failwithf "not yet done"
 
