@@ -503,11 +503,11 @@ let symbolRotation sym =
 
 let closeTogether a b = 
     match a, b with 
-    | v1, v2 when abs(v1 - v2) <= 0. -> true
+    | v1, v2 when abs(v1 - v2) <= 10. -> true
     | _ -> false
 
 let horizontalAlign (sym:Symbol) xPos model =
-    let checkAlignment (w:float) (s:Symbol) =
+    let checkSideAlignment (w:float) (s:Symbol) =
         let x = xPos + w
         if sym.Id <> s.Id 
         then
@@ -519,7 +519,18 @@ let horizontalAlign (sym:Symbol) xPos model =
             | true, true -> Some (s.Pos.X + s.CurrentW)
         else 
             None
-    let allComparisons w = List.map (checkAlignment w) model
+    let allSideComparisons w = List.map (checkSideAlignment w) model
+
+    let checkCentreAlignment (s:Symbol) =
+        let x = xPos + (sym.CurrentW/2.)
+        if sym.Id <> s.Id 
+        then
+            match (closeTogether x (s.Pos.X + (s.CurrentW/2.))) with 
+            | false -> None
+            | true -> Some (s.Pos.X + (s.CurrentW/2.))
+        else 
+            None
+
     let keepClosest w a b =
         let x = xPos + w
         match a, b with
@@ -528,18 +539,29 @@ let horizontalAlign (sym:Symbol) xPos model =
         | Some p, None -> Some p
         | Some p, Some q when abs(x - p) <= abs(x - q) -> Some p
         | Some p, Some q -> Some q
-    let leftSide = (None, (allComparisons 0.)) ||> List.fold (keepClosest 0.)
-    let rightSide = (None, (allComparisons sym.CurrentW)) ||> List.fold (keepClosest sym.CurrentW)
-    match leftSide, rightSide with
-    | None, None -> None
-    | Some p, None -> Some p
-    | None, Some q -> Some (q - sym.CurrentW)
-    | Some p, Some q when abs(xPos - p) <= abs(xPos + sym.CurrentW - q) -> Some p
-    | Some p, Some q -> Some (q - sym.CurrentW)
+
+    let leftSide = (None, (allSideComparisons 0.)) ||> List.fold (keepClosest 0.)
+    let rightSide = (None, (allSideComparisons sym.CurrentW)) ||> List.fold (keepClosest sym.CurrentW)
+    let centre = (None, (List.map checkCentreAlignment model)) ||> List.fold (keepClosest (sym.CurrentW/2.))
+
+    match leftSide, rightSide, centre with
+    | None, None, None -> None
+    | Some l, None, None -> Some l
+    //| None, Some r, None -> Some (r - sym.CurrentW)
+    | Some l, Some r, None when abs(xPos - l) <= abs(xPos + sym.CurrentW - r) -> Some l
+    | _, Some r, None -> Some (r - sym.CurrentW)
+    //| None, None, Some c -> Some (c - (sym.CurrentW/2.))
+    | Some l, None, Some c when abs(xPos - l) <= abs(xPos + (sym.CurrentW/2.) - c) -> Some l
+    | Some l, None, Some c -> Some (c - (sym.CurrentW/2.))
+    //| None, Some r, Some c when abs(xPos + sym.CurrentW - r) <= abs(xPos + (sym.CurrentW/2.) - c) -> Some (r - sym.CurrentW)
+    //| None, Some r, Some c -> Some (c - (sym.CurrentW/2.))
+    | Some l, Some r, Some c when (abs(xPos - l) <= abs(xPos + sym.CurrentW - r)) && (abs(xPos - l) <= abs(xPos + (sym.CurrentW/2.) - c)) -> Some l
+    | _, Some r, Some c when abs(xPos + sym.CurrentW - r) <= abs(xPos + (sym.CurrentW/2.) - c) -> Some (r - sym.CurrentW)
+    | _, _, Some c -> Some (c - (sym.CurrentW/2.))
 
 
 let verticalAlign (sym:Symbol) yPos model =
-    let checkAlignment h (s:Symbol) =
+    let checkSideAlignment h (s:Symbol) =
         let y = yPos + h
         if sym.Id <> s.Id 
         then
@@ -548,10 +570,21 @@ let verticalAlign (sym:Symbol) yPos model =
             | true, false -> Some s.Pos.Y
             | false, true -> Some (s.Pos.Y + s.CurrentH)
             | true, true when abs(y - s.Pos.Y) <= abs(y - (s.Pos.Y + s.CurrentH))-> Some s.Pos.Y
-            | true, true -> Some (s.Pos.Y + s.CurrentW)
+            | true, true -> Some (s.Pos.Y + s.CurrentH)
         else 
             None
-    let allComparisons h = List.map (checkAlignment h) model
+    let allSideComparisons h = List.map (checkSideAlignment h) model
+
+    let checkCentreAlignment (s:Symbol) =
+        let y = yPos + (sym.CurrentH/2.)
+        if sym.Id <> s.Id 
+        then
+            match (closeTogether y (s.Pos.Y + (s.CurrentH/2.))) with 
+            | false -> None
+            | true -> Some (s.Pos.Y + (s.CurrentH/2.))
+        else 
+            None
+
     let keepClosest h a b =
         let y = yPos + h
         match a, b with
@@ -560,14 +593,25 @@ let verticalAlign (sym:Symbol) yPos model =
         | Some p, None -> Some p
         | Some p, Some q when abs(y - p) <= abs(y - q) -> Some p
         | Some p, Some q -> Some q
-    let topSide = (None, (allComparisons 0.)) ||> List.fold (keepClosest 0.)
-    let bottomSide = (None, (allComparisons sym.CurrentH)) ||> List.fold (keepClosest sym.CurrentH)
-    match topSide, bottomSide with
-    | None, None -> None
-    | Some p, None -> Some p
-    | None, Some q -> Some (q - sym.CurrentH)
-    | Some p, Some q when abs(yPos - p) <= abs(yPos + sym.CurrentH - q) -> Some p
-    | Some p, Some q -> Some (q - sym.CurrentW)
+
+    let topSide = (None, (allSideComparisons 0.)) ||> List.fold (keepClosest 0.)
+    let bottomSide = (None, (allSideComparisons sym.CurrentH)) ||> List.fold (keepClosest sym.CurrentH)
+    let centre = (None, (List.map checkCentreAlignment model)) ||> List.fold (keepClosest (sym.CurrentH/2.))
+
+    match topSide, bottomSide, centre with
+    | None, None, None -> None
+    | Some t, None, None -> Some t
+    //| None, Some b, None -> Some (b - sym.CurrentH)
+    | Some t, Some b, None when abs(yPos - t) <= abs(yPos + sym.CurrentH - b) -> Some t
+    | _, Some b, None -> Some (b - sym.CurrentH)
+    //| None, None, Some c -> Some (c - (sym.CurrentH/2.))
+    | Some t, None, Some c when abs(yPos - t) <= abs(yPos + (sym.CurrentH/2.) - c) -> Some t
+    | Some t, None, Some c -> Some (c - (sym.CurrentH/2.))
+    //| None, Some b, Some c when abs(yPos + sym.CurrentH - b) <= abs(yPos + (sym.CurrentH/2.) - c) -> Some (b - sym.CurrentH)
+    //| None, Some b, Some c -> Some (c - (sym.CurrentH/2.))
+    | Some t, Some b, Some c when (abs(yPos - t) <= abs(yPos + sym.CurrentH - b)) && (abs(yPos - t) <= abs(yPos + (sym.CurrentH/2.) - c)) -> Some t
+    | _, Some b, Some c when abs(yPos + sym.CurrentH - b) <= abs(yPos + (sym.CurrentH/2.) - c) -> Some (b - sym.CurrentH)
+    | _, _, Some c -> Some (c - (sym.CurrentH/2.))
 
 
 /// update function which displays symbols
@@ -622,7 +666,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
                     | None -> updatedPos.Y, false
                     | Some y -> y, true
                 { sym with
-                    Pos = {X = newX; Y = newY} //updatedPos 
+                    Pos = updatedPos //{X = newX; Y = newY} //updatedPos //
                     Ports = List.map (fun port -> {port with PortPos = posAdd port.RelativePortPos sym.Pos}) sym.Ports
                     LastDragPos = pagePos
                         // if ((xAligned = true) || (yAligned = true))
@@ -638,16 +682,17 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
             if sId <> sym.Id then 
                 sym
             else
-                // let newX = 
-                //     match horizontalAlign sId sym.Pos.X model with
-                //     | None -> sym.Pos.X
-                //     | Some x -> x
-                // let newY = 
-                //     match verticalAlign sId sym.Pos.Y model with
-                //     | None -> sym.Pos.Y
-                //     | Some y -> y
+                let newX = 
+                    match horizontalAlign sym sym.Pos.X model with
+                    | None -> sym.Pos.X
+                    | Some x -> x
+                let newY = 
+                    match verticalAlign sym sym.Pos.Y model with
+                    | None -> sym.Pos.Y
+                    | Some y -> y
                 { sym with
-                    //Pos = {X = newX; Y = newY}
+                    Pos = {X = newX; Y = newY}
+                    Ports = List.map (fun port -> {port with PortPos = posAdd port.RelativePortPos sym.Pos}) sym.Ports
                     IsDragging = false 
                 }
         )
