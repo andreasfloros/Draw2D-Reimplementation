@@ -271,7 +271,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | NoItem, _ -> 
             model, 
             Cmd.none
-        | (Port (p1, o)), NoItem -> 
+        | (Port (p1, o)), _ -> 
             model, 
             BusWire.Msg.DeleteSheetWire |> Wire |> Cmd.ofMsg
 
