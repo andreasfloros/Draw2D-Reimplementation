@@ -332,7 +332,7 @@ let autoRouteWires wires portsMap =
             segments // could optimise...
             |> List.indexed
             |> List.tryPick (fun (idx,seg) ->
-                                    if idx > segmentsMaxIdx - 3  || idx < 1 then None
+                                    if idx > segmentsMaxIdx - 3 || idx < 1 then None
                                     else if lenOfSeg seg <> 0. && lenOfSeg segments.[idx+2] <> 0. && lenOfSeg segments.[idx+1] = 0. && areOppositeDirs (dirOfSeg seg) (dirOfSeg segments.[idx+2])
                                     then
                                         printfn "OPPOSITE FOUND" 
@@ -357,7 +357,7 @@ let autoRouteWires wires portsMap =
             segments // could optimise...
             |> List.indexed
             |> List.tryPick (fun (idx,seg) ->
-                                    if idx > segmentsMaxIdx - 2  || idx < 1 then None
+                                    if idx > segmentsMaxIdx - 2  then None
                                     else if lenOfSeg seg <> 0. && lenOfSeg segments.[idx+2] <> 0. && lenOfSeg segments.[idx+1] = 0. && (dirOfSeg seg) = (dirOfSeg segments.[idx+2])
                                     then
                                         printfn "SAME DIR FOUND" 
