@@ -1309,4 +1309,13 @@ let getPortsOfSelectedSymbolList model =
                              else false)
     |> List.collect (fun s -> s.Ports)
     |> List.map (fun p -> p.Id)
+
+let getPortsMapOfSelectedSymbolList model =
+    model
+    |> List.filter (fun s -> if s.IsSelected then 
+                                true 
+                             else false)
+    |> List.collect (fun s -> s.Ports)
+    |> List.map (fun p -> (p.Id,p))
+    |> Map.ofList
     

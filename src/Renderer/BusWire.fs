@@ -60,6 +60,7 @@ type Wire = {
     StartId: CommonTypes.PortId
     EndId: CommonTypes.PortId
     EndDir: Dir
+    HasBeenManualRouted: bool
     WireRenderProps: WireRenderProps
     }
 
@@ -266,7 +267,7 @@ let rec manualRouteWire segmentIndex mousePos wires wireId snap (wireOption: Wir
                                             | -1 -> segOf segment.Start newMovedSegment.Start
                                             | 1 ->  segOf newMovedSegment.End segment.End
                                             | _ -> segment)
-        Some (updateWireWithSegments wire newSegments |> if snap then snapToWire else id)
+        Some ({updateWireWithSegments wire newSegments with HasBeenManualRouted = true} |> if snap then snapToWire else id)
 
     // fromDir is where the source pt is headed
     // Resulting wire will attack the input port from a direction perpendicular to toDir
@@ -330,7 +331,7 @@ let autoRouteWires wires portsMap =
             segments // could optimise...
             |> List.indexed
             |> List.tryPick (fun (idx,seg) ->
-                                    if idx > segmentsMaxIdx - 4  || idx < 1 then None
+                                    if idx > segmentsMaxIdx - 3  || idx < 1 then None
                                     else if lenOfSeg seg <> 0. && lenOfSeg segments.[idx+2] <> 0. && lenOfSeg segments.[idx+1] = 0. && areOppositeDirs (dirOfSeg seg) (dirOfSeg segments.[idx+2])
                                     then
                                         printfn "OPPOSITE FOUND" 
@@ -343,6 +344,31 @@ let autoRouteWires wires portsMap =
             |> List.mapi (fun idx seg ->
                                 if idx = index || idx = index + 1 then []
                                 else if idx = index + 2 then [segOf segments.[index].Start seg.End]
+                                else [seg])
+            |> List.collect id
+            |> updateWireWithSegments wire      
+        | None -> wire
+
+    let mergeSegs wire =
+        let segments = getSegmentsFromWire wire
+        let tripletToBeEradicated = 
+            let segmentsMaxIdx = segments.Length - 1
+            segments // could optimise...
+            |> List.indexed
+            |> List.tryPick (fun (idx,seg) ->
+                                    if idx > segmentsMaxIdx - 2  || idx < 1 then None
+                                    else if lenOfSeg seg <> 0. && lenOfSeg segments.[idx+2] <> 0. && lenOfSeg segments.[idx+1] = 0. && (dirOfSeg seg) = (dirOfSeg segments.[idx+2])
+                                    then
+                                        printfn "SAME DIR FOUND" 
+                                        (Some idx)
+                                    else None)
+
+        match tripletToBeEradicated with
+        | Some index ->
+            segments
+            |> List.mapi (fun idx seg ->
+                                if idx = index || idx = index + 2 then []
+                                else if idx = index + 1 then [segOf segments.[index].Start segments.[index+2].End]
                                 else [seg])
             |> List.collect id
             |> updateWireWithSegments wire      
@@ -409,10 +435,10 @@ let autoRouteWires wires portsMap =
                         if portId = endId then (swapSeg endExtension) :: betweenRoute @ routeSoFar |> swapRoute
                         else startExtension :: betweenRoute @ routeSoFar
             updateWireWithSegments wire route
-        // Route translation is problematic with directions that change could handle this case by case but for now it is commented out
-        //else if prevSegmentsLength > 3 && snd ids <> None then // when dealing with a loop, simple translation of the path is done
-        //    let route = translateRoute routeStart prevSegments // note that prevSegmentsLength > 3 can be omitted here
-        //    updateWireWithSegments wire route
+        // Route translation is problematic with directions that change
+        else if prevSegmentsLength > 3 && snd ids <> None && fromDir = oldFromDir && toDir = oldToDir then // when dealing with a loop, simple translation of the path is done
+            let route = translateRoute routeStart prevSegments // note that prevSegmentsLength > 3 can be omitted here
+            updateWireWithSegments wire route
         else // route from the beginning if the wire is short
             let route = routeFromStart startExtension endExtension
             updateWireWithSegments wire route
@@ -435,6 +461,7 @@ let autoRouteWires wires portsMap =
                 | Some ids -> correctEndPtsAndAutoRoute wire ids
                               |> remove0Segs
                               |> removeKinkySegs
+                              |> mergeSegs
                 | None -> wire)
 
 // assumes wire has been initialised
@@ -461,7 +488,8 @@ let createWire startId startPort endId endPort =
         if Symbol.getWidthFromPort startPort <> Symbol.getWidthFromPort endPort then 5
         else Symbol.getWidthFromPort startPort
     {StartId = startId                                  
-     EndId = endId                                          
+     EndId = endId
+     HasBeenManualRouted = false                                          
      WireRenderProps = {Segments = segments
                         Color = if portWidth < 1 then CommonTypes.Color.Red else CommonTypes.Color.Blue
                         Width = if portWidth > 1 then 4. else 1.5
@@ -517,10 +545,9 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
 
-        | Symbol.Dragging pos -> //thisss
-            let selectedSyms = Symbol.getSelectedSymbols sm
-            let movedPortsMap = List.map (fun sId -> Symbol.getPortsFromId sId sm) selectedSyms 
-            let newWires = autoRouteWires model.Wires movedPortsMap.[0]
+        | Symbol.Dragging pos ->
+            let movedPortsMap = Symbol.getPortsMapOfSelectedSymbolList sm 
+            let newWires = autoRouteWires model.Wires movedPortsMap
             model
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
