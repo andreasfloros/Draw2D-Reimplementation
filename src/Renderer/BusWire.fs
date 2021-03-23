@@ -131,7 +131,7 @@ type Msg =
     | Select of wireId : WireId
     | MultipleSelect of wireId : WireId
     | AutoRouteAll
-    | CreateWire of outputPort : CommonTypes.Port * inputPort : CommonTypes.Port
+    | CreateWire of port1 : CommonTypes.Port * port2 : CommonTypes.Port
     | CreateSheetWire of port : CommonTypes.Port * pos : XYPos
     | DeleteSheetWire
 
