@@ -63,7 +63,7 @@ let FindSymbol (mousePos: XYPos) (model: Model) =
     | Some sym -> Some sym.Id
     | None -> None
 
-///////new funcs for port bubbles
+
 let createBBMouseHover (sym: Symbol) (h,w: float) =
     {
         TopLeft = {X =  sym.Pos.X - 50.; Y = sym.Pos.Y - 50.}
@@ -81,7 +81,6 @@ let distFromBB (symPos: XYPos)  (h,w: float)  (mPos : XYPos)  : float=
                     then (abs(mPos.Y - symPos.Y - h - 50.))/50.
                     else  (abs(symPos.Y - mPos.Y - 50.))/50.
 
-///////
 
 
 
@@ -1303,3 +1302,17 @@ let FindPort (mousePos: XYPos) (model: Model) =
     match List.filter (fun x -> x <> None) s with 
     | [] -> None 
     | s -> s.[0]
+
+let getSelectedSymbolList model =
+    model
+    |> List.filter (fun s -> s.IsSelected)
+    |> List.map (fun s -> s.Id)
+
+let getPortsOfSelectedSymbolList model =
+    model
+    |> List.filter (fun s -> if s.IsSelected then 
+                                true 
+                             else false)
+    |> List.collect (fun s -> s.Ports)
+    |> List.map (fun p -> p.Id)
+    

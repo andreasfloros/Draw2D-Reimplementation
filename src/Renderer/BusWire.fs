@@ -130,6 +130,33 @@ type Msg =
     | MultipleSelect of wireId : WireId
     | AutoRouteAll
 
+let addVerticesIfSelected props =
+    if props.IsSelected then
+        props.Segments
+        |> List.mapi (fun index segment -> if index <> props.Segments.Length-1 then
+                                                let middlePointX = segment.End.X
+                                                let middlePointY = segment.End.Y
+                                                let topLeft = string (middlePointX-4.) + "," + string (middlePointY-4.) + " "
+                                                let topRight = string (middlePointX+4.) + "," + string (middlePointY-4.) + " "
+                                                let bottomLeft = string (middlePointX-4.) + "," + string (middlePointY+4.) + " "
+                                                let bottomRight = string (middlePointX+4.) + "," + string (middlePointY+4.) + " "
+                                                let vertexCoordinates = topLeft + topRight + bottomRight + bottomLeft
+
+                                                [polygon
+                                                    [
+                                                    SVGAttr.Points (vertexCoordinates)
+                                                    SVGAttr.StrokeWidth "1px"
+                                                    SVGAttr.Stroke "Black"
+                                                    SVGAttr.FillOpacity 0.9
+                                                    SVGAttr.Fill "Grey"] []]
+                                           else
+                                                [])
+        |> List.concat
+    else
+        []
+
+
+
 let singleWireView =
     FunctionComponent.Of(
         fun (props: WireRenderProps) ->
@@ -139,26 +166,31 @@ let singleWireView =
                 | Left -> props.Segments.Head.Start.X - 19., props.Segments.Head.Start.Y - 6.
                 | Dir.Down -> props.Segments.Head.Start.X + 6., props.Segments.Head.Start.Y + 20.
                 | Dir.Up -> props.Segments.Head.Start.X + 6., props.Segments.Head.Start.Y - 8.
-            g[] [
+            g[] ([
                 path [
-                        Style[
-                            StrokeLinejoin "round"
-                            Fill "none"
-                        ]
+                        Style [
+                                StrokeLinejoin "round"
+                                Fill "none"
+                              ]
                         let firstSegmentStart = posToString props.Segments.Head.Start
                         D ("M " + firstSegmentStart + segmentsToRoundedString props.Segments) // for rounded corners, below line is normal
                         //D ("M " + segmentsToString props.Segments)
                         SVGAttr.StrokeWidth props.Width
                         SVGAttr.Stroke (if props.IsSelected then "Red" else props.Color.Text())][]
-                text[X xLabel
-                     Y yLabel
-                     Style[FontSize "16px"
-                           FontWeight "Bold"
-                           Fill (if props.IsSelected then "Red" else props.Color.Text())
-                           UserSelect UserSelectOptions.None
-                           ]
+
+                text [  X xLabel
+                        Y yLabel
+                        Style [
+                                FontSize "16px"
+                                FontWeight "Bold"
+                                Fill (if props.IsSelected then "Red" else props.Color.Text())
+                                UserSelect UserSelectOptions.None
+                              ]
                          ][props.Label |> str]
-                ])
+                
+              
+
+                ] @ addVerticesIfSelected props))
 
 
 let view (model:Model) (dispatch: Dispatch<Msg>)=
@@ -493,9 +525,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
         | Symbol.EndDragging sId -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd
-        
         | Symbol.MouseMove pos -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd///// Shaheer /// for port bubbles
-        
         | Symbol.RotateSymbol sId ->
             let movedPortsMap = Symbol.getPortsFromId sId sm
             let newWires = autoRouteWires model.Wires movedPortsMap
@@ -504,7 +534,16 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
 
         | Symbol.DeleteSymbol ->
-            let newWires = Map.filter (fun id w -> w.WireRenderProps.IsSelected = false) model.Wires
+            let deletedPorts = model 
+                               |> getSymbolModelFromWireModel
+                               |> Symbol.getPortsOfSelectedSymbolList
+            let newWires = Map.filter (fun id w ->
+                                            match List.tryFind (fun pId -> getStartIdFromWire w = pId) deletedPorts with
+                                            | Some x -> false
+                                            | None -> 
+                                                match List.tryFind (fun pId -> getEndIdFromWire w = pId) deletedPorts with
+                                                | Some x -> false
+                                                | None -> true) model.Wires
             model
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
