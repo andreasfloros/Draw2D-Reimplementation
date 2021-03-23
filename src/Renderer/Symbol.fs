@@ -130,8 +130,8 @@ let generatePortList compProps numOfPorts portType connectionDirection =
         | Input bw, _, _ | Output bw, _, _ -> Some bw
         | IOLabel, _, _ -> Some 1 //this
 
-        | BusSelection _, PortType.Input, _ -> Some 1 //this
-        | BusSelection (bw,_), PortType.Output, _ -> Some bw
+        | OldBusSelection _, PortType.Input, _ | BusSelection _, PortType.Input, _ -> Some 1 //this
+        | OldBusSelection (bw,_), PortType.Output, _ | BusSelection (bw,_), PortType.Output, _ -> Some bw
 
         | MergeWires, _, _ -> Some 1//this
         | SplitWire bw, PortType.Output, 0 -> Some bw
@@ -225,7 +225,7 @@ let generatePortList compProps numOfPorts portType connectionDirection =
 let generateBasicComp compType compId compPos =
     let ((numOfInputs:int), (numOfOutputs:int)) =
         match compType with 
-        | Not | BusSelection _ | DFF | Register _ | IOLabel | AsyncROM _ | ROM _ -> (1, 1)
+        | Not | OldBusSelection _ | BusSelection _ | DFF | Register _ | IOLabel | AsyncROM _ | ROM _ -> (1, 1)
         | And | Or | Xor | Nand | Nor | Xnor | MergeWires -> (2, 1)
         | Decode4 -> (2, 4)
         | NbitsAdder _ -> (3, 2)
@@ -256,7 +256,7 @@ let generateBasicComp compType compId compPos =
         | Not | And | Or | Xor | Nand | Nor | Xnor -> 50.
         | Input _ | Output _ | IOLabel -> 25.
         | Constant _ -> 20.
-        | BusSelection _ | MergeWires | SplitWire _ -> 30.
+        | OldBusSelection _ | BusSelection _ | MergeWires | SplitWire _ -> 30.
         | Register _ -> 90.
         | AsyncROM _ | ROM _ | RAM _ -> 130.
         | _ ->  headerMargin + footerMargin + 20. + float(20 * List.max [numOfInputs; numOfOutputs])
@@ -357,8 +357,8 @@ let createNewSymbol (compType:CommonTypes.ComponentType) (label:string) (pos:XYP
     let (portList, height, width, numOfInputs, numOfOutputs, numOfUpwardInputs) = 
         match compType with
 
-        | Not | And | Or | Xor | Nand | Nor | Xnor 
-        | Decode4 | BusSelection _ | NbitsAdder _ | DFF | Register _ | Custom _
+        | Not | And | Or | Xor | Nand | Nor | Xnor | Decode4 | NbitsAdder _ 
+        | OldBusSelection _ | BusSelection _ | DFF | Register _ | Custom _
         | MergeWires | SplitWire _ | Input _ | Output _ | IOLabel | Constant _ 
         | AsyncROM _ | ROM _ | RAM _ -> generateBasicComp compType compId pos
 
@@ -397,13 +397,13 @@ let init () =
     |> List.map (fun (x,y) -> {X = float (x*180+20); Y=float (y*220-60)})
     |> List.map (fun {X=x;Y=y} -> 
         match (x, y) with 
-        | 200., 160. -> (createNewSymbol (NbitsAdder 7) "A1" {X=x;Y=y})
-        | 200., 380. -> (createNewSymbol (DemuxN 7) "Demux1" {X=x;Y=y})
+        | 200., 160. -> (createNewSymbol (Input 7) "A1" {X=x;Y=y})
+        | 200., 380. -> (createNewSymbol (MergeWires) "Demux1" {X=x;Y=y})
         | 380., 160. -> (createNewSymbol (RegisterE 5) "Reg1" {X=x;Y=y})
-        | 380., 380. -> (createNewSymbol (BusSelection (5,2)) "label" {X=x;Y=y})
-        | 560., 160. -> (createNewSymbol (MergeWires) "label?" {X=x;Y=y})
+        | 380., 380. -> (createNewSymbol (OldBusSelection (5,2)) "label" {X=x;Y=y})
+        | 560., 160. -> (createNewSymbol (DemuxN 7) "label?" {X=x;Y=y})
         | 560., 380. -> (createNewSymbol (testCustom) "label" {X=x;Y=y})
-        | 740., 160. -> (createNewSymbol (Mux2) "label" {X=x;Y=y})
+        | 740., 160. -> (createNewSymbol (Output 6) "label" {X=x;Y=y})
         | 740., 380. -> (createNewSymbol (Demux4) "label" {X=x;Y=y})
         | _ -> (createNewSymbol (Xor) "label" {X=x;Y=y}) )
         
@@ -696,9 +696,10 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
                     match verticalAlign sym sym.Pos.Y model with
                     | None -> sym.Pos.Y
                     | Some y -> y
+                let newPos = {X = newX; Y = newY}
                 { sym with
-                    Pos = {X = newX; Y = newY}
-                    Ports = List.map (fun port -> {port with PortPos = posAdd port.RelativePortPos sym.Pos}) sym.Ports
+                    Pos = newPos
+                    Ports = List.map (fun port -> {port with PortPos = posAdd port.RelativePortPos newPos}) sym.Ports
                     IsDragging = false 
                 }
         )
@@ -979,6 +980,11 @@ let private portLabels (sym:Symbol) (i:int) =
 
 let private symLabel (sym: Symbol) _ = 
 
+    let symLabel =
+        match sym.Type with
+        | Input bw | Output bw -> sym.Label + "(" + string(bw-1) + ":0)"
+        | _ -> sym.Label
+
     let mirrorShift, scaleFactor = 
             match sym.Orientation with
             | Mirror -> (sym.W, (-1.0, 1.0))
@@ -996,7 +1002,7 @@ let private symLabel (sym: Symbol) _ =
             Fill "Gray" 
             Transform (sprintf "translate(%fpx,%fpx) scale(%A) " mirrorShift 0. scaleFactor )
         ]
-    ] [str <| $"{sym.Label}"] 
+    ] [str <| $"{symLabel}"] 
 
 
 let private renderBasicSymbol = 
@@ -1087,7 +1093,7 @@ let private renderBasicSymbol =
                 | Decode4 -> "Decode"
                 | NbitsAdder bw -> "Adder (" + string(bw-1) + ":0)" 
                 | Constant (_,v) -> System.Convert.ToString(v, 16)
-                | BusSelection (bw,lsb) -> 
+                | OldBusSelection (bw,lsb) -> 
                     if bw = 1 
                     then string(lsb)
                     else "[" + string(bw+lsb-1) + ".." + string(lsb) + "]"
