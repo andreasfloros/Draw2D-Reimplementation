@@ -72,9 +72,7 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
                         then (MouseMsg {Op = Drag; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch)
                         else mouseOp Move ev)
                     
-        
     ]
-
         
         [ svg
             [ Style [
@@ -225,7 +223,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 |> BusWire.Msg.Symbol
                 |> Wire |> Cmd.ofMsg
             else 
-                newModel, 
+                {model with SelectedItem = NoItem}, 
                 symbolId 
                 |> Symbol.Msg.Unselect
                 |> BusWire.Msg.Symbol 
@@ -260,13 +258,23 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
 
     | MouseMsg event when event.Op = MouseOp.Up -> 
-       match model.SelectedItem with 
-        | Symbol symbolId ->
+       let isPortSelected = getHit event.Pos model
+       match model.SelectedItem, isPortSelected with 
+        | Symbol symbolId, _ ->
             model,
             Symbol.Msg.EndDragging
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
-        | NoItem -> model, Cmd.none
+        | (Port (p1, o)), (Port (p2, i)) -> 
+            model, BusWire.Msg.CreateWire (p1, p2)
+                   |> Wire |> Cmd.ofMsg
+        | NoItem, _ -> 
+            model, 
+            Cmd.none
+        | _, BusWire (wid, x)-> 
+            model, 
+            "temp" |> BusWire.Msg.DeleteWire |> Wire |> Cmd.ofMsg
+
         | _ -> failwithf "not yet done"
 
     | MouseMsg event when event.Op = MouseOp.Move ->  
@@ -291,6 +299,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 |> BusWire.Msg.ManualRouting
                 |> Wire
                 |> Cmd.ofMsg
+        | Port (p1, pType) -> 
+            model,
+            (p1, event.Pos)
+            |> BusWire.Msg.CreateSheetWire
+            |> Wire |> Cmd.ofMsg
+             
         | NoItem -> 
             let s = model.SelectedItem
             let newModel = {model with SelectedItem = NoItem}

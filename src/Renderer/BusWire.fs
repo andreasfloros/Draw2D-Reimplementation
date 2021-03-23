@@ -54,6 +54,7 @@ type WireRenderProps = {
     IsSelected : bool
     Label : string // for printing the width
     StartDir : Dir // for determining the position of the label
+    isSheetWire : bool
 }                  // start dir is both a render prop and an attribute used in routing algorithms
                    
 type Wire = {
@@ -98,6 +99,7 @@ let getEndDirFromWire wire = wire.EndDir
 type Model = {
     SymbolModel : Symbol.Model
     Wires : Map<WireId,Wire>
+    SheetWire : Wire option
     }
 
 let updateWireModelWithWires wires wireModel = {wireModel with Wires = wires}
@@ -131,6 +133,7 @@ type Msg =
     | MultipleSelect of wireId : WireId
     | AutoRouteAll
     | CreateWire of outputPort : CommonTypes.Port * inputPort : CommonTypes.Port
+    | CreateSheetWire of port : CommonTypes.Port * pos : XYPos
 
 let addVerticesIfSelected props =
     if props.IsSelected then
@@ -174,6 +177,7 @@ let singleWireView =
                                 StrokeLinejoin "round"
                                 Fill "none"
                               ]
+
                         let firstSegmentStart = posToString props.Segments.Head.Start
                         D ("M " + firstSegmentStart + segmentsToRoundedString props.Segments) // for rounded corners, below line is normal
                         //D ("M " + segmentsToString props.Segments)
@@ -189,13 +193,17 @@ let singleWireView =
                                 UserSelect UserSelectOptions.None
                               ]
                          ][props.Label |> str]
+               
+                if props.isSheetWire 
+                then     
+                    line [X1 props.Segments.[0].Start.X; Y1 props.Segments.[0].Start.Y; X2 props.Segments.[0].End.X; Y2 props.Segments.[0].End.Y ; Style [Stroke "Black"]] []
                 
-              
 
                 ] @ addVerticesIfSelected props))
 
 
 let view (model:Model) (dispatch: Dispatch<Msg>)=
+
     let wireSVG = 
         model.Wires
         |> Map.map (fun _wireId (wire: Wire) ->
@@ -496,8 +504,23 @@ let createWire startId startPort endId endPort =
                         Width = if portWidth > 1 then 4. else 1.5
                         Label = if portWidth < 1 then "" else sprintf "%d" portWidth
                         StartDir = fromDir
-                        IsSelected = false}
+                        IsSelected = false
+                        isSheetWire = false}
      EndDir = toDir
+    }
+
+let sheetWire (startPort: CommonTypes.Port) (endPos: XYPos) = 
+    {StartId = startPort.Id                                  
+     EndId = null
+     HasBeenManualRouted = false                                          
+     WireRenderProps = {Segments = [{Start = startPort.PortPos; End = endPos}]
+                        Color = CommonTypes.Color.Green
+                        Width = 1.5
+                        Label = null
+                        StartDir = startPort.ConnectionDirection
+                        IsSelected = false
+                        isSheetWire = true}
+     EndDir = startPort.ConnectionDirection
     }
 
 // dummy init for demo
@@ -527,7 +550,7 @@ let init () =
     let wireMap = [(generateWireId(), createWire (fst startPorts.[3]) (snd startPorts.[3]) (fst endPorts.Head) (snd endPorts.Head))]
                   |> Map.ofList
 
-    {SymbolModel = initSymbolModel; Wires = wireMap}, Cmd.map Symbol symbolCmd
+    {SymbolModel = initSymbolModel; Wires = wireMap; SheetWire = None}, Cmd.map Symbol symbolCmd
 
 
 
@@ -635,8 +658,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         let newWires = model
                        |> getWiresFromWireModel
                        |> Map.add (generateWireId()) (createWire outputPort.Id outputPort inputPort.Id inputPort)
-        updateWireModelWithWires newWires model, Cmd.none        
-
+                       |> Map.filter (fun id w -> id <> "temp") 
+        updateWireModelWithWires newWires {model with SheetWire = None}, Cmd.none        
+    | CreateSheetWire (port, pos) -> 
+        {model with SheetWire = Some (sheetWire port pos)}, Cmd.none               
+                       
+          
 
 // Bounding Box function for sheet
 // could be optimised

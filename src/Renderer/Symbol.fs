@@ -1295,7 +1295,7 @@ let createPortBB (port: Port) (x: float) =
 //Anushka -- written for adding wires -- unused for now
 let FindPort (mousePos: XYPos) (model: Model) = 
     let s = model |> List.map (fun sym -> 
-                            match List.tryFind (fun p -> containsPoint (createPortBB p 5.) mousePos) sym.Ports with 
+                            match List.tryFind (fun p -> containsPoint (createPortBB p 10.) mousePos) sym.Ports with 
                             | Some p -> Some (p, p.PortType)
                             | None -> None
                         )  
