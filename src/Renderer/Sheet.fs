@@ -265,7 +265,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             Symbol.Msg.EndDragging
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
-        | (Port (p1, o)), (Port (p2, i)) when o = i-> 
+        | (Port (p1, o)), (Port (p2, i)) when o <> i-> 
             model, BusWire.Msg.CreateWire (p1, p2)
                    |> Wire |> Cmd.ofMsg
         | NoItem, _ -> 
