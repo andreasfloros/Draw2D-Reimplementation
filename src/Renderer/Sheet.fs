@@ -11,7 +11,7 @@ open Helpers
 type SelectedItem = 
     | Symbol of symbolId: CommonTypes.SymbolId
     | BusWire of wireId: BusWire.WireId  * segmentIndex : int
-    | Port of portId : string * portType : CommonTypes.PortType
+    | Port of port : CommonTypes.Port * portType : CommonTypes.PortType
     | NoItem
     // | BusWire of wireId: BusWire.wireId * segmentIndex: int
 
@@ -250,7 +250,14 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             model,sId |> BusWire.Msg.Select 
                       |> Wire |> Cmd.ofMsg
                       
-        | Port(portId, portType) -> failwith "Not Implemented"
+        | Port(port, portType) -> 
+            match model.SelectedItem with
+            | Port (prevPort,prevPortType) when prevPortType <> portType ->
+                {model with SelectedItem = NoItem}, 
+                (if portType = CommonTypes.PortType.Input then prevPort, port else port, prevPort) 
+                |> BusWire.Msg.CreateWire 
+                |> Wire |> Cmd.ofMsg
+            | _ -> {model with SelectedItem = selected}, Cmd.none
 
 
     | MouseMsg event when event.Op = MouseOp.Up -> 

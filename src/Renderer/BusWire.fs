@@ -130,6 +130,7 @@ type Msg =
     | Select of wireId : WireId
     | MultipleSelect of wireId : WireId
     | AutoRouteAll
+    | CreateWire of outputPort : CommonTypes.Port * inputPort : CommonTypes.Port
 
 let addVerticesIfSelected props =
     if props.IsSelected then
@@ -620,6 +621,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                                                else 
                                                     w)
         updateWireModelWithWires newWires model, Cmd.none
+    | CreateWire (outputPort,inputPort) ->
+        printfn "%A" (outputPort, inputPort)
+        let newWires = model
+                       |> getWiresFromWireModel
+                       |> Map.add (generateWireId()) (createWire outputPort.Id outputPort inputPort.Id inputPort)
+        updateWireModelWithWires newWires model, Cmd.none        
 
 
 // Bounding Box function for sheet
