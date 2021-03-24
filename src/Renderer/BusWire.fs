@@ -443,6 +443,7 @@ let autoRouteWires wires portsMap =
         let prevSegments = getSegmentsFromWire wire
         let prevSegmentsLength = prevSegments.Length
         printfn "SEG LENGTH %A" prevSegmentsLength
+        let extensionOutput, extensionInput = startExtension.Head, (List.rev endExtension).Head
         // if the wire is long then wire memory is kept and we don't route from the beginning
         if prevSegmentsLength > 3 && snd ids = None then
             let portId = fst ids
@@ -455,21 +456,21 @@ let autoRouteWires wires portsMap =
                 else prevSegments
             let segmentsMaxIdx = segments.Length - 1
             let autoRouteToPt =
-                                if portId = endId then segments.[segmentsMaxIdx - 2].Start
-                                else segments.[2].End
+                                if portId = endId then segments.[segmentsMaxIdx - 1].Start
+                                else segments.[1].End
             let routeSoFar = segments
                              |> List.indexed
                              |> List.filter (fun (idx,_segment) ->
-                                                    if portId = endId then idx < segmentsMaxIdx - 2
-                                                    else idx > 2)
+                                                    if portId = endId then idx < segmentsMaxIdx - 1
+                                                    else idx > 1)
                              |> List.map snd
                              |> (fun r -> if portId = endId then swapRoute r else r)
             let betweenRoute =  // exact toDir used in manhattanAutoRoute doesn't matter, the below works because by construction segments will alternate Dirs (i.e. Horizontal -> Vertical -> Horizontal...)
-                                if portId = endId then manhattanAutoRoute endExtension.Head.Start (getOppositeDir toDir |> (if shouldChangeDirs then somePerpendicularDir else id)) autoRouteToPt (somePerpendicularDir oldToDir)
-                                else manhattanAutoRoute (List.rev startExtension).Head.End (fromDir |> (if shouldChangeDirs then somePerpendicularDir else id)) autoRouteToPt (somePerpendicularDir oldFromDir)
+                                if portId = endId then manhattanAutoRoute extensionInput.Start (getOppositeDir toDir) autoRouteToPt (oldToDir)
+                                else manhattanAutoRoute extensionOutput.End (fromDir) autoRouteToPt (oldFromDir)
             let route =
-                        if portId = endId then (swapRoute endExtension) @ betweenRoute @ routeSoFar |> swapRoute
-                        else startExtension @ betweenRoute @ routeSoFar
+                        if portId = endId then (swapSeg extensionInput) :: betweenRoute @ routeSoFar |> swapRoute
+                        else extensionOutput :: betweenRoute @ routeSoFar
             updateWireWithSegments wire route
         // Route translation is problematic with directions that change
         else if prevSegmentsLength > 3 && snd ids <> None && fromDir = oldFromDir && toDir = oldToDir then // when dealing with a loop, simple translation of the path is done
@@ -477,7 +478,7 @@ let autoRouteWires wires portsMap =
             updateWireWithSegments wire route
         else // route from the beginning if the wire is short
             let route =
-                let extensionOutput, extensionInput = startExtension.Head, (List.rev endExtension).Head
+                
                 if shouldChangeDirs then
                     extensionOutput :: routeFromStart (List.rev startExtension).Head endExtension.Head @ [extensionInput]
                 else routeFromStart extensionOutput extensionInput 
