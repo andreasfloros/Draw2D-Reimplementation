@@ -383,7 +383,7 @@ let createNewSymbol (compType:CommonTypes.ComponentType) (label:string) (pos:XYP
         IsDragging = false 
         IsSelected = false
         Orientation = Standard
-        MouseNear = 0.0,None
+        MouseNear = (posOf 0.0 0.0),None
     } 
 
 let testAsyncROM = AsyncROM {AddressWidth = 4; WordWidth = 2; Data = Map.ofList [(int64(5),int64(2))]}
@@ -708,22 +708,24 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
        
         model
         |> List.map (fun sym ->
+            {sym with MouseNear = pos , portOpt }
             
-            let pointchecker = containsPoint (createBBMouseHover sym ((sym.CurrentH),(sym.CurrentW ))) pos
             
-            match pointchecker with
-            |true -> if containsPoint (createBB sym ((sym.CurrentH),(sym.CurrentW ))) pos
-                     then { sym with 
-                                MouseNear = 1.0, portOpt
-                          }
+            // let pointchecker = containsPoint (createBBMouseHover sym ((sym.CurrentH),(sym.CurrentW ))) pos
+            
+            // match pointchecker with
+            // |true -> if containsPoint (createBB sym ((sym.CurrentH),(sym.CurrentW ))) pos
+            //          then { sym with 
+            //                     MouseNear = 1.0, portOpt
+            //               }
 
-                     else { sym with 
-                                MouseNear = (distFromBB sym.Pos  (sym.CurrentH,sym.CurrentW) pos ), portOpt
-                          }
-            |false -> 
-                    { sym with 
-                        MouseNear = 0.0, portOpt
-                    }
+            //          else { sym with 
+            //                     MouseNear = (distFromBB sym.Pos  (sym.CurrentH,sym.CurrentW) pos ), portOpt
+            //               }
+            // |false -> 
+            //         { sym with 
+            //             MouseNear = 0.0, portOpt
+            //         }
         )
         , Cmd.none
 
@@ -828,8 +830,18 @@ let private circmaker (sym: Symbol) (i:int) =
 
     let port = sym.Ports.[i]
 
+    let pointchecker = containsPoint (createBBMouseHover sym ((sym.CurrentH),(sym.CurrentW ))) (fst sym.MouseNear)
+    let opacity =
+        match pointchecker with
+        |true -> if containsPoint (createBB sym ((sym.CurrentH),(sym.CurrentW ))) (fst sym.MouseNear)
+                 then 1.0
+
+                 else  (distFromBB sym.Pos  (sym.CurrentH,sym.CurrentW) (fst sym.MouseNear) )
+                      
+        |false -> 0.0
+     
     let circleRadius = match snd sym.MouseNear with
-                       | Some selPort when selPort.PortType <> port.PortType -> 10.
+                       | Some selPort when selPort.PortType <> port.PortType -> 8.
                        | _ -> 5.
 
     let circPos : XYPos =
@@ -846,20 +858,47 @@ let private circmaker (sym: Symbol) (i:int) =
                     
         | _ -> {X = port.RelativePortPos.X  ; Y = port.RelativePortPos.Y  }
 
-    circle
-        [ 
-      
-        Cx circPos.X
-        Cy circPos.Y
-        R circleRadius
-        SVGAttr.Fill "blue"
-        SVGAttr.FillOpacity (if sym.IsSelected then 1. else fst sym.MouseNear)
-        SVGAttr.Stroke "Black"
-        SVGAttr.StrokeWidth "1.75px"
-        SVGAttr.StrokeOpacity (if sym.IsSelected then 1. else fst sym.MouseNear)
+    
+    g      []
+        [   if circleRadius = 8. && (calcPointsDist port.PortPos (fst sym.MouseNear) < 13.) then 
+                circle
+                    [ 
+                    Cx circPos.X
+                    Cy circPos.Y
+                    R 12. 
+                    SVGAttr.Fill "lime" 
+                    SVGAttr.FillOpacity 0.8
+                    SVGAttr.Stroke "Black"
+                    SVGAttr.StrokeWidth "0.px"
+                    SVGAttr.StrokeOpacity (if sym.IsSelected then 1. else opacity)
+                        ] []
 
-            ] []
-
+            if circleRadius = 5. && (calcPointsDist port.PortPos (fst sym.MouseNear) < 7.) && (snd sym.MouseNear <> None) then 
+                circle
+                    [ 
+                    Cx circPos.X
+                    Cy circPos.Y
+                    R 8.5
+                    SVGAttr.Fill "red"
+                    SVGAttr.FillOpacity 0.8
+                    SVGAttr.Stroke "Black"
+                    SVGAttr.StrokeWidth "0.px"
+                    SVGAttr.StrokeOpacity (if sym.IsSelected then 1. else opacity)
+                        ] []
+            
+            circle
+                [ 
+                Cx circPos.X
+                Cy circPos.Y
+                R circleRadius
+                SVGAttr.Fill "Cyan"
+                SVGAttr.FillOpacity (if sym.IsSelected then 1. else opacity)
+                SVGAttr.Stroke "Black"
+                SVGAttr.StrokeWidth "1.75px"
+                SVGAttr.StrokeOpacity (if sym.IsSelected then 1. else opacity)
+                Style [ZIndex 2]
+                    ] []
+        ]
 
 let private portLabels (sym:Symbol) (i:int) =
     match sym.Type with
@@ -1185,7 +1224,7 @@ let private renderBasicSymbol =
                 if props.Sym.IsSelected then
                     "lightblue"
                 else
-                    "gray"
+                    "lightgray"
 
             let scaleFactor, rotation =
                 match props.Sym.Orientation with
@@ -1220,7 +1259,7 @@ let private renderBasicSymbol =
                             //SVGAttr.Points $"{cutLeftW},{cutLeftH} {vertex5.X},{vertex5.Y} {cutLeftW},{fH-cutLeftH} {fW-cutRightW},{fH-cutRightH} {vertex6.X},{vertex6.Y} {fW-cutRightW},{cutRightH}"
                             SVGAttr.StrokeWidth "2px"
                             SVGAttr.Stroke "Black"
-                            SVGAttr.FillOpacity 0.6
+                            SVGAttr.FillOpacity 1.
                             SVGAttr.Fill color
                             Style[ ZIndex 1]
                             ] []

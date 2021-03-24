@@ -146,6 +146,11 @@ let distFromPoint (point: XYPos) (box: BB) =
     let dist2 = ((point.X - box.BottomRight.X) ** 2.0) + ((point.Y - box.BottomRight.Y) ** 2.0)
     min(dist1, dist2)
 
+let sqre (s1:float) =
+    s1 ** 2.0
+
+let calcPointsDist (pos1: XYPos) (pos2: XYPos) =
+    sqrt (sqre(pos1.X- pos2.X) + sqre(pos1.Y- pos2.Y))
 
 //--------------------------- Buswire Helpers ------------------------------
 
