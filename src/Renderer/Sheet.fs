@@ -18,10 +18,11 @@ type SelectedItem =
  type Model = {
     Wire: BusWire.Model
     SelectedItem: SelectedItem
+    Zoom: float
     }
 
 type KeyboardMsg =
-    | CtrlS | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | R
+    | CtrlS | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | R | ShiftA | ShiftQ
 
 type Msg =
     | Wire of BusWire.Msg
@@ -38,7 +39,14 @@ type Msg =
 /// current scroll position, and chnage scroll position to keep centre of screen a fixed point.
 let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch<Msg>)=
     let sizeInPixels = sprintf "%.2fpx" ((1000. * zoom))
+    //let halfSize = "500."
+    //let size = "1000."
+    //let viewBoxArg = ("-" + halfSize + " " + "-" + halfSize + " " + size + " " + size)
     /// Is the mouse button currently down?
+    let container = document.getElementById("Container")
+    let rect = if container <> null then 
+                    container.getBoundingClientRect() 
+               else null
     let mDown (ev:Types.MouseEvent) = 
         ev.buttons <> 0.
     
@@ -47,29 +55,36 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
     /// Dispatch a BusWire MouseMsg message
     /// the screen mouse coordinates are compensated for the zoom transform
     let mouseOp op (ev:Types.MouseEvent) = 
-            dispatch <| MouseMsg {Op = op ; Pos = { X = ev.clientX / zoom ; Y = ev.clientY / zoom}}
-
+            dispatch <| MouseMsg {Op = op ; Pos = { X = ev.clientX + (if container <> null then 
+                                                                        printfn "CONTAINER WAS NOT NULL"
+                                                                        container.scrollLeft - rect.left else 0.)
+                                                    Y = ev.clientY + (if container <> null then container.scrollTop - rect.top else 0.)}}
+    printfn "SCROLL DOWN!"
 
     div [ Style 
             [ 
-                Height "100vh" 
-                MaxWidth "100vw"
-                CSSProp.OverflowX OverflowOptions.Auto 
-                CSSProp.OverflowY OverflowOptions.Auto
-            ] 
+                // Height "100vh" 
+                // MaxWidth "100vw"
+                Height sizeInPixels
+                MaxWidth sizeInPixels
+                //CSSProp.OverflowX OverflowOptions.Auto 
+                //CSSProp.OverflowY OverflowOptions.Auto
+                OverflowStyle OverflowOptions.Scroll
+            ]
 
+          Id "Container"
           OnMouseDown (fun ev -> 
                         if mShift ev
-                        then (MouseMsg {Op = MouseOp.Shift; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch)
-                        else (MouseMsg {Op = MouseOp.Down; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch))
+                        then (mouseOp MouseOp.Shift ev)
+                        else (mouseOp MouseOp.Down ev))
 
          
 
-          OnMouseUp (fun ev -> (MouseMsg {Op = MouseOp.Up; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch))
+          OnMouseUp (fun ev -> (mouseOp MouseOp.Up ev))
 
           OnMouseMove (fun ev -> 
                         if mDown ev 
-                        then (MouseMsg {Op = Drag; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch)
+                        then (mouseOp MouseOp.Drag ev)
                         else mouseOp Move ev)
                     
     ]
@@ -80,8 +95,9 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
                 Border "3px solid blue"
                 Height sizeInPixels
                 Width sizeInPixels    
-                ]] // top-level transform style attribute for zoom
-
+                ]
+              //ViewBox viewBoxArg
+                ] // top-level transform style attribute for zoom
                 [svgReact] // the application code
         ]
 
@@ -90,7 +106,7 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
 let view (model:Model) (dispatch : Msg -> unit) =
     let wDispatch wMsg = dispatch (Wire wMsg)
     let wireSvg = BusWire.view model.Wire wDispatch
-    displaySvgWithZoom 1.0 wireSvg dispatch
+    displaySvgWithZoom model.Zoom wireSvg dispatch
 
 
 let getHit (click: XYPos) (model: Model) =
@@ -151,6 +167,15 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 Symbol.Msg.DeleteSymbol
                 |> BusWire.Msg.Symbol
                 |> Wire |> Cmd.ofMsg
+
+        |ShiftA ->
+            let z = model.Zoom + 0.1
+            printf "zoom is %f" z
+            {model with Zoom = z} , Cmd.none
+        |ShiftQ -> 
+            let z = model.Zoom - 0.1
+            printf "zoom is %f" z
+            {model with Zoom = z} , Cmd.none
 
         | A -> newSymbol "Xnor" model
         | B -> newSymbol "And" model
@@ -271,7 +296,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                               |> Wire |> Cmd.ofMsg
         | _ -> 
             model,
-            event.Pos
+            (event.Pos, None)
             |> Symbol.Msg.MouseMove
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
@@ -292,7 +317,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 |> Cmd.ofMsg
         | Port (p1, pType) -> 
             model,
-            (p1, event.Pos)
+            ( Some p1, event.Pos)
             |> BusWire.Msg.CreateSheetWire
             |> Wire |> Cmd.ofMsg
              
@@ -324,5 +349,6 @@ let init() =
     {
         Wire = model
         SelectedItem = NoItem
+        Zoom = 1.0
 
     }, Cmd.map Wire cmds

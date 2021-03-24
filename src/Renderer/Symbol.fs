@@ -21,7 +21,6 @@ open CommonTypes
 /// determine are they the same is fast.
 type Symbol = CommonTypes.Component
 
-
 type Model = Symbol list
 
 //----------------------------Message Type-----------------------------------//
@@ -44,7 +43,7 @@ type Msg =
     | RotateSymbol of sId:CommonTypes.SymbolId 
     | UpdateSymbolModelWithComponent of CommonTypes.Component // Issie interface
     | MultipleSelect of sId : CommonTypes.SymbolId * pagePos: XYPos
-    | MouseMove of pagePos : XYPos
+    | MouseMove of pagePos : XYPos * PortSelect: Port Option
     | Deselect
 
 
@@ -384,7 +383,7 @@ let createNewSymbol (compType:CommonTypes.ComponentType) (label:string) (pos:XYP
         IsDragging = false 
         IsSelected = false
         Orientation = Standard
-        MouseNear = 0.0
+        MouseNear = 0.0,None
     } 
 
 let testAsyncROM = AsyncROM {AddressWidth = 4; WordWidth = 2; Data = Map.ofList [(int64(5),int64(2))]}
@@ -705,25 +704,25 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
                 }
         )
         , Cmd.none
-    | MouseMove pos ->
+    | MouseMove (pos, portOpt) ->
+       
         model
         |> List.map (fun sym ->
-            //let symCenter = getSymbolCenter sym.Pos sym.W sym.H
-            //let dist = calcPointDist symCenter pos
+            
             let pointchecker = containsPoint (createBBMouseHover sym ((sym.CurrentH),(sym.CurrentW ))) pos
             
             match pointchecker with
             |true -> if containsPoint (createBB sym ((sym.CurrentH),(sym.CurrentW ))) pos
                      then { sym with 
-                                MouseNear = 1.0
+                                MouseNear = 1.0, portOpt
                           }
 
                      else { sym with 
-                                MouseNear = distFromBB sym.Pos  (sym.CurrentH,sym.CurrentW)  pos
+                                MouseNear = (distFromBB sym.Pos  (sym.CurrentH,sym.CurrentW) pos ), portOpt
                           }
             |false -> 
                     { sym with 
-                        MouseNear = 0.0
+                        MouseNear = 0.0, portOpt
                     }
         )
         , Cmd.none
@@ -731,7 +730,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
     | Unselect sId ->
         model
         |> List.map (fun sym ->
-            if sym.IsSelected then
+            if sym.Id = sId then
                 {sym with 
                    IsSelected = false 
                 }
@@ -743,10 +742,16 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
         model
         |> List.map (fun sym ->
             if sId = sym.Id then
-                {sym with 
-                    LastDragPos = pagePos //Zaid
-                    IsSelected = true
-                }  
+                if sym.IsSelected = true then
+                    {sym with 
+                        LastDragPos = pagePos //Zaid
+                        IsSelected = false
+                    }  
+                else 
+                    {sym with 
+                        LastDragPos = pagePos //Zaid
+                        IsSelected = true
+                    }
             else if sym.IsSelected = true then //Zaid 
                     {sym with 
                         LastDragPos = pagePos 
@@ -819,9 +824,13 @@ let private invertor (props:BasicSymbolProps) (color:string) (rectWidth:float) _
     | _ -> text [] []
 
 
-let circmaker (sym: Symbol) (i:int) = 
+let private circmaker (sym: Symbol) (i:int) = 
 
     let port = sym.Ports.[i]
+
+    let circleRadius = match snd sym.MouseNear with
+                       | Some selPort when selPort.PortType <> port.PortType -> 10.
+                       | _ -> 5.
 
     let circPos : XYPos =
         match sym.Orientation with 
@@ -842,11 +851,12 @@ let circmaker (sym: Symbol) (i:int) =
       
         Cx circPos.X
         Cy circPos.Y
-        R 5.
+        R circleRadius
         SVGAttr.Fill "blue"
-        SVGAttr.FillOpacity (if sym.IsSelected then 1. else sym.MouseNear)
+        SVGAttr.FillOpacity (if sym.IsSelected then 1. else fst sym.MouseNear)
         SVGAttr.Stroke "Black"
-        SVGAttr.StrokeWidth 0
+        SVGAttr.StrokeWidth "1.75px"
+        SVGAttr.StrokeOpacity (if sym.IsSelected then 1. else fst sym.MouseNear)
 
             ] []
 
@@ -1035,7 +1045,6 @@ let gridLines (W: int) (H: int) =
     let boxLen = 15
     let opacity = 0.15
     
-
     ([0..boxLen..W]
     |> List.map (fun x -> 
     line [
@@ -1046,12 +1055,10 @@ let gridLines (W: int) (H: int) =
                             Style [
                                     Stroke "Grey"
                                     StrokeWidth "1px"
-                                    
+                                    ZIndex -1
                                     Opacity opacity
                                   ]] [])
-            
     )
-
     @ ([0..boxLen..H]
     |> List.map (fun x -> 
     line [
@@ -1062,10 +1069,10 @@ let gridLines (W: int) (H: int) =
                             Style [
                                     Stroke "Grey"
                                     StrokeWidth "1px"
-                                    
+                                    ZIndex -1
                                     Opacity opacity
                                   ]] [])
-    ) 
+    )
     
 
 let private renderBasicSymbol = 
@@ -1214,7 +1221,9 @@ let private renderBasicSymbol =
                             SVGAttr.StrokeWidth "2px"
                             SVGAttr.Stroke "Black"
                             SVGAttr.FillOpacity 0.6
-                            SVGAttr.Fill color] []
+                            SVGAttr.Fill color
+                            Style[ ZIndex 1]
+                            ] []
 
                     text [ 
                         X (fW/2.); 
