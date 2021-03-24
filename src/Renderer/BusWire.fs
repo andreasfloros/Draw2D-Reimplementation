@@ -416,11 +416,28 @@ let autoRouteWires wires portsMap =
         let routeStart = correctEndPt ids startId true
         let routeEnd = correctEndPt ids endId false
         // setup for routing
+        let pointsAreOnRightSide pt1 dir1 pt2 dir2 = // pt1 is output pt2 is input
+            if areOppositeDirs dir1 dir2 |> not then false
+            else
+                match dir1 |> isHorizontalDir with
+                | true -> (if dir1 = Right then pt1.X - pt2.X > -2. * portLength else pt2.X - pt1.X > -2. * portLength)
+                | false -> (if dir1 = Dir.Down then pt1.Y - pt2.Y > -2. * portLength else pt2.Y - pt1.Y > -2. * portLength)
         let oldFromDir, oldToDir = getStartDirFromWire wire, getEndDirFromWire wire
         let fromDir, toDir = correctEndDir ids startId true, correctEndDir ids endId false
         let wire = {wire with EndDir = toDir; WireRenderProps = {getWirePropsFromWire wire with StartDir = fromDir}}
-        let startExtension = getPortExtension routeStart fromDir true
-        let endExtension = getPortExtension routeEnd toDir false
+        let startExtension, endExtension, shouldChangeDirs =
+            let portExtendAtOutput, portExtendAtInput = getPortExtension routeStart fromDir true, getPortExtension routeEnd toDir false
+            if pointsAreOnRightSide routeStart fromDir routeEnd toDir
+            then
+                let dirForExtraSeg = // near output
+                    match fromDir |> isHorizontalDir with
+                    | true -> if routeStart.Y > routeEnd.Y then Dir.Up else Dir.Down
+                    | false -> if routeStart.X > routeEnd.X then Left else Right
+                [portExtendAtOutput; getPortExtension portExtendAtOutput.End dirForExtraSeg true],
+                [getPortExtension portExtendAtInput.Start (getOppositeDir dirForExtraSeg) false; portExtendAtInput],
+                true
+            else
+                [portExtendAtOutput],[portExtendAtInput],false
         let prevSegments = getSegmentsFromWire wire
         let prevSegmentsLength = prevSegments.Length
         printfn "SEG LENGTH %A" prevSegmentsLength
@@ -446,18 +463,22 @@ let autoRouteWires wires portsMap =
                              |> List.map snd
                              |> (fun r -> if portId = endId then swapRoute r else r)
             let betweenRoute =  // exact toDir used in manhattanAutoRoute doesn't matter, the below works because by construction segments will alternate Dirs (i.e. Horizontal -> Vertical -> Horizontal...)
-                                if portId = endId then manhattanAutoRoute endExtension.Start (getOppositeDir toDir) autoRouteToPt (somePerpendicularDir oldToDir)
-                                else manhattanAutoRoute startExtension.End fromDir autoRouteToPt (somePerpendicularDir oldFromDir)
+                                if portId = endId then manhattanAutoRoute endExtension.Head.Start (getOppositeDir toDir |> (if shouldChangeDirs then somePerpendicularDir else id)) autoRouteToPt (somePerpendicularDir oldToDir)
+                                else manhattanAutoRoute (List.rev startExtension).Head.End (fromDir |> (if shouldChangeDirs then somePerpendicularDir else id)) autoRouteToPt (somePerpendicularDir oldFromDir)
             let route =
-                        if portId = endId then (swapSeg endExtension) :: betweenRoute @ routeSoFar |> swapRoute
-                        else startExtension :: betweenRoute @ routeSoFar
+                        if portId = endId then (swapRoute endExtension) @ betweenRoute @ routeSoFar |> swapRoute
+                        else startExtension @ betweenRoute @ routeSoFar
             updateWireWithSegments wire route
         // Route translation is problematic with directions that change
         else if prevSegmentsLength > 3 && snd ids <> None && fromDir = oldFromDir && toDir = oldToDir then // when dealing with a loop, simple translation of the path is done
             let route = translateRoute routeStart prevSegments // note that prevSegmentsLength > 3 can be omitted here
             updateWireWithSegments wire route
         else // route from the beginning if the wire is short
-            let route = routeFromStart startExtension endExtension
+            let route =
+                let extensionOutput, extensionInput = startExtension.Head, (List.rev endExtension).Head
+                if shouldChangeDirs then
+                    extensionOutput :: routeFromStart (List.rev startExtension).Head endExtension.Head @ [extensionInput]
+                else routeFromStart extensionOutput extensionInput 
             updateWireWithSegments wire route
 
     let connectedToPorts wire =

@@ -78,7 +78,7 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
                         then (mouseOp MouseOp.Shift ev)
                         else (mouseOp MouseOp.Down ev))
 
-         
+
 
           OnMouseUp (fun ev -> (mouseOp MouseOp.Up ev))
 
