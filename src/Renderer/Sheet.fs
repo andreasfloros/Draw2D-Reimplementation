@@ -39,7 +39,14 @@ type Msg =
 /// current scroll position, and chnage scroll position to keep centre of screen a fixed point.
 let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch<Msg>)=
     let sizeInPixels = sprintf "%.2fpx" ((1000. * zoom))
+    //let halfSize = "500."
+    //let size = "1000."
+    //let viewBoxArg = ("-" + halfSize + " " + "-" + halfSize + " " + size + " " + size)
     /// Is the mouse button currently down?
+    let container = document.getElementById("Container")
+    let rect = if container <> null then 
+                    container.getBoundingClientRect() 
+               else null
     let mDown (ev:Types.MouseEvent) = 
         ev.buttons <> 0.
     
@@ -48,8 +55,11 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
     /// Dispatch a BusWire MouseMsg message
     /// the screen mouse coordinates are compensated for the zoom transform
     let mouseOp op (ev:Types.MouseEvent) = 
-            dispatch <| MouseMsg {Op = op ; Pos = { X = ev.clientX * zoom ; Y = ev.clientY * zoom}}
-
+            dispatch <| MouseMsg {Op = op ; Pos = { X = ev.clientX + (if container <> null then 
+                                                                        printfn "CONTAINER WAS NOT NULL"
+                                                                        container.scrollLeft - rect.left else 0.)
+                                                    Y = ev.clientY + (if container <> null then container.scrollTop - rect.top else 0.)}}
+    printfn "SCROLL DOWN!"
 
     div [ Style 
             [ 
@@ -58,21 +68,23 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
                 Height sizeInPixels
                 MaxWidth sizeInPixels
                 //CSSProp.OverflowX OverflowOptions.Auto 
-               //CSSProp.OverflowY OverflowOptions.Auto
-            ] 
+                //CSSProp.OverflowY OverflowOptions.Auto
+                OverflowStyle OverflowOptions.Scroll
+            ]
 
+          Id "Container"
           OnMouseDown (fun ev -> 
                         if mShift ev
-                        then (MouseMsg {Op = MouseOp.Shift; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch)
-                        else (MouseMsg {Op = MouseOp.Down; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch))
+                        then (mouseOp MouseOp.Shift ev)
+                        else (mouseOp MouseOp.Down ev))
 
          
 
-          OnMouseUp (fun ev -> (MouseMsg {Op = MouseOp.Up; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch))
+          OnMouseUp (fun ev -> (mouseOp MouseOp.Up ev))
 
           OnMouseMove (fun ev -> 
                         if mDown ev 
-                        then (MouseMsg {Op = Drag; Pos = {X = ev.clientX ; Y = ev.clientY}} |> dispatch)
+                        then (mouseOp MouseOp.Drag ev)
                         else mouseOp Move ev)
                     
     ]
@@ -83,8 +95,9 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
                 Border "3px solid blue"
                 Height sizeInPixels
                 Width sizeInPixels    
-                ]] // top-level transform style attribute for zoom
-
+                ]
+              //ViewBox viewBoxArg
+                ] // top-level transform style attribute for zoom
                 [svgReact] // the application code
         ]
 
