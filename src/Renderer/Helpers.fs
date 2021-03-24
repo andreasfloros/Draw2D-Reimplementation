@@ -372,3 +372,13 @@ let segmentsAreClose seg1 seg2 =
     dirOfSeg seg1 = dirOfSeg seg2 
     && lenOfSeg (segOf seg1.Start seg2.Start) > 0. 
     && pointsAreCloseInDir (somePerpendicularDir (dirOfSeg seg1)) seg1.Start seg2.Start snapThresh
+
+// maybe outdated at time of reading this
+let getNovelPortExtension pt dir isOutput  dist=
+    let ext =
+        match dir with
+        | Dir.Up -> segOf pt (posDiff pt (posOf 0. dist))
+        | Dir.Down -> segOf pt (posAdd pt (posOf 0. dist))
+        | Left -> segOf pt (posDiff pt (posOf dist 0.))
+        | Right -> segOf pt (posAdd pt (posOf dist 0.))
+    if isOutput then ext else swapSeg ext

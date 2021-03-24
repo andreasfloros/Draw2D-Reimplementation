@@ -268,7 +268,7 @@ let rec manualRouteWire segmentIndex mousePos wires wireId snap (wireOption: Wir
     // if the start extension is changed then sheet needs to adjust its next drag message to wireId,2
     // this could be done internally in BusWire.fs by including a selectedItem state in the model but as a team we agreed that only sheet will have such information
 
-        if lenOfSeg segmentOfInterest < portLength + 1. then wireOption // only split the connection if it is longer than the extension, this handles all 0 segments too!
+        if lenOfSeg segmentOfInterest < portLength + 10. then wireOption // only split the connection if it is longer than the extension, this handles all 0 segments too!
         else                                                // note that the new segment will have length equal to the difference of the current length and the port length so we allow some extra room (i.e. < 11. instead < 10. in this case)                                
             let newSegments = splitSegmentsAtEndSeg (segmentIndex = 0) segments // split the wire further, if the user manages to drag perfectly in parallel to the segment this split will still happen
             manualRouteWire (if segmentIndex  = 0 then 2 else segmentIndex) mousePos wires wireId snap (Some (updateWireWithSegments wire newSegments))
@@ -307,6 +307,86 @@ let routeFromStart startExtension endExtension =
     startExtension :: manhattanAutoRoute startExtension.End (dirOfSeg startExtension) endExtension.Start (dirOfSeg endExtension) @ [endExtension] 
 
 
+let pointsAreOnRightSide pt1 dir1 pt2 dir2 = // pt1 is output pt2 is input
+    if areOppositeDirs dir1 dir2 |> not then false
+    else
+        match dir1 |> isHorizontalDir with
+        | true -> (if dir1 = Right then pt1.X - pt2.X > -2. * portLength else pt2.X - pt1.X > -2. * portLength)
+        | false -> (if dir1 = Dir.Down then pt1.Y - pt2.Y > -2. * portLength else pt2.Y - pt1.Y > -2. * portLength)
+
+let remove0Segs wire =
+    let segments = getSegmentsFromWire wire
+    let tripletToBeEradicated = 
+        let segmentsMaxIdx = segments.Length - 1
+        segments // could optimise...
+        |> List.indexed
+        |> List.tryPick (fun (idx,seg) ->
+                                if idx > segmentsMaxIdx - 2 then None
+                                else if lenOfSeg seg = 0. && lenOfSeg segments.[idx+1] = 0. && lenOfSeg segments.[idx+2] = 0.
+                                then 
+                                    printfn "0 0 0  FOUND" 
+                                    (Some idx) 
+                                else None)
+
+    match tripletToBeEradicated with    
+    | Some index ->
+        segments
+        |> List.mapi (fun idx seg ->
+                            if idx = index || idx = index + 2 then []
+                            else [seg])
+        |> List.collect id
+        |> updateWireWithSegments wire
+    | None -> wire
+    
+let removeKinkySegs wire =
+    let segments = getSegmentsFromWire wire
+    let tripletToBeEradicated = 
+        let segmentsMaxIdx = segments.Length - 1
+        segments // could optimise...
+        |> List.indexed
+        |> List.tryPick (fun (idx,seg) ->
+                                if idx > segmentsMaxIdx - 3 || idx < 1 then None
+                                else if lenOfSeg seg <> 0. && lenOfSeg segments.[idx+2] <> 0. && lenOfSeg segments.[idx+1] = 0. && areOppositeDirs (dirOfSeg seg) (dirOfSeg segments.[idx+2])
+                                then
+                                    printfn "OPPOSITE FOUND" 
+                                    (Some idx)
+                                else None)
+
+    match tripletToBeEradicated with
+    | Some index ->
+        segments
+        |> List.mapi (fun idx seg ->
+                            if idx = index || idx = index + 1 then []
+                            else if idx = index + 2 then [segOf segments.[index].Start seg.End]
+                            else [seg])
+        |> List.collect id
+        |> updateWireWithSegments wire      
+    | None -> wire
+
+let mergeSegs wire =
+    let segments = getSegmentsFromWire wire
+    let tripletToBeEradicated = 
+        let segmentsMaxIdx = segments.Length - 1
+        segments // could optimise...
+        |> List.indexed
+        |> List.tryPick (fun (idx,seg) ->
+                                if idx > segmentsMaxIdx - 2  then None
+                                else if lenOfSeg seg <> 0. && lenOfSeg segments.[idx+2] <> 0. && lenOfSeg segments.[idx+1] = 0. && (dirOfSeg seg) = (dirOfSeg segments.[idx+2])
+                                then
+                                    printfn "SAME DIR FOUND" 
+                                    (Some idx)
+                                else None)
+
+    match tripletToBeEradicated with
+    | Some index ->
+        segments
+        |> List.mapi (fun idx seg ->
+                            if idx = index || idx = index + 2 then []
+                            else if idx = index + 1 then [segOf segments.[index].Start segments.[index+2].End]
+                            else [seg])
+        |> List.collect id
+        |> updateWireWithSegments wire      
+    | None -> wire
 
 // expecting a portmap from symbol people with all the ports of the symbol that moved (so just an interface function to get the ports from a symbol)
 // the exact structure (list or map) does not matter as we can easily convert from one to the other
@@ -317,79 +397,6 @@ let routeFromStart startExtension endExtension =
 // a seperate function might have to be written for processing width inference changes (updating labels)
 // as of the demo this is purely used for routing
 let autoRouteWires wires portsMap =
-    let remove0Segs wire =
-        let segments = getSegmentsFromWire wire
-        let tripletToBeEradicated = 
-            let segmentsMaxIdx = segments.Length - 1
-            segments // could optimise...
-            |> List.indexed
-            |> List.tryPick (fun (idx,seg) ->
-                                    if idx > segmentsMaxIdx - 2 then None
-                                    else if lenOfSeg seg = 0. && lenOfSeg segments.[idx+1] = 0. && lenOfSeg segments.[idx+2] = 0.
-                                    then 
-                                        printfn "0 0 0  FOUND" 
-                                        (Some idx) 
-                                    else None)
-
-        match tripletToBeEradicated with    
-        | Some index ->
-            segments
-            |> List.mapi (fun idx seg ->
-                                if idx = index || idx = index + 2 then []
-                                else [seg])
-            |> List.collect id
-            |> updateWireWithSegments wire
-        | None -> wire
-        
-    let removeKinkySegs wire =
-        let segments = getSegmentsFromWire wire
-        let tripletToBeEradicated = 
-            let segmentsMaxIdx = segments.Length - 1
-            segments // could optimise...
-            |> List.indexed
-            |> List.tryPick (fun (idx,seg) ->
-                                    if idx > segmentsMaxIdx - 3 || idx < 1 then None
-                                    else if lenOfSeg seg <> 0. && lenOfSeg segments.[idx+2] <> 0. && lenOfSeg segments.[idx+1] = 0. && areOppositeDirs (dirOfSeg seg) (dirOfSeg segments.[idx+2])
-                                    then
-                                        printfn "OPPOSITE FOUND" 
-                                        (Some idx)
-                                    else None)
-
-        match tripletToBeEradicated with
-        | Some index ->
-            segments
-            |> List.mapi (fun idx seg ->
-                                if idx = index || idx = index + 1 then []
-                                else if idx = index + 2 then [segOf segments.[index].Start seg.End]
-                                else [seg])
-            |> List.collect id
-            |> updateWireWithSegments wire      
-        | None -> wire
-
-    let mergeSegs wire =
-        let segments = getSegmentsFromWire wire
-        let tripletToBeEradicated = 
-            let segmentsMaxIdx = segments.Length - 1
-            segments // could optimise...
-            |> List.indexed
-            |> List.tryPick (fun (idx,seg) ->
-                                    if idx > segmentsMaxIdx - 2  then None
-                                    else if lenOfSeg seg <> 0. && lenOfSeg segments.[idx+2] <> 0. && lenOfSeg segments.[idx+1] = 0. && (dirOfSeg seg) = (dirOfSeg segments.[idx+2])
-                                    then
-                                        printfn "SAME DIR FOUND" 
-                                        (Some idx)
-                                    else None)
-
-        match tripletToBeEradicated with
-        | Some index ->
-            segments
-            |> List.mapi (fun idx seg ->
-                                if idx = index || idx = index + 2 then []
-                                else if idx = index + 1 then [segOf segments.[index].Start segments.[index+2].End]
-                                else [seg])
-            |> List.collect id
-            |> updateWireWithSegments wire      
-        | None -> wire
         
     let correctEndPtsAndAutoRoute (wire: Wire) ids =
         // if ports can change positions a similar function to correctEndPt could be written, correndEndDir
@@ -416,12 +423,7 @@ let autoRouteWires wires portsMap =
         let routeStart = correctEndPt ids startId true
         let routeEnd = correctEndPt ids endId false
         // setup for routing
-        let pointsAreOnRightSide pt1 dir1 pt2 dir2 = // pt1 is output pt2 is input
-            if areOppositeDirs dir1 dir2 |> not then false
-            else
-                match dir1 |> isHorizontalDir with
-                | true -> (if dir1 = Right then pt1.X - pt2.X > -2. * portLength else pt2.X - pt1.X > -2. * portLength)
-                | false -> (if dir1 = Dir.Down then pt1.Y - pt2.Y > -2. * portLength else pt2.Y - pt1.Y > -2. * portLength)
+
         let oldFromDir, oldToDir = getStartDirFromWire wire, getEndDirFromWire wire
         let fromDir, toDir = correctEndDir ids startId true, correctEndDir ids endId false
         let wire = {wire with EndDir = toDir; WireRenderProps = {getWirePropsFromWire wire with StartDir = fromDir}}
@@ -429,12 +431,12 @@ let autoRouteWires wires portsMap =
             let portExtendAtOutput, portExtendAtInput = getPortExtension routeStart fromDir true, getPortExtension routeEnd toDir false
             if pointsAreOnRightSide routeStart fromDir routeEnd toDir
             then
-                let dirForExtraSeg = // near output
+                let dirForExtraSeg, dist = // near output
                     match fromDir |> isHorizontalDir with
-                    | true -> if routeStart.Y > routeEnd.Y then Dir.Up else Dir.Down
-                    | false -> if routeStart.X > routeEnd.X then Left else Right
-                [portExtendAtOutput; getPortExtension portExtendAtOutput.End dirForExtraSeg true],
-                [getPortExtension portExtendAtInput.Start (getOppositeDir dirForExtraSeg) false; portExtendAtInput],
+                    | true -> (if routeStart.Y > routeEnd.Y then Dir.Up else Dir.Down), abs(routeStart.Y - routeEnd.Y) / 2.
+                    | false -> (if routeStart.X > routeEnd.X then Left else Right), abs(routeStart.Y - routeEnd.X) / 2.
+                [portExtendAtOutput; getNovelPortExtension portExtendAtOutput.End dirForExtraSeg true dist],
+                [getNovelPortExtension portExtendAtInput.Start (getOppositeDir dirForExtraSeg) false dist; portExtendAtInput],
                 true
             else
                 [portExtendAtOutput],[portExtendAtInput],false
@@ -525,10 +527,25 @@ let createWire startId startPort endId endPort =
                 failwithf "createWire Error: Attempted to connect input/input, output/output"
 
     let startPortPos, endPortPos = Symbol.getPosFromPort startPort, Symbol.getPosFromPort endPort
-    let fromDir, toDir = Symbol.getDirFromPort startPort, Symbol.getDirFromPort endPort
-    let startExtension = getPortExtension startPortPos fromDir true
-    let endExtension = getPortExtension endPortPos toDir false
-    let segments = routeFromStart startExtension endExtension
+    let fromDir, toDir = Symbol.getDirFromPort startPort, Symbol.getDirFromPort endPort 
+    let startExtension, endExtension, shouldChangeDirs =
+            let portExtendAtOutput, portExtendAtInput = getPortExtension startPortPos fromDir true, getPortExtension endPortPos toDir false
+            if pointsAreOnRightSide startPortPos fromDir endPortPos toDir
+            then
+                let dirForExtraSeg, dist = // near output
+                    match fromDir |> isHorizontalDir with
+                    | true -> (if startPortPos.Y > endPortPos.Y then Dir.Up else Dir.Down), abs(startPortPos.Y - endPortPos.Y) / 2. 
+                    | false -> (if startPortPos.X > endPortPos.X then Left else Right), abs(startPortPos.X - endPortPos.X) / 2.
+                [portExtendAtOutput; getNovelPortExtension portExtendAtOutput.End dirForExtraSeg true dist],
+                [getNovelPortExtension portExtendAtInput.Start (getOppositeDir dirForExtraSeg) false dist; portExtendAtInput],
+                true
+            else
+                [portExtendAtOutput],[portExtendAtInput],false
+    let segments =
+        let extensionOutput, extensionInput = startExtension.Head, (List.rev endExtension).Head
+        if shouldChangeDirs then
+            extensionOutput :: routeFromStart (List.rev startExtension).Head endExtension.Head @ [extensionInput]
+        else routeFromStart extensionOutput extensionInput 
     let portWidth = // for determining wire width and color
         if Symbol.getWidthFromPort startPort <> Symbol.getWidthFromPort endPort then 5
         else Symbol.getWidthFromPort startPort
@@ -543,6 +560,9 @@ let createWire startId startPort endId endPort =
                         IsSelected = false}
      EndDir = toDir
     }
+    |> remove0Segs
+    |> removeKinkySegs
+    |> mergeSegs
 
 let sheetWire (startPort: CommonTypes.Port) (endPos: XYPos) = 
     {StartId = startPort.Id                                  
