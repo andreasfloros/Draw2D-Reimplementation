@@ -268,7 +268,7 @@ let rec manualRouteWire segmentIndex mousePos wires wireId snap (wireOption: Wir
     // if the start extension is changed then sheet needs to adjust its next drag message to wireId,2
     // this could be done internally in BusWire.fs by including a selectedItem state in the model but as a team we agreed that only sheet will have such information
 
-        if lenOfSeg segmentOfInterest < portLength + 1. then wireOption // only split the connection if it is longer than the extension, this handles all 0 segments too!
+        if lenOfSeg segmentOfInterest < portLength + 10. then wireOption // only split the connection if it is longer than the extension, this handles all 0 segments too!
         else                                                // note that the new segment will have length equal to the difference of the current length and the port length so we allow some extra room (i.e. < 11. instead < 10. in this case)                                
             let newSegments = splitSegmentsAtEndSeg (segmentIndex = 0) segments // split the wire further, if the user manages to drag perfectly in parallel to the segment this split will still happen
             manualRouteWire (if segmentIndex  = 0 then 2 else segmentIndex) mousePos wires wireId snap (Some (updateWireWithSegments wire newSegments))
@@ -433,8 +433,8 @@ let autoRouteWires wires portsMap =
                     match fromDir |> isHorizontalDir with
                     | true -> if routeStart.Y > routeEnd.Y then Dir.Up else Dir.Down
                     | false -> if routeStart.X > routeEnd.X then Left else Right
-                [portExtendAtOutput; getPortExtension portExtendAtOutput.End dirForExtraSeg true],
-                [getPortExtension portExtendAtInput.Start (getOppositeDir dirForExtraSeg) false; portExtendAtInput],
+                [portExtendAtOutput; getDoublePortExtension portExtendAtOutput.End dirForExtraSeg true],
+                [getDoublePortExtension portExtendAtInput.Start (getOppositeDir dirForExtraSeg) false; portExtendAtInput],
                 true
             else
                 [portExtendAtOutput],[portExtendAtInput],false
