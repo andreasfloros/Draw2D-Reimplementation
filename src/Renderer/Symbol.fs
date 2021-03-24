@@ -39,6 +39,7 @@ type Msg =
     | EndDragging 
     | Unselect of sId : CommonTypes.SymbolId 
     | AddSymbol of CompType: CommonTypes.ComponentType * label: string * pagePos: XYPos 
+    | CopySymbol
     | DeleteSymbol 
     | RotateSymbol of sId:CommonTypes.SymbolId 
     | UpdateSymbolModelWithComponent of CommonTypes.Component // Issie interface
@@ -129,7 +130,7 @@ let generatePortList compProps numOfPorts portType connectionDirection =
         | Input bw, _, _ | Output bw, _, _ -> Some bw
         | IOLabel, _, _ -> Some 1 //this
 
-        | OldBusSelection _, PortType.Input, _ | BusSelection _, PortType.Input, _ -> Some 10 //this
+        | OldBusSelection _, PortType.Input, _ | BusSelection _, PortType.Input, _ -> Some 9 //this
         | OldBusSelection (bw,_), PortType.Output, _ | BusSelection (bw,_), PortType.Output, _ -> Some bw
 
         | MergeWires, _, _ -> Some 1//this
@@ -144,8 +145,8 @@ let generatePortList compProps numOfPorts portType connectionDirection =
         | RAM memory, PortType.Input, 1 | RAM memory, PortType.Output, _ -> Some memory.WordWidth
         | RAM memory, PortType.Input, _ -> Some 1
 
-        | Custom features, PortType.Input, i -> Some 5 //(snd features.InputLabels.[portNum])
-        | Custom features, PortType.Output, _ -> Some 5 //(snd (features.OutputLabels.[i]))
+        | Custom features, PortType.Input, _ -> Some (snd features.InputLabels.[portNum])
+        | Custom features, PortType.Output, _ -> Some (snd features.OutputLabels.[portNum])
 
         | _ -> Some 1
 
@@ -166,7 +167,7 @@ let generatePortList compProps numOfPorts portType connectionDirection =
                 PortType = portType
                 PortPos = {X = compProps.Pos.X + (relativePortPos i).X ; Y = compProps.Pos.Y + (relativePortPos i).Y}
                 RelativePortPos = relativePortPos i
-                BusWidth = busWidth i
+                BusWidth = busWidth (i-1)
                 ConnectionDirection = connectionDirection
                 HostId = compProps.Id
             })
@@ -181,7 +182,7 @@ let generatePortList compProps numOfPorts portType connectionDirection =
                 PortType = portType
                 PortPos = {X = compProps.Pos.X + float(i)*portDists ; Y = compProps.Pos.Y}
                 RelativePortPos = {X = float(i)*portDists ; Y = 0.}
-                BusWidth = busWidth i
+                BusWidth = busWidth (i-1)
                 ConnectionDirection = connectionDirection
                 HostId = compProps.Id
             })
@@ -196,7 +197,7 @@ let generatePortList compProps numOfPorts portType connectionDirection =
                 PortType = portType
                 PortPos = {X = compProps.Pos.X ; Y = compProps.Pos.Y + compProps.HeaderMargin + (float(i)*portDists)}
                 RelativePortPos = {X = 0. ; Y = compProps.HeaderMargin + (float(i)*portDists)}
-                BusWidth = busWidth i
+                BusWidth = busWidth (i-1)
                 ConnectionDirection = connectionDirection
                 HostId = compProps.Id
             })
@@ -211,7 +212,7 @@ let generatePortList compProps numOfPorts portType connectionDirection =
                 PortType = portType
                 PortPos = {X = compProps.Pos.X + compProps.W ; Y = compProps.Pos.Y + compProps.HeaderMargin + (float(i)*portDists)}
                 RelativePortPos = {X = compProps.W ; Y = compProps.HeaderMargin + (float(i)*portDists)}
-                BusWidth = busWidth i
+                BusWidth = busWidth (i-1)
                 ConnectionDirection = connectionDirection
                 HostId = compProps.Id
             })
@@ -385,6 +386,36 @@ let createNewSymbol (compType:CommonTypes.ComponentType) (label:string) (pos:XYP
         Orientation = Standard
         MouseNear = (posOf 0.0 0.0),None
     } 
+
+
+let createSymbolCopy (sym:Symbol) =
+    let symCopyId = SymbolId (Helpers.uuid())
+    let symCopyPos = posAdd sym.Pos {X = 20.;Y = 20.}
+    {
+        Id = symCopyId
+        Type = sym.Type
+        Label = sym.Label + "_Copy" 
+        Ports = List.map (fun port -> 
+            {port with 
+                Id = Helpers.uuid()
+                PortPos = posAdd symCopyPos port.RelativePortPos
+                HostId = symCopyId
+            }) sym.Ports 
+        NumOfInputs = sym.NumOfInputs
+        NumOfOutputs = sym.NumOfOutputs
+        NumOfUpwardInputs = sym.NumOfUpwardInputs
+        Pos = symCopyPos
+        H = sym.H
+        W = sym.W
+        CurrentH = sym.CurrentH
+        CurrentW = sym.CurrentW
+        LastDragPos = {X=0. ; Y=0.} 
+        IsDragging = false 
+        IsSelected = false
+        Orientation = sym.Orientation
+        MouseNear = (posOf 0.0 0.0),None
+    } 
+
 
 let testAsyncROM = AsyncROM {AddressWidth = 4; WordWidth = 2; Data = Map.ofList [(int64(5),int64(2))]}
 let testROM = ROM {AddressWidth = 4; WordWidth = 2; Data = Map.ofList [(int64(5),int64(2))]}
@@ -625,6 +656,14 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
     match msg with
     | AddSymbol (compType, label, pos) -> 
         (createNewSymbol compType label pos) :: model, Cmd.none
+    | CopySymbol ->
+        model @ (List.collect (fun sym ->
+        if sym.IsSelected = true then
+            [createSymbolCopy sym]
+        else
+            []
+        ) model)
+        , Cmd.none
     | DeleteSymbol -> 
         List.filter (fun sym -> sym.IsSelected = false) model, Cmd.none
     | RotateSymbol sId ->
@@ -707,10 +746,9 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
     | MouseMove (pos, portOpt) ->
        
         model
-        |> List.map (fun sym ->
+        |> List.map (fun sym ->            
             {sym with MouseNear = pos , portOpt }
-            
-            
+             
             // let pointchecker = containsPoint (createBBMouseHover sym ((sym.CurrentH),(sym.CurrentW ))) pos
             
             // match pointchecker with
@@ -839,7 +877,7 @@ let private circmaker (sym: Symbol) (i:int) =
                  else  (distFromBB sym.Pos  (sym.CurrentH,sym.CurrentW) (fst sym.MouseNear) )
                       
         |false -> 0.0
-     
+
     let circleRadius = match snd sym.MouseNear with
                        | Some selPort when selPort.PortType <> port.PortType -> 8.
                        | _ -> 5.
@@ -858,7 +896,6 @@ let private circmaker (sym: Symbol) (i:int) =
                     
         | _ -> {X = port.RelativePortPos.X  ; Y = port.RelativePortPos.Y  }
 
-    
     g      []
         [   if circleRadius = 8. && (calcPointsDist port.PortPos (fst sym.MouseNear) < 13.) then 
                 circle
@@ -1130,53 +1167,60 @@ let private renderBasicSymbol =
 
             let muxCut = 
                 match props.Sym.Type with 
-                | Mux2 -> 30. //20.
-                | Mux4 -> 30. //30.
-                | MuxN n -> 30. //10. + float(log2 n)*10.
+                | Mux2 | Mux4 | MuxN _ -> 30. 
                 | _ -> 0.
 
             let demuxCut = 
                 match props.Sym.Type with 
-                | Demux2 -> 30. //20.
-                | Demux4 -> 30. //30.
-                | DemuxN n -> 30. //10. + float(log2 n)*10.
+                | Demux2 | Demux4 | DemuxN _ -> 30. 
                 | _ -> 0.
 
             let (p1:XYPos, p2:XYPos, p3:XYPos, p4:XYPos, p5:XYPos, p6:XYPos, p7:XYPos, p8:XYPos, p9:XYPos) =
                 match props.Sym.Type with 
                 
                 | Mux2 | Mux4 | MuxN _ -> 
-                    {X = 0.; Y = 0.}, {X = 0.; Y = fH}, {X = fW; Y = fH-muxCut}, {X = fW; Y = muxCut}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}
+                    {X = 0.; Y = 0.}, {X = 0.; Y = fH}, {X = fW; Y = fH-muxCut}, {X = fW; Y = muxCut}, {X = 0.; Y = 0.}, 
+                    {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}
                 
                 | Demux2 | Demux4 | DemuxN _ -> 
-                    {X = 0.; Y = demuxCut}, {X = 0.; Y = fH-demuxCut}, {X = fW; Y = fH}, {X = fW; Y = 0.}, {X = 0.; Y = demuxCut}, {X = 0.; Y = demuxCut}, {X = 0.; Y = demuxCut}, {X = 0.; Y = demuxCut}, {X = 0.; Y = demuxCut}
+                    {X = 0.; Y = demuxCut}, {X = 0.; Y = fH-demuxCut}, {X = fW; Y = fH}, {X = fW; Y = 0.}, {X = 0.; Y = demuxCut}, 
+                    {X = 0.; Y = demuxCut}, {X = 0.; Y = demuxCut}, {X = 0.; Y = demuxCut}, {X = 0.; Y = demuxCut}
                 
                 | Input _ ->
-                    {X = 0.; Y = 0.}, {X = 0.; Y = fH}, {X = fW-10.; Y = fH}, {X = fW; Y = fH/2.}, {X = fW-10.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}
+                    {X = 0.; Y = 0.}, {X = 0.; Y = fH}, {X = fW-10.; Y = fH}, {X = fW; Y = fH/2.}, {X = fW-10.; Y = 0.}, 
+                    {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}
 
                 | Output _ ->
-                    {X = 10.; Y = 0.}, {X = 0.; Y = fH/2.}, {X = 10.; Y = fH}, {X = fW; Y = fH}, {X = fW; Y = 0.}, {X = 10.; Y = 0.}, {X = 10.; Y = 0.}, {X = 10.; Y = 0.}, {X = 10.; Y = 0.}
+                    {X = 10.; Y = 0.}, {X = 0.; Y = fH/2.}, {X = 10.; Y = fH}, {X = fW; Y = fH}, {X = fW; Y = 0.}, 
+                    {X = 10.; Y = 0.}, {X = 10.; Y = 0.}, {X = 10.; Y = 0.}, {X = 10.; Y = 0.}
                 
                 | IOLabel ->
-                    {X = 10.; Y = 0.}, {X = 0.; Y = fH/2.}, {X = 10.; Y = fH}, {X = fW-10.; Y = fH}, {X = fW; Y = fH/2.}, {X = fW-10.; Y = 0.}, {X = 10.; Y = 0.}, {X = 10.; Y = 0.}, {X = 10.; Y = 0.}
+                    {X = 10.; Y = 0.}, {X = 0.; Y = fH/2.}, {X = 10.; Y = fH}, {X = fW-10.; Y = fH}, {X = fW; Y = fH/2.}, 
+                    {X = fW-10.; Y = 0.}, {X = 10.; Y = 0.}, {X = 10.; Y = 0.}, {X = 10.; Y = 0.}
 
                 | Constant _ -> 
-                    {X = 0.; Y = 0.}, {X = 0.; Y = fH}, {X = 2.*fW/5.; Y = fH/2.}, {X = fW; Y = fH/2.}, {X = 2.*fW/5.; Y = fH/2.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}
+                    {X = 0.; Y = 0.}, {X = 0.; Y = fH}, {X = 2.*fW/5.; Y = fH/2.}, {X = fW; Y = fH/2.}, {X = 2.*fW/5.; Y = fH/2.}, 
+                    {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}
 
                 | OldBusSelection _ -> 
-                    {X = 0.; Y = 0.}, {X = 0.; Y = fH}, {X = fW/2.; Y = fH}, {X = 3.*fW/4.; Y = 4.*fH/5.}, {X = fW; Y = 4.*fH/5.}, {X = fW; Y = fH/5.}, {X = 3.*fW/4.; Y = fH/5.}, {X = fW/2.; Y = 0.}, {X = 0.; Y = 0.}
+                    {X = 0.; Y = 0.}, {X = 0.; Y = fH}, {X = fW/2.; Y = fH}, {X = 3.*fW/4.; Y = 4.*fH/5.}, {X = fW; Y = 4.*fH/5.}, 
+                    {X = fW; Y = fH/5.}, {X = 3.*fW/4.; Y = fH/5.}, {X = fW/2.; Y = 0.}, {X = 0.; Y = 0.}
   
                 | BusSelection _ -> 
-                    {X = 0.; Y = fH/2.}, {X = fW; Y = fH/2.}, {X = fW/2.; Y = fH/2.}, {X = fW/2.; Y = 0.}, {X = fW/2.; Y = fH}, {X = fW/2.; Y = fH/2.}, {X = 0.; Y = fH/2.}, {X = 0.; Y = fH/2.}, {X = 0.; Y = fH/2.}
+                    {X = 0.; Y = fH/2.}, {X = fW; Y = fH/2.}, {X = fW/2.; Y = fH/2.}, {X = fW/2.; Y = 0.}, {X = fW/2.; Y = fH}, 
+                    {X = fW/2.; Y = fH/2.}, {X = 0.; Y = fH/2.}, {X = 0.; Y = fH/2.}, {X = 0.; Y = fH/2.}
 
                 | MergeWires -> 
-                    {X = 0.; Y = 0.}, {X = fW/2.; Y = 0.}, {X = fW/2.; Y = fH/2.}, {X = fW; Y = fH/2.}, {X = fW/2.; Y = fH/2.}, {X = fW/2.; Y = fH}, {X = 0.; Y = fH}, {X = fW/2.; Y = fH}, {X = fW/2.; Y = 0.}
+                    {X = 0.; Y = 0.}, {X = fW/2.; Y = 0.}, {X = fW/2.; Y = fH/2.}, {X = fW; Y = fH/2.}, {X = fW/2.; Y = fH/2.}, 
+                    {X = fW/2.; Y = fH}, {X = 0.; Y = fH}, {X = fW/2.; Y = fH}, {X = fW/2.; Y = 0.}
 
                 | SplitWire _ -> 
-                    {X = fW; Y = 0.}, {X = fW/2.; Y = 0.}, {X = fW/2.; Y = fH/2.}, {X = 0.; Y = fH/2.}, {X = fW/2.; Y = fH/2.}, {X = fW/2.; Y = fH}, {X = fW; Y = fH}, {X = fW/2.; Y = fH}, {X = fW/2.; Y = 0.}
+                    {X = fW; Y = 0.}, {X = fW/2.; Y = 0.}, {X = fW/2.; Y = fH/2.}, {X = 0.; Y = fH/2.}, {X = fW/2.; Y = fH/2.}, 
+                    {X = fW/2.; Y = fH}, {X = fW; Y = fH}, {X = fW/2.; Y = fH}, {X = fW/2.; Y = 0.}
 
                 | _ -> 
-                    {X = 0.; Y = 0.}, {X = 0.; Y = fH}, {X = fW; Y = fH}, {X = fW; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}
+                    {X = 0.; Y = 0.}, {X = 0.; Y = fH}, {X = fW; Y = fH}, {X = fW; Y = 0.}, {X = 0.; Y = 0.}, 
+                    {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}, {X = 0.; Y = 0.}
 
 
             let headerPositionY = 

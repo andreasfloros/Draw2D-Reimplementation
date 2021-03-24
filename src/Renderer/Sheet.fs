@@ -22,7 +22,7 @@ type SelectedItem =
     }
 
 type KeyboardMsg =
-    | CtrlS | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | R | ShiftA | ShiftQ
+    | CtrlS | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | R | ShiftA | ShiftQ | CtrlC
 
 type Msg =
     | Wire of BusWire.Msg
@@ -198,6 +198,19 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                     model,
                     symbolID
                     |> Symbol.Msg.RotateSymbol
+                    |> BusWire.Msg.Symbol
+                    |> Wire |> Cmd.ofMsg
+                | BusWire _ -> model,Cmd.none
+                | NoItem -> model,Cmd.none
+                | Port(portId, portType) -> failwith "Not Implemented"
+
+        | CtrlC -> 
+            printf "HELLO YOU HAVE PRESSED copy"
+            let selected = model.SelectedItem
+            match selected with 
+                | Symbol _ ->
+                    model,
+                    Symbol.Msg.CopySymbol
                     |> BusWire.Msg.Symbol
                     |> Wire |> Cmd.ofMsg
                 | BusWire _ -> model,Cmd.none

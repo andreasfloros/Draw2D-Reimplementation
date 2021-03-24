@@ -55,6 +55,7 @@ module Renderer
                    makeKeyItem "Select Multiple Mode" "Shift+A" (fun () -> dispatch KeyboardMsg.ShiftA)
                    makeKeyItem "Select Single Mode" "Shift+Q" (fun () -> dispatch KeyboardMsg.ShiftQ)
                    makeKeyItem "Rotate Symbol" "R" (fun () -> dispatch KeyboardMsg.R)
+                   makeKeyItem "Copy Symbol" "CmdOrCtrl+C" (fun () -> dispatch KeyboardMsg.CtrlC)
                    menuSeparator
                    makeKeyItem "Print Statistics" "Alt+Shift+Z" (fun () -> dispatch KeyboardMsg.AltShiftZ)
                    makeRoleItem MenuItemRole.ForceReload
