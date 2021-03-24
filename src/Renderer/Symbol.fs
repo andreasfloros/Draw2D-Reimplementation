@@ -130,7 +130,7 @@ let generatePortList compProps numOfPorts portType connectionDirection =
         | Input bw, _, _ | Output bw, _, _ -> Some bw
         | IOLabel, _, _ -> Some 1 //this
 
-        | OldBusSelection _, PortType.Input, _ | BusSelection _, PortType.Input, _ -> Some 1 //this
+        | OldBusSelection _, PortType.Input, _ | BusSelection _, PortType.Input, _ -> Some 10 //this
         | OldBusSelection (bw,_), PortType.Output, _ | BusSelection (bw,_), PortType.Output, _ -> Some bw
 
         | MergeWires, _, _ -> Some 1//this
@@ -817,25 +817,6 @@ let private invertor (props:BasicSymbolProps) (color:string) (rectWidth:float) _
             SVGAttr.FillOpacity 0.5
             SVGAttr.Fill color] []
     | _ -> text [] []
-
-
-// let private busSelectionLabels (sym: Symbol) _ =
-//     match sym.Type with
-//     | BusSelection _ -> 
-//         text [ 
-//             X labelPosX; 
-//             Y (props.Sym.H-9.); 
-//             Style [
-//                 UserSelect UserSelectOptions.None
-//                 TextAnchor textAnchor
-//                 DominantBaseline "middle"
-//                 FontSize "13px"
-//                 FontWeight "Bold"
-//                 Fill "Black" 
-//                 Transform (sprintf "translate(%fpx,%fpx) scale(%A) " 0. 0. scaleFactor )
-//             ]
-//         ] [str <| "clk"] 
-//     | _ -> text [] []
 
 
 let circmaker (sym: Symbol) (i:int) = 
