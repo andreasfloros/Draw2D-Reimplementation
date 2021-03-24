@@ -271,7 +271,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                               |> Wire |> Cmd.ofMsg
         | _ -> 
             model,
-            event.Pos
+            (event.Pos, None)
             |> Symbol.Msg.MouseMove
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
@@ -292,7 +292,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 |> Cmd.ofMsg
         | Port (p1, pType) -> 
             model,
-            (p1, event.Pos)
+            ( Some p1, event.Pos)
             |> BusWire.Msg.CreateSheetWire
             |> Wire |> Cmd.ofMsg
              

@@ -132,7 +132,7 @@ type Msg =
     | MultipleSelect of wireId : WireId
     | AutoRouteAll
     | CreateWire of port1 : CommonTypes.Port * port2 : CommonTypes.Port
-    | CreateSheetWire of port : CommonTypes.Port * pos : XYPos
+    | CreateSheetWire of port : CommonTypes.Port Option * pos : XYPos
     | DeleteSheetWire
 
 let addVerticesIfSelected props =
@@ -590,7 +590,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             model
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
-        | Symbol.MouseMove pos -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd///// Shaheer /// for port bubbles
+        | Symbol.MouseMove (pos,None) -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd///// Shaheer /// for port bubbles
         | Symbol.RotateSymbol sId ->
             let movedPortsMap = Symbol.getPortsFromId sId sm
             let newWires = autoRouteWires model.Wires movedPortsMap
@@ -663,8 +663,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                        |> getWiresFromWireModel
                        |> Map.add (generateWireId()) (createWire port1.Id port1 port2.Id port2)
         updateWireModelWithWires newWires newModel, Cmd.none       
-    | CreateSheetWire (port, pos) -> 
-        {model with SheetWire = Some (sheetWire port pos)}, pos |> Symbol.Msg.MouseMove |> Symbol |> Cmd.ofMsg
+    | CreateSheetWire (Some port, pos) -> 
+        {model with SheetWire = Some (sheetWire port pos)}, (pos, Some port) |> Symbol.Msg.MouseMove |> Symbol |> Cmd.ofMsg
     | DeleteSheetWire ->
         {model with SheetWire = None}, Cmd.none              
                        
