@@ -285,6 +285,17 @@ let getPortExtension pt dir isOutput=
         | Right -> segOf pt (posAdd pt (posOf portLength 0.))
     if isOutput then ext else swapSeg ext
 
+
+let getDoublePortExtension pt dir isOutput=
+    let ext =
+        match dir with
+        | Dir.Up -> segOf pt (posDiff pt (posOf 0. (2.*portLength)))
+        | Dir.Down -> segOf pt (posAdd pt (posOf 0. (2.*portLength)))
+        | Left -> segOf pt (posDiff pt (posOf (2.*portLength) 0.))
+        | Right -> segOf pt (posAdd pt (posOf (2.*portLength) 0.))
+    if isOutput then ext else swapSeg ext
+
+
 let verticesToString firstPoint secondPoint thirdPoint = 
     " L " + (posToString firstPoint) + " Q " + (posToString secondPoint) + (posToString thirdPoint)
 
