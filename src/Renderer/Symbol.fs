@@ -731,7 +731,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
     | Unselect sId ->
         model
         |> List.map (fun sym ->
-            if sym.IsSelected then
+            if sym.Id = sId then
                 {sym with 
                    IsSelected = false 
                 }
@@ -743,10 +743,16 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
         model
         |> List.map (fun sym ->
             if sId = sym.Id then
-                {sym with 
-                    LastDragPos = pagePos //Zaid
-                    IsSelected = true
-                }  
+                if sym.IsSelected = true then
+                    {sym with 
+                        LastDragPos = pagePos //Zaid
+                        IsSelected = false
+                    }  
+                else 
+                    {sym with 
+                        LastDragPos = pagePos //Zaid
+                        IsSelected = true
+                    }
             else if sym.IsSelected = true then //Zaid 
                     {sym with 
                         LastDragPos = pagePos 

@@ -18,10 +18,11 @@ type SelectedItem =
  type Model = {
     Wire: BusWire.Model
     SelectedItem: SelectedItem
+    Zoom: float
     }
 
 type KeyboardMsg =
-    | CtrlS | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | R
+    | CtrlS | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | R | ShiftA | ShiftQ
 
 type Msg =
     | Wire of BusWire.Msg
@@ -47,15 +48,17 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
     /// Dispatch a BusWire MouseMsg message
     /// the screen mouse coordinates are compensated for the zoom transform
     let mouseOp op (ev:Types.MouseEvent) = 
-            dispatch <| MouseMsg {Op = op ; Pos = { X = ev.clientX / zoom ; Y = ev.clientY / zoom}}
+            dispatch <| MouseMsg {Op = op ; Pos = { X = ev.clientX * zoom ; Y = ev.clientY * zoom}}
 
 
     div [ Style 
             [ 
-                Height "100vh" 
-                MaxWidth "100vw"
-                CSSProp.OverflowX OverflowOptions.Auto 
-                CSSProp.OverflowY OverflowOptions.Auto
+                // Height "100vh" 
+                // MaxWidth "100vw"
+                Height sizeInPixels
+                MaxWidth sizeInPixels
+                //CSSProp.OverflowX OverflowOptions.Auto 
+               //CSSProp.OverflowY OverflowOptions.Auto
             ] 
 
           OnMouseDown (fun ev -> 
@@ -90,7 +93,7 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
 let view (model:Model) (dispatch : Msg -> unit) =
     let wDispatch wMsg = dispatch (Wire wMsg)
     let wireSvg = BusWire.view model.Wire wDispatch
-    displaySvgWithZoom 1.0 wireSvg dispatch
+    displaySvgWithZoom model.Zoom wireSvg dispatch
 
 
 let getHit (click: XYPos) (model: Model) =
@@ -151,6 +154,15 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 Symbol.Msg.DeleteSymbol
                 |> BusWire.Msg.Symbol
                 |> Wire |> Cmd.ofMsg
+
+        |ShiftA ->
+            let z = model.Zoom + 0.1
+            printf "zoom is %f" z
+            {model with Zoom = z} , Cmd.none
+        |ShiftQ -> 
+            let z = model.Zoom - 0.1
+            printf "zoom is %f" z
+            {model with Zoom = z} , Cmd.none
 
         | A -> newSymbol "Xnor" model
         | B -> newSymbol "And" model
@@ -324,5 +336,6 @@ let init() =
     {
         Wire = model
         SelectedItem = NoItem
+        Zoom = 1.0
 
     }, Cmd.map Wire cmds

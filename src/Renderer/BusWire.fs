@@ -644,8 +644,11 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | MultipleSelect wId -> 
         let newWires = model
                        |> getWiresFromWireModel
-                       |> Map.map (fun id w -> if id = wId then 
-                                                    {w with WireRenderProps = {getWirePropsFromWire w with IsSelected = true}}
+                       |> Map.map (fun id w -> if id = wId then
+                                                    if w.WireRenderProps.IsSelected = true then 
+                                                        {w with WireRenderProps = {getWirePropsFromWire w with IsSelected = false}}
+                                                    else  
+                                                        {w with WireRenderProps = {getWirePropsFromWire w with IsSelected = true}}
                                                else 
                                                     w)
         updateWireModelWithWires newWires model, Cmd.none
