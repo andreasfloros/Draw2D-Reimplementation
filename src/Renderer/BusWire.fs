@@ -559,6 +559,9 @@ let autoRouteWire _wireId wire =
             extensionOutput :: routeFromStart (List.rev startExtension).Head endExtension.Head (somePerpendicularDir fromDir) (somePerpendicularDir toDir) @ [extensionInput]
         else routeFromStart extensionOutput extensionInput fromDir toDir
     {updateWireWithSegments wire segments with HasBeenManualRouted = false}
+    |> remove0Segs
+    |> removeKinkySegs
+    |> mergeSegs
 
 // example function for wire creation from ports
 // for custom wires with props decided by the user use the updateWireWithProps function
