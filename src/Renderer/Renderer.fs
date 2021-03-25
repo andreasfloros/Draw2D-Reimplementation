@@ -48,11 +48,12 @@ module Renderer
         makeMenu "Edit" 
                   [makeKeyItem "Default" "CmdOrCtrl+S" (fun () -> dispatch CtrlS)
                    makeKeyItem "Delete Selected"  "Delete" (fun () -> dispatch DEL)
-                   makeKeyItem "Reset Wires" "CmdOrCtrl+W" (fun () -> dispatch CtrlW)
+                   makeKeyItem "AutoRouteAll" "CmdOrCtrl+W" (fun () -> dispatch CtrlW)
                    makeKeyItem "Zoom In" "CmdOrCtrl+="  (fun () -> dispatch CtrlPlus)
                    makeKeyItem "Zoom Out" "CmdOrCtrl+-" (fun () -> dispatch CtrlMinus)
                    makeKeyItem "Rotate Symbol" "R" (fun () -> dispatch R)
                    makeKeyItem "Copy Symbol" "X" (fun () -> dispatch X)
+                   makeKeyItem "AutoRoutWire" "W" (fun () -> dispatch W)
                    menuSeparator
                    makeKeyItem "Print Statistics" "Alt+Shift+Z" (fun () -> dispatch AltShiftZ)
                    makeRoleItem MenuItemRole.ForceReload

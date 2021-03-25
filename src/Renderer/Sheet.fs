@@ -197,7 +197,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | F -> newSymbol "Nand" model
         | G -> newSymbol "Nor" model
         | H -> newSymbol "Decode4" model
-        | W -> failwithf "Not yet implemented"
+        | W -> printfn "asfas"
+               match model.SelectedItem with
+               | BusWire (wId,_) ->
+                   let wModel, wCmd = BusWire.update (BusWire.AutoRouteWire wId) model.Wire
+                   {model with Wire = wModel}, Cmd.map Wire wCmd
+               | _ -> model, Cmd.none
 
         | CtrlW -> let wModel, wCmd = BusWire.update (BusWire.AutoRouteAll) model.Wire
                    {model with Wire = wModel}, Cmd.map Wire wCmd
