@@ -35,7 +35,7 @@ type Msg =
     | MouseMsg of MouseT
     
 
-
+let constantGridLines = gridLines 1100 1100
 //let Zoom = 1.
 /// Determines top-level zoom, > 1 => magnify.
 /// This should be moved into the model as state
@@ -138,7 +138,7 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
                 ] // top-level transform style attribute for zoom
 
 
-                ((gridLines 1100 1100) // adds grid lines
+                (constantGridLines     // adds grid lines
                 //@ (addMenuSymbols)
                 @ [                    // adds menu
                     polygon 
