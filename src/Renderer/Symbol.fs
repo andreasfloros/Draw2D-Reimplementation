@@ -11,7 +11,6 @@ open CommonTypes
 //-------------------------------Symbol Types-----------------------------//
 //------------------------------------------------------------------------//
 
-
 /// Model to generate one symbol (skeleton). Id is a unique Id 
 /// for the symbol shared with Issie Component type.
 /// The real type will obviously be much larger.
@@ -21,8 +20,9 @@ open CommonTypes
 /// determine are they the same is fast.
 type Symbol = CommonTypes.Component
 
-type Model = Symbol list
-
+type Model = {
+    SymModel :Symbol list
+}
 //----------------------------Message Type-----------------------------------//
 
 /// Messages to update symbol model
@@ -42,7 +42,7 @@ type Msg =
     | CopySymbol
     | DeleteSymbol 
     | RotateSymbol of sId:CommonTypes.SymbolId 
-    | UpdateSymbolModelWithComponent of CommonTypes.Component // Issie interface
+    | UpdateSymModelWithComponent of CommonTypes.Component // Issie interface
     | MultipleSelect of sId : CommonTypes.SymbolId * pagePos: XYPos
     | MouseMove of pagePos : XYPos * PortSelect: Port Option
     | Deselect
@@ -60,13 +60,13 @@ let createBB (sym: Symbol) (h,w: float) =
 
 let FindSymbol (mousePos: XYPos) (model: Model) = 
     printf "hey in Find Symbol now"
-    match List.tryFind (fun sym -> containsPoint (createBB sym (sym.CurrentH,sym.CurrentW)) mousePos) (model) with 
+    match List.tryFind (fun sym -> containsPoint (createBB sym (sym.CurrentH,sym.CurrentW)) mousePos) (model.SymModel) with 
     | Some sym -> Some sym.Id
     | None -> None
 
 let getSelectedSymbols (model: Model) = 
-    model |> List.filter (fun sym -> (sym.IsSelected = true))
-          |> List.map (fun s -> s.Id)
+    model.SymModel |> List.filter (fun sym -> (sym.IsSelected = true))
+                      |> List.map (fun s -> s.Id)
 
 
 let IsNoSymbolSelected model = List.isEmpty (getSelectedSymbols model)
@@ -425,17 +425,18 @@ let testCustom = Custom {Name = "Custom Comp Test"; InputLabels = [("data-in",4)
 
 
 let init () =
+    
     List.allPairs [1..4] [1..2]
     |> List.map (fun (x,y) -> {X = float (x*180+20); Y=float (y*220-60)})
     |> List.map (fun {X=x;Y=y} -> 
         match (x, y) with 
         | 200., 160. -> (createNewSymbol (Input 7) "Input Example" {X=x;Y=y})
-        | 200., 380. -> (createNewSymbol (MergeWires) "label" {X=x;Y=y})
+        | 200., 380. -> (createNewSymbol (NbitsAdder 10) "label" {X=x;Y=y})
         | 380., 160. -> (createNewSymbol (BusSelection (5,2)) "New BusSelect" {X=x;Y=y})
-        | 380., 380. -> (createNewSymbol (OldBusSelection (5,2)) "Old BusSelect" {X=x;Y=y})
+        | 380., 380. -> (createNewSymbol (Xor) "Xor" {X=x;Y=y})
         | 560., 160. -> (createNewSymbol (DemuxN 7) "label" {X=x;Y=y})
         | 560., 380. -> (createNewSymbol (testCustom) "label" {X=x;Y=y})
-        | 740., 160. -> (createNewSymbol (Output 6) "label" {X=x;Y=y})
+        | 740., 160. -> (createNewSymbol (Output 5) "label" {X=x;Y=y})
         | 740., 380. -> (createNewSymbol (Demux4) "label" {X=x;Y=y})
         | _ -> (createNewSymbol (Xor) "label" {X=x;Y=y}) )
         
@@ -656,106 +657,115 @@ let verticalAlign (sym:Symbol) yPos model =
 let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
     match msg with
     | AddSymbol (compType, label, pos) -> 
-        (createNewSymbol compType label pos) :: model, Cmd.none
-    | CopySymbol ->
-        (List.collect (fun sym ->
-        if sym.IsSelected = true then
-            [createSymbolCopy sym]
-        else
-            []
-        ) model) 
-        @ (List.map (fun sym ->
-            if sym.IsSelected = true then
-                {sym with 
-                   IsSelected = false 
-                }
-            else sym
-        ) model)
-        , Cmd.none
-    | DeleteSymbol -> 
-        List.filter (fun sym -> sym.IsSelected = false) model, Cmd.none
-    | RotateSymbol sId ->
-        model
-        |> List.map (fun sym ->
-            if sId <> sym.Id 
-            then sym
-            else symbolRotation sym
-        )
-        , Cmd.none
-    | StartDragging (sId, pagePos) ->
-        model
-        |> List.map (fun sym ->
-            if sId <> sym.Id then
-                {sym with 
-                   IsSelected = false 
-                }
+        {model with SymModel = (createNewSymbol compType label pos) :: (model.SymModel)}, Cmd.none
 
-            else
-                { sym with
-                    LastDragPos = pagePos
-                    IsDragging = true
-                    IsSelected = true 
-                }
-        )
+    | CopySymbol ->
+        {model with SymModel = 
+                    (List.collect (fun sym ->
+                    if sym.IsSelected = true then
+                        [createSymbolCopy sym]
+                    else
+                        []
+                    ) model.SymModel) 
+                    @ (List.map (fun sym ->
+                        if sym.IsSelected = true then
+                            {sym with 
+                               IsSelected = false 
+                            }
+                        else sym
+                    ) model.SymModel)}
+        , Cmd.none
+
+    | DeleteSymbol -> 
+    {model with SymModel = List.filter (fun sym -> sym.IsSelected = false) model.SymModel}, Cmd.none
+
+    | RotateSymbol sId ->
+        {model with SymModel = model.SymModel
+                    |> List.map (fun sym ->
+                        if sId <> sym.Id 
+                        then sym
+                        else symbolRotation sym
+                    )}
+        , Cmd.none
+
+    | StartDragging (sId, pagePos) ->
+        {model with SymModel = model.SymModel
+                |> List.map (fun sym ->
+                    if sId <> sym.Id then
+                        {sym with 
+                           IsSelected = false 
+                        }
+
+                    else
+                        { sym with
+                            LastDragPos = pagePos
+                            IsDragging = true
+                            IsSelected = true 
+                        }
+                )}
         , Cmd.none
     | Deselect ->
-        model
-        |> List.map (fun sym -> {sym with IsSelected = false}), Cmd.none
+        {model with 
+            SymModel = model.SymModel 
+            |> List.map (fun sym -> {sym with IsSelected = false})}, Cmd.none
                 
     | Dragging pagePos ->
-        model
-        |> List.map (fun sym ->
-            if sym.IsSelected = false then
-                sym
-            else
-                let diff = posDiff pagePos sym.LastDragPos
-                let updatedPos = posAdd sym.Pos diff
-                let newX, xAligned = 
-                    match horizontalAlign sym updatedPos.X model with
-                    | None -> updatedPos.X, false
-                    | Some x -> x, true
-                let newY, yAligned = 
-                    match verticalAlign sym updatedPos.Y model with
-                    | None -> updatedPos.Y, false
-                    | Some y -> y, true
-                { sym with
-                    Pos = updatedPos //{X = newX; Y = newY} //updatedPos //
-                    Ports = List.map (fun port -> {port with PortPos = posAdd port.RelativePortPos sym.Pos}) sym.Ports
-                    LastDragPos = pagePos
-                        // if ((xAligned = true) || (yAligned = true))
-                        // then sym.LastDragPos
-                        // else pagePos
-                }
-        )
+        {model with
+            SymModel = model.SymModel
+            |> List.map (fun sym ->
+                if sym.IsSelected = false then
+                    sym
+                else
+                    let diff = posDiff pagePos sym.LastDragPos
+                    let updatedPos = posAdd sym.Pos diff
+                    let newX, xAligned = 
+                        match horizontalAlign sym updatedPos.X model.SymModel with
+                        | None -> updatedPos.X, false
+                        | Some x -> x, true
+                    let newY, yAligned = 
+                        match verticalAlign sym updatedPos.Y model.SymModel with
+                        | None -> updatedPos.Y, false
+                        | Some y -> y, true
+                    { sym with
+                        Pos = updatedPos //{X = newX; Y = newY} //updatedPos //
+                        Ports = List.map (fun port -> {port with PortPos = posAdd port.RelativePortPos sym.Pos}) sym.Ports
+                        LastDragPos = pagePos
+                            // if ((xAligned = true) || (yAligned = true))
+                            // then sym.LastDragPos
+                            // else pagePos
+                    }
+            )}
         , Cmd.none
 
     | EndDragging ->
-        model
-        |> List.map (fun sym ->
-            if sym.IsSelected = false then 
-                sym
-            else
-                let newX = 
-                    match horizontalAlign sym sym.Pos.X model with
-                    | None -> sym.Pos.X
-                    | Some x -> x
-                let newY = 
-                    match verticalAlign sym sym.Pos.Y model with
-                    | None -> sym.Pos.Y
-                    | Some y -> y
-                let newPos = {X = newX; Y = newY}
-                { sym with
-                    Pos = newPos
-                    Ports = List.map (fun port -> {port with PortPos = posAdd port.RelativePortPos newPos}) sym.Ports
-                    IsDragging = false 
-                }
-        )
+        {model with
+            SymModel = model.SymModel
+            |> List.map (fun sym ->
+                if sym.IsSelected = false then 
+                    sym
+                else
+                    let newX = 
+                        match horizontalAlign sym sym.Pos.X model.SymModel with
+                        | None -> sym.Pos.X
+                        | Some x -> x
+                    let newY = 
+                        match verticalAlign sym sym.Pos.Y model.SymModel with
+                        | None -> sym.Pos.Y
+                        | Some y -> y
+                    let newPos = {X = newX; Y = newY}
+                    { sym with
+                        Pos = newPos
+                        Ports = List.map (fun port -> {port with PortPos = posAdd port.RelativePortPos newPos}) sym.Ports
+                        IsDragging = false 
+                    }
+            )}
         , Cmd.none
     | MouseMove (pos, portOpt) ->
        
-        model
-        |> List.map (fun sym ->            
-            {sym with MouseNear = pos , portOpt }
+        {model with
+            SymModel = model.SymModel
+            |> List.map (fun sym ->            
+                {sym with MouseNear = pos , portOpt }
              
             // let pointchecker = containsPoint (createBBMouseHover sym ((sym.CurrentH),(sym.CurrentW ))) pos
             
@@ -772,50 +782,64 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
             //         { sym with 
             //             MouseNear = 0.0, portOpt
             //         }
-        )
+        )}
         , Cmd.none
 
     | Unselect sId ->
-        model
-        |> List.map (fun sym ->
-            if sym.Id = sId then
-                {sym with 
-                   IsSelected = false 
-                }
-            else sym
-        )
+        {model with
+            SymModel = model.SymModel
+            |> List.map (fun sym ->
+                if sym.Id = sId then
+                    {sym with 
+                       IsSelected = false 
+                    }
+                else sym
+            )}
         , Cmd.none
 
     | MultipleSelect (sId, pagePos) ->
-        model
-        |> List.map (fun sym ->
-            if sId = sym.Id then
-                if sym.IsSelected = true then
-                    {sym with 
-                        LastDragPos = pagePos //Zaid
-                        IsSelected = false
-                    }  
-                else 
-                    {sym with 
-                        LastDragPos = pagePos //Zaid
-                        IsSelected = true
-                    }
-            else if sym.IsSelected = true then //Zaid 
-                    {sym with 
-                        LastDragPos = pagePos 
-                    } 
-                else sym
-        )
+        {model with
+            SymModel = model.SymModel
+            |> List.map (fun sym ->
+                if sId = sym.Id then
+                    if sym.IsSelected = true then
+                        {sym with 
+                            LastDragPos = pagePos //Zaid
+                            IsSelected = false
+                        }  
+                    else 
+                        {sym with 
+                            LastDragPos = pagePos //Zaid
+                            IsSelected = true
+                        }
+                else if sym.IsSelected = true then //Zaid 
+                        {sym with 
+                            LastDragPos = pagePos 
+                        } 
+                    else sym
+            )}
         , Cmd.none
 
     | SelectEnclosed (p1,p2) ->
-        let box = createSelectBox p1 p2
-        model 
-        |> List.map (fun sym ->
-                    let bbox = createBB sym (sym.H, sym.W) 
-                    if bBoxesIntersect bbox box
-                    then {sym with IsSelected = true}
-                    else sym), Cmd.none
+
+        {model with
+             SymModel = model.SymModel
+              |> List.map (fun sym ->
+                                     let bbox = createBB sym (sym.H, sym.W) 
+                                     let box = createSelectBox p1 p2
+                                     if bBoxesIntersect bbox box
+                                     then {sym with IsSelected = true}
+                                     else sym)}
+        , Cmd.none
+
+    // | SelectEnclosed (p1,p2) ->
+    //     let box = createSelectBox p1 p2
+    //     model 
+    //     |> List.map (fun sym ->
+    //                 let bbox = createBB sym (sym.H, sym.W) 
+    //                 if bBoxesIntersect bbox box
+    //                 then {sym with IsSelected = true}
+    //                 else sym), Cmd.none
 
     | _ -> failwithf "Not implemented"
 
@@ -1230,7 +1254,7 @@ let private renderBasicSymbol =
                 match props.Sym.Type with
                 | Not -> "1"
                 | And | Nand -> "&"
-                | Or | Nor -> ">=1"
+                | Or | Nor -> "≥1"
                 | Xor | Xnor -> "=1"
                 | Decode4 -> "Decode"
                 | NbitsAdder bw -> "Adder (" + string(bw-1) + ":0)" 
@@ -1252,7 +1276,7 @@ let private renderBasicSymbol =
 
             let color =
                 if props.Sym.IsSelected then
-                    "lightblue"
+                    "#ffff33"
                 else
                     "lightgray"
 
@@ -1324,7 +1348,7 @@ let private renderBasicSymbol =
 
 /// View function for symbol layer of SVG
 let view (model : Model) (dispatch : Msg -> unit) : ReactElement = 
-    (List.rev model)
+    (List.rev model.SymModel)
     |> List.map (  fun sym -> renderBasicSymbol {    Sym = sym 
                                                      Dispatch = dispatch      
                                                      Key = string(sym.Id)  
@@ -1335,15 +1359,15 @@ let view (model : Model) (dispatch : Msg -> unit) : ReactElement =
 //---------------Other interface functions--------------------//
 
 let symbolPos (symModel: Model) (sId: CommonTypes.SymbolId) : XYPos = 
-    List.find (fun (sym:Symbol) -> sym.Id = sId) symModel
+    List.find (fun (sym:Symbol) -> sym.Id = sId) symModel.SymModel
     |> (fun sym -> sym.Pos)
 
 
 /// Update the symbol with matching componentId to comp, or add a new symbol based on comp.
-let updateSymbolModelWithComponent (symModel: Model) (comp:CommonTypes.Component) =
-    if List.tryFind (fun (sym:Symbol) -> sym.Id = comp.Id) symModel = None
-    then comp :: symModel
-    else symModel
+let updateSymModelWithComponent (symModel: Model) (comp:CommonTypes.Component) =
+    if List.tryFind (fun (sym:Symbol) -> sym.Id = comp.Id) symModel.SymModel = None
+    then comp :: symModel.SymModel
+    else symModel.SymModel
 
 
 /// Return the output Buswire width (in bits) if this can be calculated based on known
@@ -1362,16 +1386,16 @@ let calculateOutputWidth
 let extractComponent 
         (symModel: Model) 
         (sId:CommonTypes.ComponentId) : CommonTypes.Component = 
-    List.find (fun (sym:Symbol) -> sym.Id = SymbolId(string(sId))) symModel
+    List.find (fun (sym:Symbol) -> sym.Id = SymbolId(string(sId))) symModel.SymModel
 
 
-let extractComponents (symModel: Model) : CommonTypes.Component list = symModel
+let extractComponents (symModel: Model) : CommonTypes.Component list = symModel.SymModel
 
 //----------------------interface to BusWire----------------------------//
 
 /// Looks up a symbol using its Id
-let getsymbolFromSymbolId (symbolId: SymbolId) (symbolModel: Model) : Symbol =
-    List.find (fun (sym:Symbol) -> sym.Id = symbolId) symbolModel
+let getsymbolFromSymbolId (symbolId: SymbolId) (symModel: Model) : Symbol =
+    List.find (fun (sym:Symbol) -> sym.Id = symbolId) symModel.SymModel
 
 
 // /// Outputs a map containing a symbol's ports, with their respective Ids as the keys
@@ -1384,8 +1408,8 @@ let getsymbolFromSymbolId (symbolId: SymbolId) (symbolModel: Model) : Symbol =
 let getPortsFromSymbol (symbol: Symbol) = symbol.Ports
 
 
-// let getPortFromPortId (portId: PortId) (symbolModel: Model) : Port =
-//     List.find (fun (p:Port) -> p.Id = portlId) symbolModel
+// let getPortFromPortId (portId: PortId) (SymModel: Model) : Port =
+//     List.find (fun (p:Port) -> p.Id = portlId) SymModel
 
 
 /// Returns the coordinates of a port
@@ -1414,8 +1438,8 @@ let getWidthFromPort (port : Port) : int =
 
 
 /// Returns all the ports connected to the symbol with the specified Id
-let getPortsFromId (symbolId : SymbolId) (symbolModel : Model) : Map<string,Port> =
-    let sym = List.find (fun (sym:Symbol) -> sym.Id = symbolId) symbolModel
+let getPortsFromId (symbolId : SymbolId) (symModel : Model) : Map<string,Port> =
+    let sym = List.find (fun (sym:Symbol) -> sym.Id = symbolId) symModel.SymModel
     sym.Ports
     |> List.map (fun port -> (port.Id,port))
     |> Map.ofList 
@@ -1434,7 +1458,7 @@ let createPortBB (port: Port) (x: float) =
 
 //Anushka -- written for adding wires -- unused for now
 let FindPort (mousePos: XYPos) (model: Model) = 
-    let s = model |> List.map (fun sym -> 
+    let s = model.SymModel |> List.map (fun sym -> 
                             match List.tryFind (fun p -> containsPoint (createPortBB p 10.) mousePos) sym.Ports with 
                             | Some p -> Some (p, p.PortType)
                             | None -> None
@@ -1444,12 +1468,12 @@ let FindPort (mousePos: XYPos) (model: Model) =
     | s -> s.[0]
 
 let getSelectedSymbolList model =
-    model
+    model.SymModel
     |> List.filter (fun s -> s.IsSelected)
     |> List.map (fun s -> s.Id)
 
 let getPortsOfSelectedSymbolList model =
-    model
+    model.SymModel
     |> List.filter (fun s -> if s.IsSelected then 
                                 true 
                              else false)
@@ -1457,11 +1481,10 @@ let getPortsOfSelectedSymbolList model =
     |> List.map (fun p -> p.Id)
 
 let getPortsMapOfSelectedSymbolList model =
-    model
+    model.SymModel
     |> List.filter (fun s -> if s.IsSelected then 
                                 true 
                              else false)
     |> List.collect (fun s -> s.Ports)
     |> List.map (fun p -> (p.Id,p))
     |> Map.ofList
-    
