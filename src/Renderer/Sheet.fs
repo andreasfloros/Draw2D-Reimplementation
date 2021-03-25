@@ -373,9 +373,10 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> Symbol.Msg.Dragging 
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
-        | BusWire (wId, x) ->
-            {model with SelectedItem = BusWire (wId,x)}, 
-            (wId, x, event.Pos)
+        | BusWire (wId, segmentIndex) ->
+            (if segmentIndex = 0 && (lenOfSeg (BusWire.getSegmentsFromWire (BusWire.getWireFromWireModel model.Wire wId)).Head) > portLength + 10.// ugly but works for now
+             then {model with SelectedItem = BusWire (wId,2)} else model), 
+            (wId, segmentIndex, event.Pos)
                 |> BusWire.Msg.ManualRouting
                 |> Wire
                 |> Cmd.ofMsg
