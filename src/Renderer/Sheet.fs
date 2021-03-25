@@ -235,7 +235,6 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                     |> BusWire.Msg.MultipleSelect |> Wire |> Cmd.ofMsg
             
         | NoItem -> 
-
             let sId = null 
             {model with SelectedItem = selected},
             sId |> BusWire.Msg.Select 
@@ -244,32 +243,19 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
     | MouseMsg event when event.Op = MouseOp.Down -> 
         let selected = getHit event.Pos model 
-        let newModel = {model with SelectedItem = NoItem}
         match selected with 
         | Symbol symbolId ->             
-            if selected <> model.SelectedItem then 
-                {model with SelectedItem = selected}, 
-                (symbolId, event.Pos)
-                |> Symbol.Msg.StartDragging
-                |> BusWire.Msg.Symbol
-                |> Wire |> Cmd.ofMsg
-            else 
-                {model with SelectedItem = NoItem}, 
-                symbolId 
-                |> Symbol.Msg.Unselect
-                |> BusWire.Msg.Symbol 
-                |> Wire |> Cmd.ofMsg
+            {model with SelectedItem = selected}, 
+            (symbolId, event.Pos)
+            |> Symbol.Msg.StartDragging
+            |> BusWire.Msg.Symbol
+            |> Wire |> Cmd.ofMsg
+            
 
         | BusWire (wireId,x) -> 
-            if selected <> model.SelectedItem then
-                {model with SelectedItem = selected}, 
-                wireId 
-                |> BusWire.Msg.Select |> Wire |> Cmd.ofMsg
-            else 
-                newModel, 
-                wireId 
-                |> BusWire.Msg.Deselect 
-                |> Wire |> Cmd.ofMsg
+            {model with SelectedItem = selected}, 
+            wireId 
+            |> BusWire.Msg.Select |> Wire |> Cmd.ofMsg
 
         | NoItem -> 
             let sId = null 
