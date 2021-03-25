@@ -1124,38 +1124,7 @@ let private symLabel (sym: Symbol) _ =
     ] [str <| $"{symLabel}"] 
 
 
-let gridLines (W: int) (H: int) =
-    let boxLen = 15
-    let opacity = 0.15
-    
-    ([0..boxLen..W]
-    |> List.map (fun x -> 
-    line [
-                            X1 (float x)
-                            Y1 0.
-                            X2 (float x)
-                            Y2 H
-                            Style [
-                                    Stroke "Grey"
-                                    StrokeWidth "1px"
-                                    ZIndex -1
-                                    Opacity opacity
-                                  ]] [])
-    )
-    @ ([0..boxLen..H]
-    |> List.map (fun x -> 
-    line [
-                            X1 0.
-                            Y1 (float x)
-                            X2 W
-                            Y2 (float x)
-                            Style [
-                                    Stroke "Grey"
-                                    StrokeWidth "1px"
-                                    ZIndex -1
-                                    Opacity opacity
-                                  ]] [])
-    )
+
     
 
 let private renderBasicSymbol = 
@@ -1350,8 +1319,6 @@ let view (model : Model) (dispatch : Msg -> unit) : ReactElement =
                                                      Dispatch = dispatch      
                                                      Key = string(sym.Id)  
                                                      })
-
-    |> List.append (gridLines 1000 1000)
     |> ofList
 
 

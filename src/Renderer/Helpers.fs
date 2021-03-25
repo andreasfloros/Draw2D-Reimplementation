@@ -4,6 +4,7 @@ open Fable.Core
 open Fable.Core.JsInterop
 open Electron
 open Fable.React
+open Fable.React.Props
 
 //-------------------------------------------------------------------------//
 //------------------------------Types--------------------------------------//
@@ -151,6 +152,42 @@ let sqre (s1:float) =
 
 let calcPointsDist (pos1: XYPos) (pos2: XYPos) =
     sqrt (sqre(pos1.X- pos2.X) + sqre(pos1.Y- pos2.Y))
+
+
+let gridLines (W: int) (H: int) =
+    let boxLen = 15
+    let opacity = 0.15
+    
+    ([0..boxLen..W]
+    |> List.map (fun x -> 
+    line [
+                            X1 (float x)
+                            Y1 0.
+                            X2 (float x)
+                            Y2 H
+                            Style [
+                                    Stroke "Grey"
+                                    StrokeWidth "1px"
+                                    ZIndex -1
+                                    Opacity opacity
+                                  ]] [])
+    )
+    @ ([0..boxLen..H]
+    |> List.map (fun x -> 
+    line [
+                            X1 0.
+                            Y1 (float x)
+                            X2 W
+                            Y2 (float x)
+                            Style [
+                                    Stroke "Grey"
+                                    StrokeWidth "1px"
+                                    ZIndex -1
+                                    Opacity opacity
+                                  ]] [])
+    )
+
+
 
 //--------------------------- Buswire Helpers ------------------------------
 

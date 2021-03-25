@@ -38,7 +38,7 @@ type Msg =
 /// Currently the zoom expands based on top left corner. Better would be to collect dimensions
 /// current scroll position, and chnage scroll position to keep centre of screen a fixed point.
 let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch<Msg>)=
-    let sizeInPixels = sprintf "%.2fpx" ((1000. * zoom))
+    let sizeInPixels = sprintf "%.2fpx" ((2000. * zoom))
     //let halfSize = "500."
     //let size = "1000."
     //let viewBoxArg = ("-" + halfSize + " " + "-" + halfSize + " " + size + " " + size)
@@ -91,14 +91,26 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
         
         [ svg
             [ Style [
-                Transform (sprintf "scale(%f)" zoom)
-                Border "3px solid blue"
-                Height sizeInPixels
-                Width sizeInPixels    
-                ]
-              //ViewBox viewBoxArg
+                        Transform (sprintf "scale(%f)" zoom)
+                        Border "3px solid blue"
+                        Height sizeInPixels
+                        Width sizeInPixels    
+                    ]   //ViewBox viewBoxArg
                 ] // top-level transform style attribute for zoom
-                [svgReact] // the application code
+
+
+                ((gridLines 1100 1100) // adds grid lines
+                //@ (addMenuSymbols)
+                @ [                    // adds menu
+                    polygon 
+                            [
+                            SVGAttr.Points ("1100,0 1580,0 1580,1100 1100,1100")
+                            SVGAttr.StrokeWidth "2px"
+                            SVGAttr.Stroke "Black"
+                            SVGAttr.FillOpacity 0.5
+                            SVGAttr.Fill "lightgrey"] []
+                  ]
+                @ [svgReact])  // the application code
         ]
 
 
