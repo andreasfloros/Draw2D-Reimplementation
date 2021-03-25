@@ -7,6 +7,10 @@ open Elmish.React
 
 open Helpers
 
+type Box = {
+        p1: XYPos 
+        p2: XYPos 
+    }
 
 type SelectedItem = 
     | Symbol of symbolId: CommonTypes.SymbolId
@@ -19,6 +23,7 @@ type SelectedItem =
     Wire: BusWire.Model
     SelectedItem: SelectedItem
     Zoom: float
+    SelectionBox: Box
     }
 
 type KeyboardMsg =
@@ -37,6 +42,40 @@ type Msg =
 /// This function zooms an SVG canvas by transforming its content and altering its size.
 /// Currently the zoom expands based on top left corner. Better would be to collect dimensions
 /// current scroll position, and chnage scroll position to keep centre of screen a fixed point.
+/// 
+let createBox(box : Box) =
+    let p1 = box.p1
+    let p2 = box.p2
+    if p2.X< p1.X && p2.Y < p1.Y then 
+        polygon [
+            SVGAttr.Points $"{p2.X},{p2.Y} {p1.X},{p2.Y} {p1.X},{p1.Y} {p2.X},{p1.Y} "
+            SVGAttr.StrokeWidth "2px"
+            SVGAttr.Stroke "Black"
+            SVGAttr.FillOpacity 0.1
+            SVGAttr.Fill "Blue"] []
+
+    elif p2.X > p1.X && p2.Y < p1.Y then 
+        polygon [
+            SVGAttr.Points $"{p1.X},{p2.Y} {p2.X},{p2.Y} {p2.X},{p1.Y} {p1.X},{p1.Y} "
+            SVGAttr.StrokeWidth "2px"
+            SVGAttr.Stroke "Black"
+            SVGAttr.FillOpacity 0.1
+            SVGAttr.Fill "Blue"] []
+    elif p2.X < p1.X && p2.Y > p1.Y then 
+        polygon [
+            SVGAttr.Points $"{p2.X},{p1.Y} {p1.X},{p1.Y} {p1.X},{p2.Y} {p2.X},{p2.Y} "
+            SVGAttr.StrokeWidth "2px"
+            SVGAttr.Stroke "Black"
+            SVGAttr.FillOpacity 0.1
+            SVGAttr.Fill "Blue"] []
+    else 
+        polygon [
+            SVGAttr.Points $"{p1.X},{p1.Y} {p2.X},{p1.Y} {p2.X},{p2.Y} {p1.X},{p2.Y} "
+            SVGAttr.StrokeWidth "2px"
+            SVGAttr.Stroke "Black"
+            SVGAttr.FillOpacity 0.1
+            SVGAttr.Fill "Blue"] []
+
 let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch<Msg>)=
     let sizeInPixels = sprintf "%.2fpx" ((1000. * zoom))
     //let halfSize = "500."
@@ -60,7 +99,7 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
                                                                         container.scrollLeft - rect.left else 0.)
                                                     Y = ev.clientY + (if container <> null then container.scrollTop - rect.top else 0.)}}
     printfn "SCROLL DOWN!"
-
+    
     div [ Style 
             [ 
                 // Height "100vh" 
@@ -97,16 +136,26 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
                 Width sizeInPixels    
                 ]
               //ViewBox viewBoxArg
-                ] // top-level transform style attribute for zoom
+                ] 
+                //g [] (symbolSVG :: wireSVG @ sheetWire)// top-level transform style attribute for zoom
                 [svgReact] // the application code
         ]
+
+    
 
 
 /// for the demo code
 let view (model:Model) (dispatch : Msg -> unit) =
     let wDispatch wMsg = dispatch (Wire wMsg)
     let wireSvg = BusWire.view model.Wire wDispatch
-    displaySvgWithZoom model.Zoom wireSvg dispatch
+    let dragbox= createBox model.SelectionBox
+    let combine = [wireSvg;dragbox] |> ofList
+    displaySvgWithZoom  model.Zoom combine dispatch
+     
+
+    
+    
+    //createBox model.SelectionBox
 
 
 let getHit (click: XYPos) (model: Model) =
@@ -259,7 +308,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
         | NoItem -> 
             let sId = null 
-            {model with SelectedItem = selected},
+            {model with SelectedItem = selected ; SelectionBox = {p1= event.Pos; p2 = event.Pos} },
             sId |> BusWire.Msg.Select 
                       |> Wire |> Cmd.ofMsg
                       
@@ -280,7 +329,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> BusWire.Msg.CreateWire
             |> Wire |> Cmd.ofMsg
         | NoItem, _ -> 
-            model, 
+            {model with SelectionBox = {p1= event.Pos; p2 = event.Pos} }, 
             Cmd.none
         | (Port (p1, o)), _ -> 
             model, 
@@ -321,21 +370,10 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> Wire |> Cmd.ofMsg
              
         | NoItem -> 
-            let s = model.SelectedItem
-            let newModel = {model with SelectedItem = NoItem}
-            match s with 
-            | Symbol sId -> 
-                    newModel, 
-                    sId |> Symbol.Msg.Unselect 
-                    |> BusWire.Msg.Symbol
-                    |> Wire |> Cmd.ofMsg
-            | BusWire (wId,x) -> 
-                        newModel, 
-                        wId |> BusWire.Msg.Deselect
-                        |> Wire |> Cmd.ofMsg
-            | NoItem -> newModel, Cmd.none
-            | Port(portId, portType) -> failwith "Not Implemented"
-        | _ -> failwithf "not yet done"
+            {model with SelectionBox = {p1= model.SelectionBox.p1; p2 = event.Pos}}, 
+            Cmd.none
+           
+       
 
     | MouseMsg event -> model, Cmd.none 
 
@@ -343,11 +381,17 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
 
 
+
+
 let init() = 
     let model,cmds = (BusWire.init)()
+    let a = posOf 0.0 0.0
     {
         Wire = model
         SelectedItem = NoItem
         Zoom = 1.0
+        
+        SelectionBox= {p1 = a
+                       p2 = a}
 
     }, Cmd.map Wire cmds
