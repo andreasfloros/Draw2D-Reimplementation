@@ -457,7 +457,7 @@ let autoRouteWires wires portsMap =
         printfn "SEG LENGTH %A" prevSegmentsLength
         let extensionOutput, extensionInput = startExtension.Head, (List.rev endExtension).Head
         // if the wire is long then wire memory is kept and we don't route from the beginning
-        if prevSegmentsLength > 3 && snd ids = None && wire.HasBeenManualRouted then
+        if prevSegmentsLength > 2 && snd ids = None && wire.HasBeenManualRouted then
             if oldFromDir = fromDir && oldToDir = toDir then
                 let portId = fst ids
                 let segments =
@@ -513,7 +513,7 @@ let autoRouteWires wires portsMap =
                             else startExtension @ betweenRoute @ routeSoFar
                 updateWireWithSegments wire route
         // Route translation is problematic with directions that change
-        else if prevSegmentsLength > 3 && snd ids <> None && fromDir = oldFromDir && toDir = oldToDir then // when dealing with a loop, simple translation of the path is done
+        else if prevSegmentsLength > 2 && snd ids <> None && fromDir = oldFromDir && toDir = oldToDir then // when dealing with a loop, simple translation of the path is done
             let route = translateRoute routeStart prevSegments // note that prevSegmentsLength > 3 can be omitted here
             updateWireWithSegments wire route
         else // route from the beginning if the wire is short
