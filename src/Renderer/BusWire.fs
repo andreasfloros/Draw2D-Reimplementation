@@ -49,7 +49,7 @@ type WireId = string
 
 type WireRenderProps = {
     Segments : Segment list // the shortest possible wire with the current implementation will have two segments
-    Color : CommonTypes.Color
+    Color : string
     Width : float
     IsSelected : bool
     Label : string // for printing the width
@@ -152,10 +152,10 @@ let addVerticesIfSelected props =
         |> List.mapi (fun index segment -> if index <> props.Segments.Length-1 then
                                                 let middlePointX = segment.End.X
                                                 let middlePointY = segment.End.Y
-                                                let topLeft = string (middlePointX-4.) + "," + string (middlePointY-4.) + " "
-                                                let topRight = string (middlePointX+4.) + "," + string (middlePointY-4.) + " "
-                                                let bottomLeft = string (middlePointX-4.) + "," + string (middlePointY+4.) + " "
-                                                let bottomRight = string (middlePointX+4.) + "," + string (middlePointY+4.) + " "
+                                                let topLeft = string (middlePointX-6.) + "," + string (middlePointY-6.) + " "
+                                                let topRight = string (middlePointX+6.) + "," + string (middlePointY-6.) + " "
+                                                let bottomLeft = string (middlePointX-6.) + "," + string (middlePointY+6.) + " "
+                                                let bottomRight = string (middlePointX+6.) + "," + string (middlePointY+6.) + " "
                                                 let vertexCoordinates = topLeft + topRight + bottomRight + bottomLeft
 
                                                 [polygon
@@ -163,7 +163,7 @@ let addVerticesIfSelected props =
                                                     SVGAttr.Points (vertexCoordinates)
                                                     SVGAttr.StrokeWidth "1px"
                                                     SVGAttr.Stroke "Black"
-                                                    SVGAttr.FillOpacity 0.9
+                                                    SVGAttr.FillOpacity 1.0
                                                     SVGAttr.Fill "Grey"] []]
                                            else
                                                 [])
@@ -193,14 +193,14 @@ let singleWireView =
                         D ("M " + firstSegmentStart + segmentsToRoundedString props.Segments) // for rounded corners, below line is normal
                         //D ("M " + segmentsToString props.Segments)
                         SVGAttr.StrokeWidth props.Width
-                        SVGAttr.Stroke (if props.IsSelected then "blue" else props.Color.Text())][]
+                        SVGAttr.Stroke (props.Color)][]
 
                 text [  X xLabel
                         Y yLabel
                         Style [
                                 FontSize "14px"
                                 FontWeight "Bold"
-                                Fill (if props.IsSelected then "blue" else props.Color.Text())
+                                Fill (props.Color)
                                 UserSelect UserSelectOptions.None
                               ]
                          ][props.Label |> str]
@@ -610,8 +610,10 @@ let createWire startId startPort endId endPort =
      EndId = endId
      HasBeenManualRouted = false                                          
      WireRenderProps = {Segments = segments
-                        Color = if portWidth < 1 then CommonTypes.Color.Red else CommonTypes.Color.Black
-                        Width = if portWidth > 1 then 3. else 1.5
+                        Color = if portWidth < 1 then "#ff0000"
+                                else if portWidth > 1 then "#9121b3"
+                                else "#000000"
+                        Width = if portWidth > 1 then 3.5 else 1.5
                         Label = if portWidth < 1 then "" else sprintf "%d" portWidth
                         StartDir = fromDir
                         IsSelected = false}
@@ -626,7 +628,7 @@ let sheetWire (startPort: CommonTypes.Port) (endPos: XYPos) =
      EndId = null
      HasBeenManualRouted = false                                          
      WireRenderProps = {Segments = [{Start = startPort.PortPos; End = endPos}]
-                        Color = CommonTypes.Color.Green
+                        Color = "#00ff00"
                         Width = 1.5
                         Label = null
                         StartDir = startPort.ConnectionDirection

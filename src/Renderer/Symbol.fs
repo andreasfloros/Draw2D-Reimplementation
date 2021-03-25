@@ -802,16 +802,10 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
             SymModel = model.SymModel
             |> List.map (fun sym ->
                 if sId = sym.Id then
-                    if sym.IsSelected = true then
-                        {sym with 
-                            LastDragPos = pagePos //Zaid
-                            IsSelected = false
-                        }  
-                    else 
-                        {sym with 
+                    {sym with 
                             LastDragPos = pagePos //Zaid
                             IsSelected = true
-                        }
+                    }
                 else if sym.IsSelected = true then //Zaid 
                         {sym with 
                             LastDragPos = pagePos 
@@ -1276,7 +1270,7 @@ let private renderBasicSymbol =
 
             let color =
                 if props.Sym.IsSelected then
-                    "#ffff33"
+                    "#aacbff"
                 else
                     "lightgray"
 

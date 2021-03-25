@@ -131,7 +131,7 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
         [ svg
             [ Style [
                         Transform (sprintf "scale(%f)" zoom)
-                        Border "3px solid blue"
+                        Border "3px solid black"
                         Height sizeInPixels
                         Width sizeInPixels    
                     ]   //ViewBox viewBoxArg
