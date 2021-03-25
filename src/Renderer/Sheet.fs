@@ -22,7 +22,7 @@ type SelectedItem =
     }
 
 type KeyboardMsg =
-    | CtrlS | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | R | ShiftA | ShiftQ | X
+    | CtrlS | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | R | CtrlPlus | CtrlMinus | X
 
 type Msg =
     | Wire of BusWire.Msg
@@ -168,11 +168,11 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 |> BusWire.Msg.Symbol
                 |> Wire |> Cmd.ofMsg
 
-        |ShiftA ->
+        |CtrlPlus ->
             let z = model.Zoom + 0.1
             printf "zoom is %f" z
             {model with Zoom = z} , Cmd.none
-        |ShiftQ -> 
+        |CtrlMinus -> 
             let z = model.Zoom - 0.1
             printf "zoom is %f" z
             {model with Zoom = z} , Cmd.none

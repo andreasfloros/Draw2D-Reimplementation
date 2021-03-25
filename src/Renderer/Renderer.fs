@@ -46,39 +46,32 @@ module Renderer
     // shortcuts is by creating a menu.
     let editMenu dispatch =
         makeMenu "Edit" 
-                  [makeKeyItem "Default" "CmdOrCtrl+S" (fun () -> dispatch KeyboardMsg.CtrlS)
-                  // makeKeyItem "Blue" "Alt+C" (fun () -> dispatch KeyboardMsg.AltC)
-                   //makeKeyItem "Green" "Alt+V" (fun () -> dispatch KeyboardMsg.AltV)
-                   makeKeyItem "Delete Selected"  "Delete" (fun () -> dispatch KeyboardMsg.DEL)
-                  // makeKeyItem "Red" "Alt+Z" (fun () -> dispatch KeyboardMsg.AltZ)
-                   makeKeyItem "Reset Wires" "CmdOrCtrl+W" (fun () -> dispatch KeyboardMsg.CtrlW)
-                   makeKeyItem "Select Multiple Mode" "Shift+A" (fun () -> dispatch KeyboardMsg.ShiftA)
-                   makeKeyItem "Select Single Mode" "Shift+Q" (fun () -> dispatch KeyboardMsg.ShiftQ)
-                   makeKeyItem "Rotate Symbol" "R" (fun () -> dispatch KeyboardMsg.R)
-                   makeKeyItem "Copy Symbol" "X" (fun () -> dispatch KeyboardMsg.X)
+                  [makeKeyItem "Default" "CmdOrCtrl+S" (fun () -> dispatch CtrlS)
+                   makeKeyItem "Delete Selected"  "Delete" (fun () -> dispatch DEL)
+                   makeKeyItem "Reset Wires" "CmdOrCtrl+W" (fun () -> dispatch CtrlW)
+                   makeKeyItem "Zoom In" "CmdOrCtrl+="  (fun () -> dispatch CtrlPlus)
+                   makeKeyItem "Zoom Out" "CmdOrCtrl+-" (fun () -> dispatch CtrlMinus)
+                   makeKeyItem "Rotate Symbol" "R" (fun () -> dispatch R)
+                   makeKeyItem "Copy Symbol" "X" (fun () -> dispatch X)
                    menuSeparator
-                   makeKeyItem "Print Statistics" "Alt+Shift+Z" (fun () -> dispatch KeyboardMsg.AltShiftZ)
+                   makeKeyItem "Print Statistics" "Alt+Shift+Z" (fun () -> dispatch AltShiftZ)
                    makeRoleItem MenuItemRole.ForceReload
                    makeRoleItem MenuItemRole.Reload
                    makeRoleItem MenuItemRole.ToggleDevTools
-                   makeRoleItem MenuItemRole.ZoomIn
-                   makeRoleItem MenuItemRole.ZoomOut
                    ]
 
 
     let symMenu dispatch =
         makeMenu "New" 
                   [makeMenu "Symbol"                  
-                      [makeKeyItem "Xnor" "A" (fun () -> dispatch KeyboardMsg.A)
-                       makeKeyItem "And" "B" (fun () -> dispatch KeyboardMsg.B)
-                       makeKeyItem "Not" "C" (fun () -> dispatch KeyboardMsg.C)
-                       makeKeyItem "Or"  "D" (fun () -> dispatch KeyboardMsg.D)
-                       makeKeyItem "Xor" "E" (fun () -> dispatch KeyboardMsg.E)
-                       makeKeyItem "Nand" "F" (fun () -> dispatch KeyboardMsg.F)
-                       makeKeyItem "Nor" "G" (fun () -> dispatch KeyboardMsg.G)
-                       makeKeyItem "Decode4" "H" (fun () -> dispatch KeyboardMsg.H)]
-                   menuSeparator
-                   makeKeyItem "Wire" "W" (fun () -> dispatch KeyboardMsg.W)]
+                      [makeKeyItem "Xnor" "A" (fun () -> dispatch A)
+                       makeKeyItem "And" "B" (fun () -> dispatch B)
+                       makeKeyItem "Not" "C" (fun () -> dispatch C)
+                       makeKeyItem "Or"  "D" (fun () -> dispatch D)
+                       makeKeyItem "Xor" "E" (fun () -> dispatch E)
+                       makeKeyItem "Nand" "F" (fun () -> dispatch F)
+                       makeKeyItem "Nor" "G" (fun () -> dispatch G)
+                       makeKeyItem "Decode4" "H" (fun () -> dispatch H)]]
 
     
     let attachMenusAndKeyShortcuts dispatch =
