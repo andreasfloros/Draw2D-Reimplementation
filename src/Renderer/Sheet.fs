@@ -349,7 +349,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             printf "%A" model.SelectionBox
             printf "%A" event.Pos
             {model with SelectionBox = {p1= event.Pos; p2 = event.Pos} }, 
-            (model.SelectionBox.p1,event.Pos) 
+            if model.SelectionBox.p1 < event.Pos then (model.SelectionBox.p1,event.Pos) else (event.Pos, model.SelectionBox.p1)
             |> BusWire.Msg.SelectEnclosed
             |> Wire |> Cmd.ofMsg
         | (Port (p1, o)), _ -> 

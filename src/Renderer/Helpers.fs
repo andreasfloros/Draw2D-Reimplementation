@@ -136,16 +136,13 @@ let canvasUnscaledDimensions : XYPos =
 //let me know if you need any more 
 
 let createSelectBox p1 p2 = 
-    if p1.X < p2.X && p1.Y > p2.Y
-    then {
-        TopLeft = p1
-        BottomRight = p2
-        }
-    else {
+    //if p1.X < p2.X && p1.Y > p2.Y
+     {
         TopLeft = p2
         BottomRight = p1
-        }
-        
+     }
+
+
 //is a point inside the box 
 let containsPoint  (box: BB) (point: XYPos) = 
     point.X >= box.TopLeft.X && point.Y >= box.TopLeft.Y && point.X <= box.BottomRight.X && point.Y<= box.BottomRight.Y
