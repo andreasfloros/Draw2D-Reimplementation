@@ -59,7 +59,7 @@ let createBB (sym: Symbol) (h,w: float) =
 
 let FindSymbol (mousePos: XYPos) (model: Model) = 
     printf "hey in Find Symbol now"
-    match List.tryFind (fun sym -> containsPoint (createBB sym (sym.CurrentH,sym.CurrentW)) mousePos) model with 
+    match List.tryFind (fun sym -> containsPoint (createBB sym (sym.CurrentH,sym.CurrentW)) mousePos) (model) with 
     | Some sym -> Some sym.Id
     | None -> None
 
@@ -657,11 +657,18 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
     | AddSymbol (compType, label, pos) -> 
         (createNewSymbol compType label pos) :: model, Cmd.none
     | CopySymbol ->
-        model @ (List.collect (fun sym ->
+        (List.collect (fun sym ->
         if sym.IsSelected = true then
             [createSymbolCopy sym]
         else
             []
+        ) model) 
+        @ (List.map (fun sym ->
+            if sym.IsSelected = true then
+                {sym with 
+                   IsSelected = false 
+                }
+            else sym
         ) model)
         , Cmd.none
     | DeleteSymbol -> 
@@ -1338,7 +1345,7 @@ let private renderBasicSymbol =
 
 /// View function for symbol layer of SVG
 let view (model : Model) (dispatch : Msg -> unit) : ReactElement = 
-    model
+    (List.rev model)
     |> List.map (  fun sym -> renderBasicSymbol {    Sym = sym 
                                                      Dispatch = dispatch      
                                                      Key = string(sym.Id)  
