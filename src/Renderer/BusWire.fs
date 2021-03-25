@@ -193,14 +193,14 @@ let singleWireView =
                         D ("M " + firstSegmentStart + segmentsToRoundedString props.Segments) // for rounded corners, below line is normal
                         //D ("M " + segmentsToString props.Segments)
                         SVGAttr.StrokeWidth props.Width
-                        SVGAttr.Stroke (if props.IsSelected then "Red" else props.Color.Text())][]
+                        SVGAttr.Stroke (if props.IsSelected then "blue" else props.Color.Text())][]
 
                 text [  X xLabel
                         Y yLabel
                         Style [
                                 FontSize "14px"
                                 FontWeight "Bold"
-                                Fill (if props.IsSelected then "Red" else props.Color.Text())
+                                Fill (if props.IsSelected then "blue" else props.Color.Text())
                                 UserSelect UserSelectOptions.None
                               ]
                          ][props.Label |> str]
@@ -230,7 +230,7 @@ let view (model:Model) (dispatch: Dispatch<Msg>)=
                                     StrokeDasharray "5"
                                   ]] []]
         | None -> []
-    g [] (symbolSVG :: wireSVG @ sheetWire)
+    g [] (wireSVG @ sheetWire @ [symbolSVG])
 
 // handle wire segment movement by the user
 let rec manualRouteWire segmentIndex mousePos wires wireId snap (wireOption: Wire option)=
@@ -355,6 +355,7 @@ let removeKinkySegs wire =
         let segmentsMaxIdx = segments.Length - 1
         segments // could optimise...
         |> List.indexed
+        |> List.rev
         |> List.tryPick (fun (idx,seg) ->
                                 if idx > segmentsMaxIdx - 2 then None
                                 else if lenOfSeg seg <> 0. && lenOfSeg segments.[idx+2] <> 0. && lenOfSeg segments.[idx+1] = 0. && areOppositeDirs (dirOfSeg seg) (dirOfSeg segments.[idx+2])
@@ -568,6 +569,9 @@ let autoRouteWire _wireId wire =
             extensionOutput :: routeFromStart (List.rev startExtension).Head endExtension.Head (somePerpendicularDir fromDir) (somePerpendicularDir toDir) @ [extensionInput]
         else routeFromStart extensionOutput extensionInput fromDir toDir
     {updateWireWithSegments wire segments with HasBeenManualRouted = false}
+    |> remove0Segs
+    |> removeKinkySegs
+    |> mergeSegs
 
 // example function for wire creation from ports
 // for custom wires with props decided by the user use the updateWireWithProps function
@@ -601,14 +605,14 @@ let createWire startId startPort endId endPort =
             extensionOutput :: routeFromStart (List.rev startExtension).Head endExtension.Head (somePerpendicularDir fromDir) (somePerpendicularDir toDir) @ [extensionInput]
         else routeFromStart extensionOutput extensionInput fromDir toDir
     let portWidth = // for determining wire width and color
-        if Symbol.getWidthFromPort startPort <> Symbol.getWidthFromPort endPort then 5
+        if Symbol.getWidthFromPort startPort <> Symbol.getWidthFromPort endPort then -1
         else Symbol.getWidthFromPort startPort
     {StartId = startId                                  
      EndId = endId
      HasBeenManualRouted = false                                          
      WireRenderProps = {Segments = segments
-                        Color = if portWidth < 1 then CommonTypes.Color.Red else CommonTypes.Color.Blue
-                        Width = if portWidth > 1 then 4. else 1.5
+                        Color = if portWidth < 1 then CommonTypes.Color.Red else CommonTypes.Color.Black
+                        Width = if portWidth > 1 then 3. else 1.5
                         Label = if portWidth < 1 then "" else sprintf "%d" portWidth
                         StartDir = fromDir
                         IsSelected = false}

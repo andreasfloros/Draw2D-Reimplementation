@@ -114,7 +114,7 @@ module CommonTypes
         Vertices : (float * float) list
     }
 
-    type Color = | Red | Blue | Green | Grey
+    type Color = | Red | Blue | Green | Grey | Black
         with 
             member this.Text() =
                 match this with
@@ -122,6 +122,7 @@ module CommonTypes
                 | Blue -> "Blue"
                 | Green -> "Green"
                 | Grey -> "Grey"
+                | Black -> "Black"
 
     /// F# data describing the contents of a single schematic sheet.
     type CanvasState = Component list * Connection list
