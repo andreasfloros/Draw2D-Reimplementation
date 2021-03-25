@@ -271,16 +271,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
         | X -> 
             printf "HELLO YOU HAVE PRESSED copy"
-            let selected = model.SelectedItem
-            match selected with 
-                | Symbol _ ->
-                    model,
+            model,
                     Symbol.Msg.CopySymbol
                     |> BusWire.Msg.Symbol
                     |> Wire |> Cmd.ofMsg
-                | BusWire _ -> model,Cmd.none
-                | NoItem -> model,Cmd.none
-                | Port(portId, portType) -> failwith "Not Implemented"
+                    
+                
 
         | _ -> failwithf "not yet done"
 
