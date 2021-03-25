@@ -135,6 +135,16 @@ type Msg =
     | CreateWire of port1 : CommonTypes.Port * port2 : CommonTypes.Port
     | CreateSheetWire of port : CommonTypes.Port Option * pos : XYPos
     | DeleteSheetWire
+    | SelectEnclosed of p1: XYPos * p2: XYPos
+
+
+let isInSelectionBox box wire = 
+    let wireBoxes wire =    
+        let segments = getSegmentsFromWire wire 
+        List.map getSegmentBBox segments 
+    let selectedSegment = wireBoxes wire 
+    let isSelected = List.map (fun s -> bBoxesIntersect s box) selectedSegment
+    if List.forall(fun x -> x = true) isSelected then true else false 
 
 let addVerticesIfSelected props =
     if props.IsSelected then
@@ -704,6 +714,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             model
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
+
         | _ -> {model with SymbolModel=sm},Cmd.none
      
     | ManualRouting (wireId,segmentIndex,mousePos) ->
@@ -766,7 +777,16 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | CreateSheetWire (Some port, pos) -> 
         {model with SheetWire = Some (sheetWire port pos)}, (pos, Some port) |> Symbol.Msg.MouseMove |> Symbol |> Cmd.ofMsg
     | DeleteSheetWire ->
-        {model with SheetWire = None}, Cmd.none              
+        {model with SheetWire = None}, Cmd.none        
+    | SelectEnclosed (p1, p2) ->
+        let box = createSelectBox p1 p2 
+        let newWires = model 
+                       |> getWiresFromWireModel
+                       |> Map.map (fun id w -> 
+                                        if isInSelectionBox box w
+                                        then {w with WireRenderProps = {getWirePropsFromWire w with IsSelected = true}}
+                                        else w)  
+        {model with Wires = newWires}, (p1,p2) |> Symbol.SelectEnclosed |> Symbol |> Cmd.ofMsg
                        
           
 
@@ -786,6 +806,8 @@ let findWire mousePos wireModel =
 
     wireMap
     |> Map.tryPick selectedSegmentOnWire
+
+
 
 
 let getSelectedWireList model =

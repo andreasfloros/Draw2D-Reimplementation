@@ -345,8 +345,13 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> BusWire.Msg.CreateWire
             |> Wire |> Cmd.ofMsg
         | NoItem, _ -> 
+            printf "helloooso"
+            printf "%A" model.SelectionBox
+            printf "%A" event.Pos
             {model with SelectionBox = {p1= event.Pos; p2 = event.Pos} }, 
-            Cmd.none
+            (model.SelectionBox.p1,event.Pos) 
+            |> BusWire.Msg.SelectEnclosed
+            |> Wire |> Cmd.ofMsg
         | (Port (p1, o)), _ -> 
             model, 
             BusWire.Msg.DeleteSheetWire |> Wire |> Cmd.ofMsg

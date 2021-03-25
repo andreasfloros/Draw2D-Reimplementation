@@ -46,6 +46,7 @@ type Msg =
     | MultipleSelect of sId : CommonTypes.SymbolId * pagePos: XYPos
     | MouseMove of pagePos : XYPos * PortSelect: Port Option
     | Deselect
+    | SelectEnclosed of p1: XYPos * p2: XYPos 
 
 
 //---------------------------------helper types and functions----------------//
@@ -806,6 +807,15 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
                 else sym
         )
         , Cmd.none
+
+    | SelectEnclosed (p1,p2) ->
+        let box = createSelectBox p1 p2
+        model 
+        |> List.map (fun sym ->
+                    let bbox = createBB sym (sym.H, sym.W) 
+                    if bBoxesIntersect bbox box
+                    then {sym with IsSelected = true}
+                    else sym), Cmd.none
 
     | _ -> failwithf "Not implemented"
 
