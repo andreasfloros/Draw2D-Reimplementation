@@ -131,6 +131,7 @@ type Msg =
     | Select of wireId : WireId
     | MultipleSelect of wireId : WireId
     | AutoRouteAll
+    | AutoRouteWire of wireId: WireId
     | CreateWire of port1 : CommonTypes.Port * port2 : CommonTypes.Port
     | CreateSheetWire of port : CommonTypes.Port Option * pos : XYPos
     | DeleteSheetWire
@@ -303,8 +304,8 @@ let rec manhattanAutoRoute fromPt fromDir toPt toDir=
                         newSegment, dirOfSeg newSegment) // dirOfSeg is safe here
         newSegment :: manhattanAutoRoute newSegment.End newDir toPt toDir
 
-let routeFromStart startExtension endExtension =
-    startExtension :: manhattanAutoRoute startExtension.End (dirOfSeg startExtension) endExtension.Start (dirOfSeg endExtension) @ [endExtension] 
+let routeFromStart startExtension endExtension fromDir toDir =
+    startExtension :: manhattanAutoRoute startExtension.End fromDir endExtension.Start toDir @ [endExtension] 
 
 
 let pointsAreOnRightSide pt1 dir1 pt2 dir2 = // pt1 is output pt2 is input
@@ -445,33 +446,61 @@ let autoRouteWires wires portsMap =
         printfn "SEG LENGTH %A" prevSegmentsLength
         let extensionOutput, extensionInput = startExtension.Head, (List.rev endExtension).Head
         // if the wire is long then wire memory is kept and we don't route from the beginning
-        if prevSegmentsLength > 3 && snd ids = None then
-            let portId = fst ids
-            let segments =
-                let maybeStretchedPort = 
-                    if portId = endId then (List.rev prevSegments).Head
-                    else prevSegments.Head
-                if lenOfSeg maybeStretchedPort > portLength then                 // if the user has stretched the port we would like to preserve that part,
-                    splitSegmentsAtEndSeg (portId = startId) prevSegments // in that case split the segment
-                else prevSegments
-            let segmentsMaxIdx = segments.Length - 1
-            let autoRouteToPt =
-                                if portId = endId then segments.[segmentsMaxIdx - 1].Start
-                                else segments.[1].End
-            let routeSoFar = segments
-                             |> List.indexed
-                             |> List.filter (fun (idx,_segment) ->
-                                                    if portId = endId then idx < segmentsMaxIdx - 1
-                                                    else idx > 1)
-                             |> List.map snd
-                             |> (fun r -> if portId = endId then swapRoute r else r)
-            let betweenRoute =  // exact toDir used in manhattanAutoRoute doesn't matter, the below works because by construction segments will alternate Dirs (i.e. Horizontal -> Vertical -> Horizontal...)
-                                if portId = endId then manhattanAutoRoute extensionInput.Start (getOppositeDir toDir) autoRouteToPt (oldToDir)
-                                else manhattanAutoRoute extensionOutput.End (fromDir) autoRouteToPt (oldFromDir)
-            let route =
-                        if portId = endId then (swapSeg extensionInput) :: betweenRoute @ routeSoFar |> swapRoute
-                        else extensionOutput :: betweenRoute @ routeSoFar
-            updateWireWithSegments wire route
+        if prevSegmentsLength > 3 && snd ids = None && wire.HasBeenManualRouted then
+            if oldFromDir = fromDir && oldToDir = toDir then
+                let portId = fst ids
+                let segments =
+                    let maybeStretchedPort = 
+                        if portId = endId then (List.rev prevSegments).Head
+                        else prevSegments.Head
+                    if lenOfSeg maybeStretchedPort > portLength then                 // if the user has stretched the port we would like to preserve that part,
+                        splitSegmentsAtEndSeg (portId = startId) prevSegments // in that case split the segment
+                    else prevSegments
+                let segmentsMaxIdx = segments.Length - 1
+                let autoRouteToPt =
+                                    if portId = endId then segments.[segmentsMaxIdx - 1].Start
+                                    else segments.[1].End
+                let routeSoFar = segments
+                                 |> List.indexed
+                                 |> List.filter (fun (idx,_segment) ->
+                                                        if portId = endId then idx < segmentsMaxIdx - 1
+                                                        else idx > 1)
+                                 |> List.map snd
+                                 |> (fun r -> if portId = endId then swapRoute r else r)
+                let betweenRoute =  // exact toDir used in manhattanAutoRoute doesn't matter, the below works because by construction segments will alternate Dirs (i.e. Horizontal -> Vertical -> Horizontal...)
+                                    if portId = endId then manhattanAutoRoute extensionInput.Start (getOppositeDir toDir) autoRouteToPt (oldToDir)
+                                    else manhattanAutoRoute extensionOutput.End (fromDir) autoRouteToPt (oldFromDir)
+                let route =
+                            if portId = endId then (swapSeg extensionInput) :: betweenRoute @ routeSoFar |> swapRoute
+                            else extensionOutput :: betweenRoute @ routeSoFar
+                updateWireWithSegments wire route
+            else
+                let portId = fst ids
+                let segments =
+                    let maybeStretchedPort = 
+                        if portId = endId then (List.rev prevSegments).Head
+                        else prevSegments.Head
+                    if lenOfSeg maybeStretchedPort > portLength then                 // if the user has stretched the port we would like to preserve that part,
+                        splitSegmentsAtEndSeg (portId = startId) prevSegments // in that case split the segment
+                    else prevSegments
+                let segmentsMaxIdx = segments.Length - 1
+                let autoRouteToPt =
+                                    if portId = endId then segments.[segmentsMaxIdx - 2].Start
+                                    else segments.[2].End
+                let routeSoFar = segments
+                                 |> List.indexed
+                                 |> List.filter (fun (idx,_segment) ->
+                                                        if portId = endId then idx < segmentsMaxIdx - 2
+                                                        else idx > 2)
+                                 |> List.map snd
+                                 |> (fun r -> if portId = endId then swapRoute r else r)
+                let betweenRoute =  // exact toDir used in manhattanAutoRoute doesn't matter, the below works because by construction segments will alternate Dirs (i.e. Horizontal -> Vertical -> Horizontal...)
+                                    if portId = endId then manhattanAutoRoute endExtension.Head.Start (getOppositeDir toDir |> (if shouldChangeDirs then somePerpendicularDir else id)) autoRouteToPt (somePerpendicularDir oldToDir)
+                                    else manhattanAutoRoute (List.rev startExtension).Head.End (fromDir |> (if shouldChangeDirs then somePerpendicularDir else id)) autoRouteToPt (somePerpendicularDir oldFromDir)
+                let route =
+                            if portId = endId then (swapRoute endExtension) @ betweenRoute @ routeSoFar |> swapRoute
+                            else startExtension @ betweenRoute @ routeSoFar
+                updateWireWithSegments wire route
         // Route translation is problematic with directions that change
         else if prevSegmentsLength > 3 && snd ids <> None && fromDir = oldFromDir && toDir = oldToDir then // when dealing with a loop, simple translation of the path is done
             let route = translateRoute routeStart prevSegments // note that prevSegmentsLength > 3 can be omitted here
@@ -480,8 +509,8 @@ let autoRouteWires wires portsMap =
             let route =
                 
                 if shouldChangeDirs then
-                    extensionOutput :: routeFromStart (List.rev startExtension).Head endExtension.Head @ [extensionInput]
-                else routeFromStart extensionOutput extensionInput 
+                    extensionOutput :: routeFromStart (List.rev startExtension).Head endExtension.Head (somePerpendicularDir fromDir) (somePerpendicularDir toDir) @ [extensionInput]
+                else routeFromStart extensionOutput extensionInput fromDir toDir
             updateWireWithSegments wire route
 
     let connectedToPorts wire =
@@ -508,13 +537,27 @@ let autoRouteWires wires portsMap =
 // assumes wire has been initialised
 let autoRouteWire _wireId wire =
     let prevSegments = getSegmentsFromWire wire
-    let startPos, endPos = prevSegments.Head.Start, (List.rev prevSegments).Head.End
+    let startPortPos, endPortPos = prevSegments.Head.Start, (List.rev prevSegments).Head.End
     let fromDir, toDir = getStartDirFromWire wire, getEndDirFromWire wire
-    let route =
-        (getPortExtension startPos fromDir true,
-         getPortExtension endPos toDir false)
-        ||> routeFromStart  
-    updateWireWithSegments wire route
+    let startExtension, endExtension, shouldChangeDirs =
+            let portExtendAtOutput, portExtendAtInput = getPortExtension startPortPos fromDir true, getPortExtension endPortPos toDir false
+            if pointsAreOnRightSide startPortPos fromDir endPortPos toDir
+            then
+                let dirForExtraSeg, dist = // near output
+                    match fromDir |> isHorizontalDir with
+                    | true -> (if startPortPos.Y > endPortPos.Y then Dir.Up else Dir.Down), abs(startPortPos.Y - endPortPos.Y) / 2. 
+                    | false -> (if startPortPos.X > endPortPos.X then Left else Right), abs(startPortPos.X - endPortPos.X) / 2.
+                [portExtendAtOutput; getNovelPortExtension portExtendAtOutput.End dirForExtraSeg true dist],
+                [getNovelPortExtension portExtendAtInput.Start (getOppositeDir dirForExtraSeg) false dist; portExtendAtInput],
+                true
+            else
+                [portExtendAtOutput],[portExtendAtInput],false
+    let segments =
+        let extensionOutput, extensionInput = startExtension.Head, (List.rev endExtension).Head
+        if shouldChangeDirs then
+            extensionOutput :: routeFromStart (List.rev startExtension).Head endExtension.Head (somePerpendicularDir fromDir) (somePerpendicularDir toDir) @ [extensionInput]
+        else routeFromStart extensionOutput extensionInput fromDir toDir
+    {updateWireWithSegments wire segments with HasBeenManualRouted = false}
 
 // example function for wire creation from ports
 // for custom wires with props decided by the user use the updateWireWithProps function
@@ -545,8 +588,8 @@ let createWire startId startPort endId endPort =
     let segments =
         let extensionOutput, extensionInput = startExtension.Head, (List.rev endExtension).Head
         if shouldChangeDirs then
-            extensionOutput :: routeFromStart (List.rev startExtension).Head endExtension.Head @ [extensionInput]
-        else routeFromStart extensionOutput extensionInput 
+            extensionOutput :: routeFromStart (List.rev startExtension).Head endExtension.Head (somePerpendicularDir fromDir) (somePerpendicularDir toDir) @ [extensionInput]
+        else routeFromStart extensionOutput extensionInput fromDir toDir
     let portWidth = // for determining wire width and color
         if Symbol.getWidthFromPort startPort <> Symbol.getWidthFromPort endPort then 5
         else Symbol.getWidthFromPort startPort
@@ -674,6 +717,14 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | AutoRouteAll ->
         let newWires = getWiresFromWireModel model
                        |> Map.map autoRouteWire
+        model
+        |> updateWireModelWithWires newWires, Cmd.none
+    | AutoRouteWire wId ->
+        let newWires = getWiresFromWireModel model
+                       |> Map.change wId (fun wireOpt ->
+                                                match wireOpt with
+                                                | Some wire -> Some (autoRouteWire wId wire)
+                                                | None -> failwithf "Can't happen")
         model
         |> updateWireModelWithWires newWires, Cmd.none
 
