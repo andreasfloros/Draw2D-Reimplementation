@@ -60,6 +60,8 @@ Mouse/Keyboard user actions | Corresponding effects in application
 ----------------------------|-------------------------------------
 Shift(held)+LeftClick | Multiple item selection
 Ctrl+LeftClick | Split segment at current mouse position
+W | Autoroute single selected wire
+Ctrl+W | Autoroute all wires
 Ctrl+Z | Single step undo
 Ctrl+Y | Single step redo
 DEL | Delete selected items
