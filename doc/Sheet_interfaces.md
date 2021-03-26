@@ -40,7 +40,7 @@ The following messsages are used by Sheet.
 ``` 
 
 type KeyboardMsg =  
-    | CtrlS | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | R | CtrlPlus | CtrlMinus | X | CtrlZ | CtrlY
+    | CtrlS | AltShiftZ | DEL | CtrlW | W | R | CtrlPlus | CtrlMinus | X | CtrlZ | CtrlY
 
 type Msg =
     | Wire of BusWire.Msg
