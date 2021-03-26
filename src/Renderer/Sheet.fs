@@ -14,7 +14,7 @@ type SelectedItem =
     | Port of port : CommonTypes.Port * portType : CommonTypes.PortType
     | SheetSymbol of symbolId: CommonTypes.SymbolId
     | NoItem
-    // | BusWire of wireId: BusWire.wireId * segmentIndex: int
+
 
  type Model = {
     Wire: BusWire.Model
@@ -24,7 +24,7 @@ type SelectedItem =
     BackupModel: Model option
     }
 
-type KeyboardMsg =
+type KeyboardMsg =  
     | CtrlS | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | R | CtrlPlus | CtrlMinus | X | CtrlZ | CtrlY
 
 type Msg =
@@ -101,10 +101,8 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
     /// the screen mouse coordinates are compensated for the zoom transform
     let mouseOp op (ev:Types.MouseEvent) = 
             dispatch <| MouseMsg {Op = op ; Pos = { X = ev.clientX + (if container <> null then 
-                                                                        printfn "CONTAINER WAS NOT NULL"
                                                                         container.scrollLeft - rect.left else 0.)
                                                     Y = ev.clientY + (if container <> null then container.scrollTop - rect.top else 0.)}}
-    printfn "SCROLL DOWN!"
     
     div [ Style 
             [ 
@@ -294,7 +292,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                                      | None -> failwithf "Doesn't happen"
                            {backupModel with BackupModel = Some model}, Cmd.none
 
-        | _ -> failwithf "not yet done"
+        | _ -> model, Cmd.none
 
 
     | MouseMsg event when event.Op = MouseOp.Ctrl -> 
@@ -377,9 +375,6 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> BusWire.Msg.CreateWire
             |> Wire |> Cmd.ofMsg
         | NoItem, _ -> 
-            printf "helloooso"
-            printf "%A" model.SelectionBox
-            printf "%A" event.Pos
             {model with SelectionBox = {TopLeft= event.Pos; BottomRight = event.Pos} }, 
             if model.SelectionBox.TopLeft.X > event.Pos.X && model.SelectionBox.TopLeft.Y > event.Pos.Y then 
                 (model.SelectionBox.TopLeft,event.Pos) 
@@ -395,12 +390,17 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | (Port (p1, o)), _ -> 
             model, 
             BusWire.Msg.DeleteSheetWire |> Wire |> Cmd.ofMsg
+<<<<<<< HEAD
         | SheetSymbol symbolId, _ ->
             model,
             Symbol.Msg.EndDragging
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
         | _ -> failwithf "not yet done"
+=======
+
+        | _ -> model, Cmd.none
+>>>>>>> 358467300fe10af2abe2575ab16d8d95a4c25c3f
 
     | MouseMsg event when event.Op = MouseOp.Move ->   
         match model.SelectedItem with
