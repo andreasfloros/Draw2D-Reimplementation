@@ -211,20 +211,8 @@ let getHit (click: XYPos) (model: Model) =
                     printf "Get hit found nothing"
                     NoItem 
 
-let getStringtoComponentType (s : string) = 
-    match s with 
-    | "Not" -> CommonTypes.Not
-    | "And" -> CommonTypes.And
-    | "Or" -> CommonTypes.Or
-    | "Xor" -> CommonTypes.Xor
-    | "Nand" -> CommonTypes.Nand
-    | "Nor" -> CommonTypes.Nor
-    | "Xnor" -> CommonTypes.Xnor
-    | "Decode4" -> CommonTypes.Decode4
-    | _ -> failwithf "not implemented"
     
-let newSymbol (name: string) (model: Model) = 
-        let sym = getStringtoComponentType name
+let newSymbol (sym: CommonTypes.ComponentType) (model: Model) = 
         model, 
         (sym, "label", { X = 180. + 60. ; Y = 180. + 60.} )
         |> Symbol.Msg.AddSymbol
@@ -265,14 +253,14 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             printf "zoom is %f" z
             {model with Zoom = z} , Cmd.none
 
-        | A -> newSymbol "Xnor" model
-        | B -> newSymbol "And" model
-        | C -> newSymbol "Not" model
-        | D -> newSymbol "Or" model
-        | E -> newSymbol "Xor" model
-        | F -> newSymbol "Nand" model
-        | G -> newSymbol "Nor" model
-        | H -> newSymbol "Decode4" model
+        | A -> newSymbol CommonTypes.Xnor model
+        | B -> newSymbol CommonTypes.And model
+        | C -> newSymbol CommonTypes.Not model
+        | D -> newSymbol CommonTypes.Or model
+        | E -> newSymbol CommonTypes.Xor model
+        | F -> newSymbol CommonTypes.Nand model
+        | G -> newSymbol CommonTypes.Nor model
+        | H -> newSymbol CommonTypes.Decode4 model
         | W -> match model.SelectedItem with
                | BusWire (wId,_) ->
                    let wModel, wCmd = BusWire.update (BusWire.AutoRouteWire wId) model.Wire
