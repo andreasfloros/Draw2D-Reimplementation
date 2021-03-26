@@ -244,15 +244,16 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 |> BusWire.Msg.Symbol
                 |> Wire |> Cmd.ofMsg
 
-        |CtrlPlus ->
+        | CtrlPlus ->
             let z = model.Zoom + 0.1
             printf "zoom is %f" z
             {model with Zoom = z} , Cmd.none
-        |CtrlMinus -> 
+        | CtrlMinus -> 
             let z = model.Zoom - 0.1
             printf "zoom is %f" z
             {model with Zoom = z} , Cmd.none
 
+        //A to H not used anymore //old drop down menu
         | A -> newSymbol CommonTypes.Xnor model
         | B -> newSymbol CommonTypes.And model
         | C -> newSymbol CommonTypes.Not model
@@ -261,6 +262,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | F -> newSymbol CommonTypes.Nand model
         | G -> newSymbol CommonTypes.Nor model
         | H -> newSymbol CommonTypes.Decode4 model
+
         | W -> match model.SelectedItem with
                | BusWire (wId,_) ->
                    let wModel, wCmd = BusWire.update (BusWire.AutoRouteWire wId) model.Wire
@@ -280,7 +282,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                         |> Wire |> Cmd.ofMsg
                     | BusWire _ -> model,Cmd.none
                     | NoItem -> model,Cmd.none
-                    | Port(portId, portType) -> failwith "Not Implemented"
+                    | Port(portId, portType) -> model, Cmd.none
+                    | _ -> failwithf "shouldn't be here!"
 
 
         | X -> model,
@@ -290,8 +293,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
          
                     
         | CtrlZ | CtrlY -> let backupModel = match model.BackupModel with
-                                     | Some model -> model
-                                     | None -> failwithf "Doesn't happen"
+                                             | Some model -> model
+                                             | None -> failwithf "Doesn't happen"
                            {backupModel with BackupModel = Some model}, Cmd.none
 
         | _ -> model, Cmd.none
@@ -318,17 +321,16 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                     |> Symbol.Msg.MultipleSelect
                     |> BusWire.Msg.Symbol 
                     |> Wire |> Cmd.ofMsg
-
         | BusWire (wireId,x) -> 
             {model with SelectedItem = selected}, 
                     wireId 
-                    |> BusWire.Msg.MultipleSelect |> Wire |> Cmd.ofMsg
-            
+                    |> BusWire.Msg.MultipleSelect |> Wire |> Cmd.ofMsg          
         | NoItem -> 
             let sId = null 
             {model with SelectedItem = selected},
             sId |> BusWire.Msg.Select 
-                      |> Wire |> Cmd.ofMsg
+                      |> Wire |> Cmd.ofMsg       
+        | _ -> model, Cmd.none
 
 
     | MouseMsg event when event.Op = MouseOp.Down -> 
@@ -339,23 +341,18 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             (symbolId, event.Pos)
             |> Symbol.Msg.StartDragging
             |> BusWire.Msg.Symbol
-            |> Wire |> Cmd.ofMsg
-        
-        
+            |> Wire |> Cmd.ofMsg      
         | BusWire (wireId,x) -> 
             {model with SelectedItem = selected}, 
             wireId 
             |> BusWire.Msg.Select |> Wire |> Cmd.ofMsg
-
         | NoItem -> 
             let sId = null 
             {model with SelectedItem = selected ; SelectionBox = {TopLeft= event.Pos; BottomRight = event.Pos} },
             sId |> BusWire.Msg.Select 
-                      |> Wire |> Cmd.ofMsg
-                      
+                      |> Wire |> Cmd.ofMsg                     
         | Port(port, portType) -> 
             {model with SelectedItem = selected}, Cmd.none
-
         | SheetSymbol symbolId ->             
             {model with SelectedItem = selected}, 
             (symbolId, event.Pos)
@@ -370,7 +367,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             model,
             Symbol.Msg.EndDragging
             |> BusWire.Msg.Symbol
-            |> Wire |> Cmd.ofMsg
+            |> Wire |> Cmd.ofMsg           
         | (Port (p1, type1)), (Port (p2, type2)) when type1 <> type2-> 
             {model with SelectedItem = NoItem}, 
             (if type1 = CommonTypes.PortType.Input then p1,p2 else p2,p1)
@@ -386,7 +383,6 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 ((posOf model.SelectionBox.TopLeft.X model.SelectionBox.BottomRight.Y),(posOf model.SelectionBox.BottomRight.X model.SelectionBox.TopLeft.Y)) 
             else 
                 (event.Pos,model.SelectionBox.TopLeft) 
-
             |> BusWire.Msg.SelectEnclosed
             |> Wire |> Cmd.ofMsg
         | (Port (p1, o)), _ -> 
@@ -431,8 +427,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             model,
             ( Some p1, event.Pos)
             |> BusWire.Msg.CreateSheetWire
-            |> Wire |> Cmd.ofMsg
-             
+            |> Wire |> Cmd.ofMsg             
         | NoItem -> 
             {model with SelectionBox = {TopLeft= model.SelectionBox.TopLeft; BottomRight = event.Pos}}, 
             Cmd.none
@@ -442,6 +437,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> Symbol.Msg.Dragging
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
+
     | MouseMsg event -> model, Cmd.none
 
 

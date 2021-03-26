@@ -28,6 +28,14 @@ getPortsFromId (symbolId : SymbolId) (symbolModel : Symbol.Model) : Map<PortId,P
 The following functions are provided from BusWire for use in the Sheet module:
 
 ```
-getSymbolModelFromWireModel (wireModel : BusWire.Model) : Symbol.Model // Get the symbol model from a wire model
-wireHit (mousePos : XYPos) (wireModel : BusWire.Model) : (WireId * int) option // Get the wire segment that was clicked
+
+// Get the symbol model from a wire model
+getSymbolModelFromWireModel (wireModel : BusWire.Model) : Symbol.Model 
+
+// Get the wire segment that was clicked
+findWire (mousePos : XYPos) (wireModel : BusWire.Model) : (WireId * int) option 
+
+// Get all the segments of a wire 
+getSegmentsFromWire (wire: Wire) : Segments 
+
 ```

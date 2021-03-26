@@ -126,6 +126,7 @@ let getWiresFromWireModel wireModel = // return a container with the wires, for 
 let getWireFromWireModel wireModel wireId =
     getWiresFromWireModel wireModel
     |> Map.find wireId
+    
 let getSymbolModelFromWireModel wireModel = wireModel.SymbolModel
 
 let updateWireModelWithHighlightedWire model wireId color =

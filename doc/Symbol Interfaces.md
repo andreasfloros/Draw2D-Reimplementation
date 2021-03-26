@@ -39,11 +39,6 @@ getPortsMapOfSelectedSymbolList (model : Model) : Map<string,Port>
 The following functions are provided in Symbol for use by the Sheet module:
 
 ```
-// gets the bounding box for a Symbol
-getSymbolBBox (symbol: Symbol) : BB
-
-// gets the bounding box for a Port
-createPortBB (port: Port) (x: float) : BB
 
 // Returns a Port if the position of the mouse is within the port bounding box, else returns None 
 FindPort (mousePos: XYPos) (model: Model) : option<Port * PortType>

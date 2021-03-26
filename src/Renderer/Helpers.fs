@@ -18,23 +18,22 @@ type XYPos =
     }
 
 type MouseOp = 
-    /// button up
-    | Up
-    /// button down
-    | Down
-    /// Move with button up
-    | Move 
-    /// Move with button Down
-    | Drag
-
+    | Up // button up
+    | Down  // button down
+    | Move // Move with button up
+    | Drag // Move with button Down
     | Shift
     | Ctrl
 
 type MouseT = {
+
     Pos: XYPos
-    Op: MouseOp}
+    Op: MouseOp
+
+    }
 
 type BB = {
+
         TopLeft: XYPos 
         BottomRight: XYPos 
     }
@@ -42,6 +41,7 @@ type BB = {
 type Dir = Up | Down | Left | Right
 
 type Segment = {
+    
     Start : XYPos
     End : XYPos
 }
@@ -134,10 +134,7 @@ let canvasUnscaledDimensions : XYPos =
 
 
 //------------------------ Bounding box functions -----------------------------
-//let me know if you need any more 
-
 let createSelectBox p1 p2 = 
-    //if p1.X < p2.X && p1.Y > p2.Y
      {
         TopLeft = p2
         BottomRight = p1
