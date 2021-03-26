@@ -7,10 +7,6 @@ open Elmish.React
 
 open Helpers
 
-type Box = {
-        p1: XYPos 
-        p2: XYPos 
-    }
 
 type SelectedItem = 
     | Symbol of symbolId: CommonTypes.SymbolId
@@ -23,7 +19,7 @@ type SelectedItem =
     Wire: BusWire.Model
     SelectedItem: SelectedItem
     Zoom: float
-    SelectionBox: Box
+    SelectionBox: BB
     BackupModel: Model option
     }
 
@@ -44,9 +40,9 @@ let constantGridLines = gridLines 1100 1100
 /// Currently the zoom expands based on top left corner. Better would be to collect dimensions
 /// current scroll position, and chnage scroll position to keep centre of screen a fixed point.
 /// 
-let createBox(box : Box) =
-    let p1 = box.p1
-    let p2 = box.p2
+let createBox(box : BB) =
+    let p1 = box.TopLeft
+    let p2 = box.BottomRight
     if p2.X< p1.X && p2.Y < p1.Y then 
         polygon [
             SVGAttr.Points $"{p2.X},{p2.Y} {p1.X},{p2.Y} {p1.X},{p1.Y} {p2.X},{p1.Y} "
@@ -347,7 +343,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
         | NoItem -> 
             let sId = null 
-            {model with SelectedItem = selected ; SelectionBox = {p1= event.Pos; p2 = event.Pos} },
+            {model with SelectedItem = selected ; SelectionBox = {TopLeft= event.Pos; BottomRight = event.Pos} },
             sId |> BusWire.Msg.Select 
                       |> Wire |> Cmd.ofMsg
                       
@@ -371,15 +367,15 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             printf "helloooso"
             printf "%A" model.SelectionBox
             printf "%A" event.Pos
-            {model with SelectionBox = {p1= event.Pos; p2 = event.Pos} }, 
-            if model.SelectionBox.p1.X > event.Pos.X && model.SelectionBox.p1.Y > event.Pos.Y then 
-                (model.SelectionBox.p1,event.Pos) 
-            elif model.SelectionBox.p1.X < event.Pos.X && model.SelectionBox.p1.Y > event.Pos.Y then 
-                ( (posOf model.SelectionBox.p2.X model.SelectionBox.p1.Y),(posOf model.SelectionBox.p1.X model.SelectionBox.p2.Y) ) 
-            elif model.SelectionBox.p1.X > event.Pos.X && model.SelectionBox.p1.Y < event.Pos.Y then
-                ((posOf model.SelectionBox.p1.X model.SelectionBox.p2.Y),(posOf model.SelectionBox.p2.X model.SelectionBox.p1.Y)) 
+            {model with SelectionBox = {TopLeft= event.Pos; BottomRight = event.Pos} }, 
+            if model.SelectionBox.TopLeft.X > event.Pos.X && model.SelectionBox.TopLeft.Y > event.Pos.Y then 
+                (model.SelectionBox.TopLeft,event.Pos) 
+            elif model.SelectionBox.TopLeft.X < event.Pos.X && model.SelectionBox.TopLeft.Y > event.Pos.Y then 
+                ( (posOf model.SelectionBox.BottomRight.X model.SelectionBox.TopLeft.Y),(posOf model.SelectionBox.TopLeft.X model.SelectionBox.BottomRight.Y) ) 
+            elif model.SelectionBox.TopLeft.X > event.Pos.X && model.SelectionBox.TopLeft.Y < event.Pos.Y then
+                ((posOf model.SelectionBox.TopLeft.X model.SelectionBox.BottomRight.Y),(posOf model.SelectionBox.BottomRight.X model.SelectionBox.TopLeft.Y)) 
             else 
-                (event.Pos,model.SelectionBox.p1) 
+                (event.Pos,model.SelectionBox.TopLeft) 
 
             |> BusWire.Msg.SelectEnclosed
             |> Wire |> Cmd.ofMsg
@@ -424,7 +420,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> Wire |> Cmd.ofMsg
              
         | NoItem -> 
-            {model with SelectionBox = {p1= model.SelectionBox.p1; p2 = event.Pos}}, 
+            {model with SelectionBox = {TopLeft= model.SelectionBox.TopLeft; BottomRight = event.Pos}}, 
             Cmd.none
 
     | MouseMsg event -> model, Cmd.none
@@ -438,8 +434,7 @@ let init() =
         Wire = model
         SelectedItem = NoItem
         Zoom = 1.0
-        
-        SelectionBox = {p1 = a
-                        p2 = a}
+        SelectionBox = {TopLeft = a
+                        BottomRight = a}
         BackupModel = None
     }, Cmd.map Wire cmds
