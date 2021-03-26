@@ -134,14 +134,14 @@ let generatePortList compProps numOfPorts portType connectionDirection =
         | DemuxN n, PortType.Input, 1 -> Some (log2 n)
 
         | Input bw, _, _ | Output bw, _, _ -> Some bw
-        | IOLabel, _, _ -> Some 1 //this
+        | IOLabel, _, _ -> Some 1 //placeholder (should be dynamically allocated using width inference)
 
-        | OldBusSelection _, PortType.Input, _ | BusSelection _, PortType.Input, _ -> Some 10 //this
+        | OldBusSelection _, PortType.Input, _ | BusSelection _, PortType.Input, _ -> Some 10 //placeholder (should be dynamically allocated using width inference)
         | OldBusSelection (bw,_), PortType.Output, _ | BusSelection (bw,_), PortType.Output, _ -> Some bw
 
-        | MergeWires, _, _ -> Some 1//this
+        | MergeWires, _, _ -> Some 1 //placeholder (should be dynamically allocated using width inference)
         | SplitWire bw, PortType.Output, 0 -> Some bw
-        | SplitWire _, _, _ -> Some 1 //this
+        | SplitWire _, _, _ -> Some 1 //placeholder (should be dynamically allocated using width inference)
 
         | Register _, PortType.Input, 1 | RegisterE _, PortType.Input, 1 -> Some 1
         | Register bw, _, _ | RegisterE bw, _, _  -> Some bw

@@ -314,7 +314,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         match selected with
         | Symbol symbolId ->             
             {model with SelectedItem = selected}, 
-                    (symbolId, event.Pos) //Zaid: added event.Pos
+                    (symbolId, event.Pos) 
                     |> Symbol.Msg.MultipleSelect
                     |> BusWire.Msg.Symbol 
                     |> Wire |> Cmd.ofMsg
