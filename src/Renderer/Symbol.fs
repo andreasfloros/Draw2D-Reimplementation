@@ -450,12 +450,12 @@ let init () =
                     match (x, y) with 
                     | 200., 160. -> (createNewSymbol (Input 7) "Input Example" {X=x;Y=y})
                     | 200., 380. -> (createNewSymbol (NbitsAdder 10) "label" {X=x;Y=y})
-                    | 380., 160. -> (createNewSymbol (BusSelection (5,2)) "New BusSelect" {X=x;Y=y})
-                    | 380., 380. -> (createNewSymbol (Xor) "Xor" {X=x;Y=y})
+                    | 380., 160. -> (createNewSymbol (BusSelection (5,2)) "BusSelect1" {X=x;Y=y})
+                    | 380., 380. -> (createNewSymbol (MergeWires) "label" {X=x;Y=y})
                     | 560., 160. -> (createNewSymbol (DemuxN 7) "label" {X=x;Y=y})
                     | 560., 380. -> (createNewSymbol (testCustom) "label" {X=x;Y=y})
                     | 740., 160. -> (createNewSymbol (Output 5) "label" {X=x;Y=y})
-                    | 740., 380. -> (createNewSymbol (Nand) "label" {X=x;Y=y})
+                    | 740., 380. -> (createNewSymbol (SplitWire 5) "label" {X=x;Y=y})
                     | _ -> (createNewSymbol (Xor) "label" {X=x;Y=y}))
     }
         
@@ -526,7 +526,7 @@ let symbolRotation sym =
     let prevPorts = sym.Ports
 
     match sym.Type with 
-    | Input _ | Output _ | IOLabel | MergeWires | SplitWire _ -> sym
+    | Input _ | Output _ | IOLabel -> sym
     | _ ->
         match sym.Orientation with
         | Standard ->
@@ -1014,7 +1014,7 @@ let private portLabels (sym:Symbol) (i:int) =
     match sym.Type with
     | Not | And | Or | Xor | Nand | Nor | Xnor 
     | Input _ | Output _ | IOLabel | Constant _ | OldBusSelection _ 
-    | MergeWires | SplitWire _ -> text [] []
+    | MergeWires -> text [] []
     | _ -> 
         let port = sym.Ports.[i]
 
@@ -1026,7 +1026,7 @@ let private portLabels (sym:Symbol) (i:int) =
         let (xMargin, yMargin, textAnchor, dominantBaseline) = 
             match sym.Type with 
 
-            | BusSelection _ | SplitWire _ -> 
+            | BusSelection _ -> 
                 match port.PortType with
                 | PortType.Input -> 
                     match sym.Orientation with
@@ -1044,10 +1044,10 @@ let private portLabels (sym:Symbol) (i:int) =
 
             | SplitWire bw ->
                 match sym.Orientation with
-                | Standard -> (-7., 8., "middle", "middle")
-                | Rotate90clk -> (-8., -7., "middle", "middle")
-                | Mirror -> (7., 8., "middle", "middle")
-                | Rotate90antiClk -> (8., -7., "middle", "middle")
+                | Standard -> (-7., 9., "middle", "middle")
+                | Rotate90clk -> (-9., -7., "middle", "middle")
+                | Mirror -> (7., 9., "middle", "middle")
+                | Rotate90antiClk -> (9., -7., "middle", "middle")
 
 
             | _ ->
@@ -1073,7 +1073,7 @@ let private portLabels (sym:Symbol) (i:int) =
 
         let fontSize =
             match sym.Type with 
-            | BusSelection _ -> "10px"
+            | BusSelection _ | SplitWire _ -> "10px"
             | _ -> "13px"
 
         let labelPos : XYPos =
