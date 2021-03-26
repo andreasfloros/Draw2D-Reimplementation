@@ -16,14 +16,14 @@ The main defect in Issie is the Javascript schematic drawing library Draw2D. Thi
 This file contains general documentation for the project.
 
 ## How to run
-Clone the repo locally and run the code in the directory with one of two ways:
+Clone the repo locally and build and run the code in the directory with one of two ways:
 
-(1) Run build or npm run dev (for first time the former rather than the latter is mandatory) commands from a command line (obviously, you need to be in this directory to run these commands). Doing this, the code is compiled in JS by FABLE (F# to JS compiler), and run under electron. That way you have a working GUI and all the HTML javascript interface (for example SVG) works, with Node/electron libraries. 
+(1) Build the code from a command line using ```build``` or ```npm run dev``` command (for the first time the former rather than the latter is mandatory). Note that you must run these commands in the root directory. Doing this, the code is compiled in JS by FABLE (F# to JS compiler), and run under electron. That way you have a working GUI and all the HTML javascript interface (for example SVG) works, with Node/electron libraries. 
 
-(2) Build the code under Visual Studio under dotnet with ```dotnet fake build```. Doing this, the code will compile under dotnet, with dotnet libraries.
-Run ```dotnet tool restore``` before ```dotnet fake build``` if it doesn't work as expected.
+(2) Build the code in Visual Studio under dotnet with ```dotnet fake build```. Doing this, the code will compile under dotnet, with dotnet libraries.
+Run ```dotnet tool restore``` before ```dotnet fake build``` if it doesn't work as expected. After building with dotnet for the first time you can again build using ```npm run dev```. 
 
-The code is designed so that it will compile OK both ways. But the Node library functions will only work under electron, and the dotnet (non-core) library functions only work under dotnet.
+The code is designed so that it will compile OK both ways. But the Node library functions will only work under electron, and the dotnet (non-core) library functions only work under dotnet. Note that the reason for using ```npm run dev``` is that it is a lot faster than build.
 
 ## Implemented Features
 ### Symbol-related features:
@@ -41,24 +41,24 @@ The code is designed so that it will compile OK both ways. But the Node library 
 ### Wire-related features:
 - Wire creation
 - Manual routing for wires
-- Split segment for wires (Ctrl+LeftClick)
+- Split segment for wires
 - Intelligent deletion of unecessary segments within wire
 - Wire snap
 - Rounded corners for wires
 
 ### General features:
 - Click-drag-drop demo menu
-- Multiple selection with LeftClick on symbols and wires with Shift pressed
-- Multiple selection with click and drag selection box
-- Multiple item move with Shift pressed and moving one of the selected items
-- Multiple deletion with Del key
+- Multiple selection
+- Multiple item move (Shift key held)
+- Multiple deletion
 - Multiple item copy and paste
-- Single undo (CtrlZ) and redo (CtrlY)
+- Single undo and redo
 - Scroll
 
 ### Useful functionality commands
 Mouse/Keyboard user actions | Corresponding effects in application
 ----------------------------|-------------------------------------
+LeftClick+Drag | Box creation for multiple item selection
 Shift(held)+LeftClick | Multiple item selection
 Ctrl+LeftClick | Split segment at current mouse position
 W | Autoroute single selected wire
@@ -70,13 +70,6 @@ X | Copy and paste selected symbols
 R | Rotation of selected symbol
 
 
+
 ## Interface Documentation
-Module specific interface documentation can be found in the doc folder. There is a seperate .md file for each module.
-Please check General_description.md in the doc folder for an overview.
-
-
-
-
-
-
-
+General documentation for module interaction as well as module specific interface documentation can be found in the doc folder. There is a seperate .md file for each module besides a general_description.md file for more general/non-module-specific information.
