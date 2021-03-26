@@ -194,7 +194,7 @@ let gridLines (W: int) (H: int) =
 
 
 
-//--------------------------- Buswire Helpers ------------------------------
+//--------------------------- BusWire Helpers ------------------------------
 
 let areOppositeDirs dir1 dir2 =
     match dir1, dir2 with
@@ -316,8 +316,7 @@ let getSegmentBBox segment =
         | Right -> boxOf (posAdd segment.End (posOf 5.0 5.0)) (posDiff segment.Start (posOf 5.0 5.0))
         | Left -> boxOf (posAdd segment.Start (posOf 5.0 5.0)) (posDiff segment.End (posOf 5.0 5.0))
 
-// Extensions have a fixed length of 10.
-// This works for the demo and will probably be fine for later as well
+// generates port extension segment
 let getPortExtension pt dir isOutput=
     let ext =
         match dir with
@@ -327,7 +326,7 @@ let getPortExtension pt dir isOutput=
         | Right -> segOf pt (posAdd pt (posOf portLength 0.))
     if isOutput then ext else swapSeg ext
 
-
+// unused
 let getDoublePortExtension pt dir isOutput=
     let ext =
         match dir with
@@ -337,7 +336,7 @@ let getDoublePortExtension pt dir isOutput=
         | Right -> segOf pt (posAdd pt (posOf (2.*portLength) 0.))
     if isOutput then ext else swapSeg ext
 
-
+// functions for rounding corners
 let verticesToString firstPoint secondPoint thirdPoint = 
     " L " + (posToString firstPoint) + " Q " + (posToString secondPoint) + (posToString thirdPoint)
 
@@ -386,7 +385,7 @@ let segmentToCurve currentSegment nextSegment minimumLength =
             let thirdPoint = {X = nextSegment.Start.X + minimumLength ; Y = nextSegment.Start.Y}
             verticesToString firstPoint secondPoint thirdPoint
 
-
+// for rounding the corners
 let segmentsToRoundedString segments =
     let nonZeroSegments = List.filter (fun segment -> lenOfSeg segment <> 0.) segments
 
@@ -419,14 +418,14 @@ let segmentsToRoundedString segments =
                                             " L " + posToString segment.End)
     |> List.reduce (+)
 
-
+// used in snapping segments
 let segmentsAreClose seg1 seg2 =
     let snapThresh = 30.
     dirOfSeg seg1 = dirOfSeg seg2 
     && lenOfSeg (segOf seg1.Start seg2.Start) > 0. 
     && pointsAreCloseInDir (somePerpendicularDir (dirOfSeg seg1)) seg1.Start seg2.Start snapThresh
 
-// maybe outdated at time of reading this
+// same as getPortExtension but distance can be supplied
 let getNovelPortExtension pt dir isOutput  dist=
     let ext =
         match dir with
