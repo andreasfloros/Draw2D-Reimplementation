@@ -16,11 +16,13 @@ Team 1 Authors:
 This file contains general documentation for the project.
 
 ## Implemented Features
-- Symbol-related features MISSING HERE
-- Symbol snap
-- Symbol deletion
-- Visible ports on hover near a specific symbol
+### Symbol-related features:
+1. Symbol-related features MISSING HERE
+2. Symbol snap
+3. Symbol deletion
+4. Visible ports on hover near a specific symbol
 
+### Wire-related features:
 - Wire creation with comprehensive animation on which nearby symbol ports are compatible for connection
 - Manual routing for wires
 - Split segment for wires (Ctrl+LeftClick)
@@ -28,6 +30,7 @@ This file contains general documentation for the project.
 - Wire snap
 - Rounded corners for wires
 
+### General features:
 - Multiple selection with LeftClick on symbols and wires with Shift pressed
 - Multiple selection with click and drag selection box
 - Multiple item move with Shift pressed and moving one of the selected items
