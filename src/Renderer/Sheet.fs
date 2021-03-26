@@ -7,7 +7,8 @@ open Elmish.React
 
 open Helpers
 
-// SelectedItem allows Sheet to have information on which item is currently selected 
+// SelectedItem along with getHit function (later) allows Sheet to have information at any given time 
+// regarding which item is currently selected
 type SelectedItem = 
     | Symbol of symbolId: CommonTypes.SymbolId
     | BusWire of wireId: BusWire.WireId  * segmentIndex : int
@@ -15,7 +16,8 @@ type SelectedItem =
     | SheetSymbol of symbolId: CommonTypes.SymbolId
     | NoItem
 
-
+// Sheet Model consists of BusWire model, SelectedItem, Zoom (currently not used but left in for potential
+// future work), SelectionBox for click-and-drag multiple selection, and BackupModel for single step undo/redo
  type Model = {
     Wire: BusWire.Model
     SelectedItem: SelectedItem
@@ -24,19 +26,27 @@ type SelectedItem =
     BackupModel: Model option
     }
 
+
+// Info on these in repo README
 type KeyboardMsg =  
     | CtrlS | AltShiftZ | DEL | CtrlW | W | R | CtrlPlus | CtrlMinus | X | CtrlZ | CtrlY
 
+
+// Only messages in Sheet are keyboard messages, mouse messages, and wire messages for relaying messages to
+// the other modules (BusWire, Symbol)
 type Msg =
     | Wire of BusWire.Msg
     | KeyPress of KeyboardMsg
     | MouseMsg of MouseT
-    
 
+
+// Creates grid lines in the given area, function gridLines in Helpers.fs file
 let constantGridLines = gridLines 980 850
 
+
+// Adds menu/catalogue for click-drag-drop symbol creation
 let constantDemoMenu = 
-    [                    // adds menu
+    [
         polygon 
                 [
                 SVGAttr.Points ("980,0 1444,0 1444,850 980,850")
@@ -58,6 +68,7 @@ let constantDemoMenu =
     ]
 
 
+// Creates box for multiple selection
 let createBox(box : BB) =
     let p1 = box.TopLeft
     let p2 = box.BottomRight
@@ -95,6 +106,8 @@ let createBox(box : BB) =
             SVGAttr.FillOpacity 0.1
             SVGAttr.Fill "#7a9bff"] []
 
+
+// Function for displaying everything on the canvas as well as sending mouse messages
 let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch<Msg>)=
     let sizeInPixels = sprintf "%.2fpx" ((1450. * zoom))
 
@@ -104,19 +117,20 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
                     container.getBoundingClientRect() 
                else null
 
-    /// Is the mouse button currently down?
+    // Is the mouse button currently down?
     let mDown (ev:Types.MouseEvent) = 
         ev.buttons <> 0.
     
-    /// Has the shift key been pressed?
+    // Has the shift key been pressed?
     let mShift (ev:Types.MouseEvent) = 
         ev.shiftKey = true
-
+    
+    // Has the control key been pressed?
     let mCtrl (ev:Types.MouseEvent) = 
         ev.ctrlKey = true
 
-    /// Dispatch a BusWire MouseMsg message
-    /// the screen mouse coordinates are compensated for the zoom transform
+    // Dispatch MouseMsg message depending on mouse operation
+    // the screen mouse coordinates are compensated for the zoom transform
     let mouseOp op (ev:Types.MouseEvent) = 
             dispatch <| MouseMsg {Op = op ; Pos = { X = ev.clientX + (if container <> null then 
                                                                         container.scrollLeft - rect.left else 0.)
@@ -147,26 +161,26 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
                         else mouseOp Move ev)
                     
     ]
-        
+        // Main application svg
         [ svg
             [ Style [
                         Transform (sprintf "scale(%f)" zoom)
                         Border "3px solid black"
                         Height 850.
                         Width sizeInPixels
-                    ]   //ViewBox viewBoxArg
-                ] // top-level transform style attribute for zoom
+                    ]
+                ]
 
 
-                (constantGridLines      // adds grid lines
+                (constantGridLines      // add grid lines
                 @ constantDemoMenu      // add menu
-                @ [svgReact])           // add rest of canvas
+                @ [svgReact])           // add rest of canvas as given in function argument
         ]
 
     
 
 
-/// for the demo code
+// View function
 let view (model:Model) (dispatch : Msg -> unit) =
     let wDispatch wMsg = dispatch (Wire wMsg)
     let wireSvg = BusWire.view model.Wire wDispatch
@@ -176,7 +190,8 @@ let view (model:Model) (dispatch : Msg -> unit) =
      
 
 
-
+// Function which calls other functions in the other models for decision on what is selected
+// given a mouse position and the current model
 let getHit (click: XYPos) (model: Model) =
     let sModel = BusWire.getSymbolModelFromWireModel model.Wire
     match Symbol.FindPort click sModel with 
@@ -205,12 +220,13 @@ let getHit (click: XYPos) (model: Model) =
 
     
 
+// Update function
 let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     match msg with
     | Wire wMsg ->
         let wModel, wCmd = BusWire.update wMsg model.Wire
         {model with Wire = wModel
-                    BackupModel = match wMsg with 
+                    BackupModel = match wMsg with // Only backup when significant things happen, cases could be extended
                                   | BusWire.Msg.Symbol (Symbol.Msg.MouseMove (a,b)) -> model.BackupModel
                                   | BusWire.Msg.Symbol (Symbol.Msg.Dragging (a)) -> model.BackupModel
                                   | BusWire.Msg.Symbol (Symbol.Msg.EndDragging) -> model.BackupModel
@@ -221,8 +237,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | KeyPress s ->
         match s with 
         | AltShiftZ -> 
-                printStats() // print and reset the performance statistics in dev tools window
-                model, Cmd.none // do nothing else and return model unchanged
+                printStats()    // print and reset the performance statistics in dev tools window
+                model, Cmd.none
         | DEL -> 
             model,
                 Symbol.Msg.DeleteSymbol
@@ -417,7 +433,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     | MouseMsg event -> model, Cmd.none
 
 
-
+// init function
 let init() = 
     let model,cmds = (BusWire.init)()
     let a = posOf 0.0 0.0
