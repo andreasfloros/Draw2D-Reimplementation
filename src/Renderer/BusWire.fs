@@ -766,11 +766,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
     | CreateWire (port1,port2) ->
         let newModel = {model with SheetWire = None}
+        let inputPort, outputPort = if (Symbol.getPortTypeFromPort port1) = CommonTypes.PortType.Input then port1, port2 else port2, port1 // assume here they are of opposite polarity, sheet should also be checking this anyway
         let oldWires = getWiresFromWireModel newModel
         let newWires = 
-                       match oldWires |> Map.tryPick (fun id w -> if (w.StartId = port1.Id && w.EndId = port2.Id) || (w.StartId = port2.Id && w.EndId = port1.Id) then Some w else None) with
-                       | Some w -> oldWires
-                       | None ->
+                       match oldWires |> Map.exists (fun id w -> (w.StartId = outputPort.Id && w.EndId = inputPort.Id) || w.EndId = inputPort.Id) with
+                       | true -> oldWires
+                       | false ->
                            oldWires
                            |> Map.add (generateWireId()) (createWire port1.Id port1 port2.Id port2)
         updateWireModelWithWires newWires newModel, Cmd.none       
