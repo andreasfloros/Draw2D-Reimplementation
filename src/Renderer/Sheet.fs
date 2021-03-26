@@ -34,6 +34,29 @@ type Msg =
     
 
 let constantGridLines = gridLines 1100 1100
+
+let constantDemoMenu = 
+    [                    // adds menu
+        polygon 
+                [
+                SVGAttr.Points ("1100,0 1580,0 1580,1100 1100,1100")
+                SVGAttr.StrokeWidth "2px"
+                SVGAttr.Stroke "Black"
+                SVGAttr.FillOpacity 0.5
+                SVGAttr.Fill "lightgrey"] []
+
+        text 
+             [  SVGAttr.X 1265. ; 
+                Y 60. ;
+                Style [
+                        FontSize "34px"
+                        FontWeight "Bold"
+                        Fill "Black"
+                        UserSelect UserSelectOptions.None
+                      ]
+                 ] [str <| sprintf "Catalogue"]
+    ]
+
 //let Zoom = 1.
 /// Determines top-level zoom, > 1 => magnify.
 /// This should be moved into the model as state
@@ -108,7 +131,7 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
             [ 
                 // Height "100vh" 
                 // MaxWidth "100vw"
-                Height sizeInPixels
+                Height 1100.
                 MaxWidth sizeInPixels
                 //CSSProp.OverflowX OverflowOptions.Auto 
                 //CSSProp.OverflowY OverflowOptions.Auto
@@ -140,18 +163,9 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
                 ] // top-level transform style attribute for zoom
 
 
-                (constantGridLines     // adds grid lines
-                //@ (addMenuSymbols)
-                @ [                    // adds menu
-                    polygon 
-                            [
-                            SVGAttr.Points ("1100,0 1580,0 1580,1100 1100,1100")
-                            SVGAttr.StrokeWidth "2px"
-                            SVGAttr.Stroke "Black"
-                            SVGAttr.FillOpacity 0.5
-                            SVGAttr.Fill "lightgrey"] []
-                  ]
-                @ [svgReact])  // the application code
+                (constantGridLines      // adds grid lines
+                @ constantDemoMenu      // add menu
+                @ [svgReact])           // add rest of canvas
         ]
 
     

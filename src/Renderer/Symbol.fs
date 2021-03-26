@@ -432,7 +432,18 @@ let testCustom = Custom {Name = "Custom Comp Test"; InputLabels = [("data-in",4)
 
 let init () =
     
-    {   SheetSymbol = [(createNewSymbol (Input 7) "Input Example" {X=1150.;Y=100.})]
+    {   SheetSymbol = [createNewSymbol (Input 5) "Input Example" {X=1225.;Y=130.}
+                       createNewSymbol (Output 5) "Output Example" {X=1430.;Y=130.}
+                       createNewSymbol (And) "And Example" {X=1170.;Y=230.}
+                       createNewSymbol (Or) "Or Example" {X=1320.;Y=230.}
+                       createNewSymbol (Not) "Not Example" {X=1470.;Y=230.}
+                       createNewSymbol (MuxN 5) "MuxN Example" {X=1170.;Y=370.}
+                       createNewSymbol (NbitsAdder 10) "NbitAdder Example" {X=1305.;Y=400.}
+                       createNewSymbol (DemuxN 5) "DemuxN Example" {X=1450.;Y=370.}
+                      ]
+
+
+
         SymModel = List.allPairs [1..4] [1..2]
                 |> List.map (fun (x,y) -> {X = float (x*180+20); Y=float (y*220-60)})
                 |> List.map (fun {X=x;Y=y} -> 
