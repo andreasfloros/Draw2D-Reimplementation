@@ -391,7 +391,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
         | BusWire (wId, segmentIndex) ->
-            (if segmentIndex = 0 && (lenOfSeg (BusWire.getSegmentsFromWire (BusWire.getWireFromWireModel model.Wire wId)).Head) > portLength + 10.// ugly but works for now
+            (if segmentIndex = 0 && (lenOfSeg (BusWire.getSegmentsFromWire (BusWire.getWireFromWireModel model.Wire wId)).Head) > portLength + 10.// see manualRoute function in BusWire for info on this
              then {model with SelectedItem = BusWire (wId,2)} else model), 
             (wId, segmentIndex, event.Pos)
                 |> BusWire.Msg.ManualRouting

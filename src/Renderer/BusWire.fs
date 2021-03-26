@@ -127,7 +127,6 @@ type Msg =
     | ManualRouting of wireId : WireId * segmentIndex : int * mousePos : XYPos
     | DeleteWire of wireId: WireId
     | SetColor of CommonTypes.HighLightColor
-    | Deselect of wireId: WireId
     | Select of wireId : WireId
     | MultipleSelect of wireId : WireId
     | AutoRouteAll
@@ -335,7 +334,6 @@ let remove0Segs wire =
                                 if idx > segmentsMaxIdx - 2 then None
                                 else if lenOfSeg seg = 0. && lenOfSeg segments.[idx+1] = 0. && lenOfSeg segments.[idx+2] = 0.
                                 then 
-                                    printfn "0 0 0  FOUND" 
                                     (Some idx) 
                                 else None)
 
@@ -360,7 +358,6 @@ let removeKinkySegs wire =
                                 if idx > segmentsMaxIdx - 2 then None
                                 else if lenOfSeg seg <> 0. && lenOfSeg segments.[idx+2] <> 0. && lenOfSeg segments.[idx+1] = 0. && areOppositeDirs (dirOfSeg seg) (dirOfSeg segments.[idx+2])
                                 then
-                                    printfn "OPPOSITE FOUND" 
                                     (Some idx)
                                 else None)
 
@@ -385,7 +382,6 @@ let mergeSegs wire =
                                 if idx > segmentsMaxIdx - 2  then None
                                 else if lenOfSeg seg <> 0. && lenOfSeg segments.[idx+2] <> 0. && lenOfSeg segments.[idx+1] = 0. && (dirOfSeg seg) = (dirOfSeg segments.[idx+2])
                                 then
-                                    printfn "SAME DIR FOUND" 
                                     (Some idx)
                                 else None)
 
@@ -770,9 +766,13 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
     | CreateWire (port1,port2) ->
         let newModel = {model with SheetWire = None}
-        let newWires = newModel
-                       |> getWiresFromWireModel
-                       |> Map.add (generateWireId()) (createWire port1.Id port1 port2.Id port2)
+        let oldWires = getWiresFromWireModel newModel
+        let newWires = 
+                       match oldWires |> Map.tryPick (fun id w -> if (w.StartId = port1.Id && w.EndId = port2.Id) || (w.StartId = port2.Id && w.EndId = port1.Id) then Some w else None) with
+                       | Some w -> oldWires
+                       | None ->
+                           oldWires
+                           |> Map.add (generateWireId()) (createWire port1.Id port1 port2.Id port2)
         updateWireModelWithWires newWires newModel, Cmd.none       
     | CreateSheetWire (Some port, pos) -> 
         {model with SheetWire = Some (sheetWire port pos)}, (pos, Some port) |> Symbol.Msg.MouseMove |> Symbol |> Cmd.ofMsg
