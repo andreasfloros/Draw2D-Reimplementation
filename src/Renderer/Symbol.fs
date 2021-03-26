@@ -958,6 +958,19 @@ let private circmaker (sym: Symbol) (i:int) =
                     SVGAttr.StrokeOpacity (if sym.IsSelected then 1. else opacity)
                         ] []
             
+            if circleRadius = 5. && (calcPointsDist port.PortPos (fst sym.MouseNear) < 9.) && (snd sym.MouseNear = None) then 
+                circle
+                    [ 
+                    Cx circPos.X
+                    Cy circPos.Y
+                    R 8.5
+                    SVGAttr.Fill "blue"
+                    SVGAttr.FillOpacity 0.7
+                    SVGAttr.Stroke "Black"
+                    SVGAttr.StrokeWidth 0
+                    SVGAttr.StrokeOpacity (if sym.IsSelected then 1. else opacity)
+                        ] []
+            
             circle
                 [ 
                 Cx circPos.X
