@@ -17,6 +17,8 @@ This file contains general documentation for the project.
 
 ## Implemented Features
 ### Symbol-related features:
+- Complete set of Components used by Issie
+- Additional Components also available for example: MUX-n, DEMUX-n and Custom Component 
 - Symbol dragging
 - Symbol creation
 - Symbol deletion
