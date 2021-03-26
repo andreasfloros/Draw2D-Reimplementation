@@ -23,7 +23,7 @@ This file contains general documentation for the project.
 - Symbol copy
 - Symbol rotation
 - "Snap-to-symbol": Symbol alignment with other symbols
-- Visible ports on hover near a specific symbol + outlines on ports when Hovering over a them
+- Visible ports on hover near a specific symbol + outlines on ports when hovering over them
 - Comprehensive animation on which nearby symbol ports are compatible for connection during wire creation
 
 ### Wire-related features:
