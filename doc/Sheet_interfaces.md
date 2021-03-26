@@ -17,7 +17,21 @@ ContainsPoint (box: BB) (click: XYPos) : bool //checks whether the user has clic
 The following are required by Sheet from Symbol.
 
 ```
-FindSymbol (mousePos: XYPos) (sModel: Model) : Option Symbol.Id //get the symbol Id that was clicked 
+// gets the bounding box for a Symbol
+getSymbolBBox (symbol: Symbol) : BB
+
+// gets the bounding box for a Port
+createPortBB (port: Port) (x: float) : BB
+
+// Returns a Port if the position of the mouse is within the port bounding box, else returns None 
+FindPort (mousePos: XYPos) (model: Model) : option<Port * PortType>
+
+// Returns a Symbol if the position of the mouse is within the Symbol bounding box, else returns None 
+FindSymbol (mousePos: XYPos) (model: Model) : option<SymbolId>
+
+// Looks for a Sheet-Symbol, used by the drag and drop menu
+findSheetSymbol (mousePos: XYPos) (model: Model) : option<SymbolId>
+
 ```
 
 # Functions: BusWire to Sheet
