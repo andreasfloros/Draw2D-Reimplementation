@@ -137,7 +137,7 @@ let generatePortList compProps numOfPorts portType connectionDirection =
         | Input bw, _, _ | Output bw, _, _ -> Some bw
         | IOLabel, _, _ -> Some 1 //this
 
-        | OldBusSelection _, PortType.Input, _ | BusSelection _, PortType.Input, _ -> Some 9 //this
+        | OldBusSelection _, PortType.Input, _ | BusSelection _, PortType.Input, _ -> Some 10 //this
         | OldBusSelection (bw,_), PortType.Output, _ | BusSelection (bw,_), PortType.Output, _ -> Some bw
 
         | MergeWires, _, _ -> Some 1//this
@@ -427,19 +427,19 @@ let createSymbolCopy (sym:Symbol) isSheetSymbol mousePos=
 let testAsyncROM = AsyncROM {AddressWidth = 4; WordWidth = 2; Data = Map.ofList [(int64(5),int64(2))]}
 let testROM = ROM {AddressWidth = 4; WordWidth = 2; Data = Map.ofList [(int64(5),int64(2))]}
 let testRAM = RAM {AddressWidth = 4; WordWidth = 2; Data = Map.ofList [(int64(5),int64(2))]}
-let testCustom = Custom {Name = "Custom Comp Test"; InputLabels = [("data-in",4);("R/W",1)]; OutputLabels = [("data-out1",2);("data-out2",2);("data-out3",2)] }
+let testCustom = Custom {Name = "Custom Comp Test"; InputLabels = [("DATA",4);("R/W",1)]; OutputLabels = [("out1",2);("out2",2);("out3",2)] }
 
 
 let init () =
     
-    {   SheetSymbol = [createNewSymbol (Input 5) "Input Example" {X=925.+125.;Y=130.}
-                       createNewSymbol (Output 5) "Output Example" {X=925.+415.;Y=130.}
+    {   SheetSymbol = [createNewSymbol (Input 4) "Input Example" {X=925.+125.;Y=130.}
+                       createNewSymbol (Output 4) "Output Example" {X=925.+415.;Y=130.}
                        createNewSymbol (And) "And Example" {X=925.+125.;Y=230.}
                        createNewSymbol (Or) "Or Example" {X=925.+400.;Y=230.}
                        createNewSymbol (Not) "Not Example" {X=925.+260.;Y=230.}
-                       createNewSymbol (MuxN 5) "MuxN Example" {X=925.+125.;Y=370.}
+                       createNewSymbol (MuxN 4) "MuxN Example" {X=925.+125.;Y=370.}
                        createNewSymbol (NbitsAdder 10) "NbitAdder Example" {X=925.+250.;Y=400.}
-                       createNewSymbol (DemuxN 5) "DemuxN Example" {X=925.+385.;Y=370.}
+                       createNewSymbol (DemuxN 4) "DemuxN Example" {X=925.+385.;Y=370.}
                       ]
 
 
@@ -455,7 +455,7 @@ let init () =
                     | 560., 160. -> (createNewSymbol (DemuxN 7) "label" {X=x;Y=y})
                     | 560., 380. -> (createNewSymbol (testCustom) "label" {X=x;Y=y})
                     | 740., 160. -> (createNewSymbol (Output 5) "label" {X=x;Y=y})
-                    | 740., 380. -> (createNewSymbol (Demux4) "label" {X=x;Y=y})
+                    | 740., 380. -> (createNewSymbol (Nand) "label" {X=x;Y=y})
                     | _ -> (createNewSymbol (Xor) "label" {X=x;Y=y}))
     }
         
@@ -558,12 +558,14 @@ let symbolRotation sym =
                 CurrentW = sym.W
             }
 
-
+/// Checks whether two values are close together
 let closeTogether a b = 
     match a, b with 
-    | v1, v2 when abs(v1 - v2) <= 10. -> true
+    | v1, v2 when abs(v1 - v2) <= 10. -> true // Set "closeness" threshold here
     | _ -> false
 
+/// Checks whether a given symbol horizontally aligns with an other symbol in the model
+/// (Sides align with sides and centres with centres)
 let horizontalAlign (sym:Symbol) xPos model =
     let checkSideAlignment (w:float) (s:Symbol) =
         let x = xPos + w
@@ -602,22 +604,20 @@ let horizontalAlign (sym:Symbol) xPos model =
     let rightSide = (None, (allSideComparisons sym.CurrentW)) ||> List.fold (keepClosest sym.CurrentW)
     let centre = (None, (List.map checkCentreAlignment model)) ||> List.fold (keepClosest (sym.CurrentW/2.))
 
+    // Checks which of the three alignments takes priority
     match leftSide, rightSide, centre with
     | None, None, None -> None
     | Some l, None, None -> Some l
-    //| None, Some r, None -> Some (r - sym.CurrentW)
     | Some l, Some r, None when abs(xPos - l) <= abs(xPos + sym.CurrentW - r) -> Some l
     | _, Some r, None -> Some (r - sym.CurrentW)
-    //| None, None, Some c -> Some (c - (sym.CurrentW/2.))
     | Some l, None, Some c when abs(xPos - l) <= abs(xPos + (sym.CurrentW/2.) - c) -> Some l
     | Some l, None, Some c -> Some (c - (sym.CurrentW/2.))
-    //| None, Some r, Some c when abs(xPos + sym.CurrentW - r) <= abs(xPos + (sym.CurrentW/2.) - c) -> Some (r - sym.CurrentW)
-    //| None, Some r, Some c -> Some (c - (sym.CurrentW/2.))
     | Some l, Some r, Some c when (abs(xPos - l) <= abs(xPos + sym.CurrentW - r)) && (abs(xPos - l) <= abs(xPos + (sym.CurrentW/2.) - c)) -> Some l
     | _, Some r, Some c when abs(xPos + sym.CurrentW - r) <= abs(xPos + (sym.CurrentW/2.) - c) -> Some (r - sym.CurrentW)
     | _, _, Some c -> Some (c - (sym.CurrentW/2.))
 
-
+/// Checks whether a given symbol vertically aligns with an other symbol in the model
+/// (Sides align with sides and centres with centres)
 let verticalAlign (sym:Symbol) yPos model =
     let checkSideAlignment h (s:Symbol) =
         let y = yPos + h
@@ -656,17 +656,14 @@ let verticalAlign (sym:Symbol) yPos model =
     let bottomSide = (None, (allSideComparisons sym.CurrentH)) ||> List.fold (keepClosest sym.CurrentH)
     let centre = (None, (List.map checkCentreAlignment model)) ||> List.fold (keepClosest (sym.CurrentH/2.))
 
+    // Checks which of the three alignments takes priority
     match topSide, bottomSide, centre with
     | None, None, None -> None
     | Some t, None, None -> Some t
-    //| None, Some b, None -> Some (b - sym.CurrentH)
     | Some t, Some b, None when abs(yPos - t) <= abs(yPos + sym.CurrentH - b) -> Some t
     | _, Some b, None -> Some (b - sym.CurrentH)
-    //| None, None, Some c -> Some (c - (sym.CurrentH/2.))
     | Some t, None, Some c when abs(yPos - t) <= abs(yPos + (sym.CurrentH/2.) - c) -> Some t
     | Some t, None, Some c -> Some (c - (sym.CurrentH/2.))
-    //| None, Some b, Some c when abs(yPos + sym.CurrentH - b) <= abs(yPos + (sym.CurrentH/2.) - c) -> Some (b - sym.CurrentH)
-    //| None, Some b, Some c -> Some (c - (sym.CurrentH/2.))
     | Some t, Some b, Some c when (abs(yPos - t) <= abs(yPos + sym.CurrentH - b)) && (abs(yPos - t) <= abs(yPos + (sym.CurrentH/2.) - c)) -> Some t
     | _, Some b, Some c when abs(yPos + sym.CurrentH - b) <= abs(yPos + (sym.CurrentH/2.) - c) -> Some (b - sym.CurrentH)
     | _, _, Some c -> Some (c - (sym.CurrentH/2.))
@@ -875,6 +872,7 @@ type private BasicSymbolProps =
         Key: string // special field used by react to detect whether lists have changed, set to symbol Id
     }
 
+// The following functions are component specific add-ons
 
 let private clkTri (props:BasicSymbolProps) (color:string) _ =
     match props.Sym.Type with
@@ -1028,7 +1026,7 @@ let private portLabels (sym:Symbol) (i:int) =
         let (xMargin, yMargin, textAnchor, dominantBaseline) = 
             match sym.Type with 
 
-            | BusSelection _ -> 
+            | BusSelection _ | SplitWire _ -> 
                 match port.PortType with
                 | PortType.Input -> 
                     match sym.Orientation with
@@ -1042,6 +1040,15 @@ let private portLabels (sym:Symbol) (i:int) =
                     | Rotate90clk -> (8., -7., "middle", "middle")
                     | Mirror -> (7., -8., "middle", "middle")
                     | Rotate90antiClk -> (-8., -7., "middle", "middle")
+
+
+            | SplitWire bw ->
+                match sym.Orientation with
+                | Standard -> (-7., 8., "middle", "middle")
+                | Rotate90clk -> (-8., -7., "middle", "middle")
+                | Mirror -> (7., 8., "middle", "middle")
+                | Rotate90antiClk -> (8., -7., "middle", "middle")
+
 
             | _ ->
                 match sym.Orientation with
@@ -1114,11 +1121,20 @@ let private portLabels (sym:Symbol) (i:int) =
             | BusSelection (outBW, outLSB) ->
                 let inputMSB bw =
                     match bw with 
-                    | Some x -> string(x)
+                    | Some x -> string(x-1)
                     | None -> "?"
                 match port.PortType with
                 | PortType.Input -> "[" + (inputMSB port.BusWidth) + "..0]"
                 | PortType.Output -> "[" + string(outBW + outLSB - 1) + ".." + string(outLSB) + "]"
+
+            | SplitWire upperBW ->
+                let outputLSBwidth bw =
+                    match bw with 
+                    | Some x -> string(x-1)
+                    | _ -> failwithf "should not occur"
+                match port.PortType, port.PortNumber with
+                | PortType.Output, Some 0 -> "[" + (outputLSBwidth port.BusWidth) + "..0]"
+                | _ -> ""
 
             | DFF | DFFE -> 
                 match port.PortType, port.PortNumber with
@@ -1192,9 +1208,7 @@ let private symLabel (sym: Symbol) _ =
     ] [str <| $"{symLabel}"] 
 
 
-
-    
-
+/// Renders a symbols main body
 let private renderBasicSymbol =
     FunctionComponent.Of(
         fun (props : BasicSymbolProps) ->
@@ -1219,6 +1233,8 @@ let private renderBasicSymbol =
                 | Demux2 | Demux4 | DemuxN _ -> 30. 
                 | _ -> 0.
 
+            // Dynamically allocate up to 9 vertices for a component's main body. If less than 9 are needed, repeat
+            // the first point to fill the remaing vertices. The fist and last points will also have a line between them.
             let (p1:XYPos, p2:XYPos, p3:XYPos, p4:XYPos, p5:XYPos, p6:XYPos, p7:XYPos, p8:XYPos, p9:XYPos) =
                 match props.Sym.Type with 
                 
