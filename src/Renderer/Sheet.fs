@@ -280,13 +280,13 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                     | Port(portId, portType) -> model, Cmd.none
                     | _ -> failwithf "shouldn't be here!"
 
-        //Copies all selected symbol
+        //Copies all selected symbols
         | X -> model,
                     Symbol.Msg.CopySymbol
                     |> BusWire.Msg.Symbol
                     |> Wire |> Cmd.ofMsg 
          
-                    
+        //Performs Undo and Redo respectively           
         | CtrlZ | CtrlY -> let backupModel = match model.BackupModel with
                                              | Some model -> model
                                              | None -> failwithf "Doesn't happen"
