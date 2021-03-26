@@ -1,15 +1,20 @@
-The below specifications assume no knowledge of Symbol or Sheet other than:
-1. Symbol people own the Port type.
-2. The port type includes enough information for the following to be determined: its position on the canvas, its relative position with respect to the symbol it's attached to and its width.
-
 Where types are ambiguous (SymbolId, PortId, WireId) any definition will work.
 
 # BusWire Messages
 
 ```
-Symbol of Symbol.Msg
-ManualRouting of wireId: WireId * segmentIndex: int * mousePos: XYPos // moves the specified wire segment
-AutoRouteAll // Auto routes all wires from their starting positions
+    | Symbol of Symbol.Msg
+    | ManualRouting of wireId : WireId * segmentIndex : int * mousePos : XYPos
+    | DeleteWire of wireId: WireId
+    | SplitSegment of wireId : WireId * segmentIndex : int * mousePos : XYPos
+    | Select of wireId : WireId
+    | MultipleSelect of wireId : WireId
+    | AutoRouteAll
+    | AutoRouteWire of wireId: WireId
+    | CreateWire of port1 : CommonTypes.Port * port2 : CommonTypes.Port
+    | CreateSheetWire of port : CommonTypes.Port Option * pos : XYPos
+    | DeleteSheetWire
+    | SelectEnclosed of p1: XYPos * p2: XYPos
 ```
 
 # Symbol to BusWire
