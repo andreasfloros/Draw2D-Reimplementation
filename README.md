@@ -15,6 +15,10 @@ The main defect in Issie is the Javascript schematic drawing library Draw2D. Thi
 
 This file contains general documentation for the project.
 
+## Dependencies: 
+node.js (required)
+
+
 ## How to run
 Clone the repo locally and build and run the code in the directory with one of two ways:
 
@@ -24,6 +28,7 @@ Clone the repo locally and build and run the code in the directory with one of t
 Run ```dotnet tool restore``` before ```dotnet fake build``` if it doesn't work as expected. After building with dotnet for the first time you can again build using ```npm run dev```. 
 
 The code is designed so that it will compile fine using both ways. But it is worth noting that the Node library functions will only work under electron, and the dotnet (non-core) library functions only work under dotnet. Also note that the reason for using ```npm run dev``` is that it is a lot faster than build.
+
 
 ## Implemented Features
 ### Symbol-related features:
