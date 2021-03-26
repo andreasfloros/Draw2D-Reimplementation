@@ -390,17 +390,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | (Port (p1, o)), _ -> 
             model, 
             BusWire.Msg.DeleteSheetWire |> Wire |> Cmd.ofMsg
-<<<<<<< HEAD
         | SheetSymbol symbolId, _ ->
             model,
             Symbol.Msg.EndDragging
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
         | _ -> failwithf "not yet done"
-=======
-
-        | _ -> model, Cmd.none
->>>>>>> 358467300fe10af2abe2575ab16d8d95a4c25c3f
 
     | MouseMsg event when event.Op = MouseOp.Move ->   
         match model.SelectedItem with
