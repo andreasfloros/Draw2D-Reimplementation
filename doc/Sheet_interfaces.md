@@ -1,4 +1,16 @@
+# Functions: Helper functions
 
+The following are provided by Sheet for common use and can be found in Helpers.fs
+ 
+```
+type BB = //bounding box
+{
+    TopLeft : XYPos
+    BottomRight : XYPos
+}
+
+ContainsPoint (box: BB) (click: XYPos) : bool //checks whether the user has clicked within a bounding box 
+```
 
 # Functions: Symbol to Sheet 
 
