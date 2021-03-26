@@ -957,7 +957,7 @@ let private circmaker (sym: Symbol) (i:int) =
         | _ -> {X = port.RelativePortPos.X  ; Y = port.RelativePortPos.Y  }
 
     g      []
-        [   if circleRadius = 8. && (calcPointsDist port.PortPos (fst sym.MouseNear) < 13.) then 
+        [   if circleRadius = 8. && (calcPointsDist port.PortPos (fst sym.MouseNear) < 12.) then 
                 circle
                     [ 
                     Cx circPos.X
