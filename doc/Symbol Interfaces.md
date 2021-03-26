@@ -23,14 +23,21 @@ FindSymbol (mousePos: XYPos) (sModel: Model) : Option Symbol.Id // Returns the I
 The following messages are found by Symbol:
 
 ```
+
 | MouseMsg of MouseT // Provides mouse info
 | StartDragging of sId : CommonTypes.SymbolId * pagePos: XYPos // Used to initiate dragging
-| Dragging of sId : CommonTypes.SymbolId * pagePos: XYPos // Used to actually change the position of the selected symbol
-| EndDragging of sId : CommonTypes.SymbolId // Ends dragging 
-| Unselect of sId : CommonTypes.SymbolId // To unselect components (provided by Sheet people)
-| AddCircle of label: string * pagePos: XYPos // Used by demo code to add a circle
-| AddSymbol of CompType: CommonTypes.ComponentType * label: string * pagePos: XYPos // Used to add a new symbol
-| DeleteSymbol of sId:CommonTypes.SymbolId // Used to delete the selected symbol
-| RotateSymbol of sId:CommonTypes.SymbolId  // Used to rotate the selected symbol
-| UpdateSymbolModelWithComponent of CommonTypes.Component // Issie interface
+| Dragging of pagePos: XYPos // Used to actually change the position of the selected symbol
+| EndDragging  // Ends dragging 
+| Unselect of sId : CommonTypes.SymbolId // To unselect a component 
+| AddSymbol of CompType: CommonTypes.ComponentType * label: string * pagePos: XYPos // To add a new symbol
+| CopySymbol // To copy a Symbol
+| DeleteSymbol // To delete the selected symbol
+| RotateSymbol of sId:CommonTypes.SymbolId // To rotate the selected symbol
+| MultipleSelect of sId : CommonTypes.SymbolId * pagePos: XYPos // For selecting multiple components
+| MouseMove of pagePos : XYPos * PortSelect: Port Option // To detect Mouse Move, used by port animations
+| Deselect // Deselects all 
+| SelectEnclosed of p1: XYPos * p2: XYPos // For drag and drop
+| CopySheetSymbol of sId: CommonTypes.SymbolId * pagePos: XYPos // For click and drop menu
+
+
 ```
