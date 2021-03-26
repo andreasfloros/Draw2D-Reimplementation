@@ -436,7 +436,7 @@ let init () =
                        createNewSymbol (Output 5) "Output Example" {X=925.+415.;Y=130.}
                        createNewSymbol (And) "And Example" {X=925.+125.;Y=230.}
                        createNewSymbol (Or) "Or Example" {X=925.+400.;Y=230.}
-                       createNewSymbol (Not) "Not Example" {X=925.+250.;Y=230.}
+                       createNewSymbol (Not) "Not Example" {X=925.+260.;Y=230.}
                        createNewSymbol (MuxN 5) "MuxN Example" {X=925.+125.;Y=370.}
                        createNewSymbol (NbitsAdder 10) "NbitAdder Example" {X=925.+250.;Y=400.}
                        createNewSymbol (DemuxN 5) "DemuxN Example" {X=925.+385.;Y=370.}
