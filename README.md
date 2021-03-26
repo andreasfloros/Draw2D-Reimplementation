@@ -1,14 +1,17 @@
+# Draw2D library re-implementation
+This is a re-implementation of the draw2D library currently used in the digital circuit design application [Issie](https://github.com/tomcl/issie).
+
 **HLP Project 2021**
 
 Team 1
 
 Authors: 
-- Moin Bukhari (Sheet.fs)
-- Andreas Floros (BusWire.fs)
-- Zaid Jafarey (Symbol.fs)
-- Anushka Kulkarni (Sheet.fs)
-- Vasileios Manginas (BusWire.fs)
-- Shaheer Mapara (Symbol.fs)
+- Moin Bukhari
+- Andreas Floros
+- Zaid Jafarey
+- Anushka Kulkarni
+- Vasileios Manginas
+- Shaheer Mapara
 
 This file contains general documentation for the project.
 Module specific documentation can be found in the doc folder.
