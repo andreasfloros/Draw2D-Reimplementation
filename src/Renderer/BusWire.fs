@@ -802,7 +802,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                                     | Some w -> 
                                         let segments = getSegmentsFromWire w
                                         splitSegments mousePos segments segmentIndex
-                                        |> updateWireWithSegments w
+                                        |> updateWireWithSegments {w with HasBeenManualRouted = true}
                                         |> Some
                                     | None -> failwithf "Can't happen")
         updateWireModelWithWires newWires model, Cmd.none 
