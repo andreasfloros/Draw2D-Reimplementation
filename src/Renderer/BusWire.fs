@@ -240,7 +240,7 @@ let view (model:Model) (dispatch: Dispatch<Msg>)=
                             X2 x.WireRenderProps.Segments.Head.End.X
                             Y2 x.WireRenderProps.Segments.Head.End.Y
                             Style [
-                                    Stroke "LightGreen"
+                                    Stroke "#0000ff"
                                     StrokeWidth "2px"
                                     StrokeDasharray "5"
                                   ]] []]
