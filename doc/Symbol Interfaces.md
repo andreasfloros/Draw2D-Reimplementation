@@ -9,12 +9,40 @@ getWidthFromPort (port : Port) : int // Returns the BusWidth of a port
 getPortsFromId (symbolId : SymbolId) (symbolModel : Symbol.Model) : Map<PortId,Port> // Returns all the ports connected to the symbol with the specified Id
 ```
 
-# Functions: Symbol to Sheet 
+# Sheet Interfaces 
 
 The following functions are provided in Symbol for use by the Sheet module:
 
 ```
-FindSymbol (mousePos: XYPos) (sModel: Model) : Option Symbol.Id // Returns the Id of the symbol found on a given XYPos. If no symbol is found, None is returned.
+// gets the bounding box for a Symbol
+getSymbolBBox (symbol: Symbol) : BB
+
+// gets the bounding box for a Port
+createPortBB (port: Port) (x: float) : BB
+
+// Returns a Port if the position of the mouse is within the port bounding box, else returns None 
+FindPort (mousePos: XYPos) (model: Model) : option<Port * PortType>
+
+// Returns a Symbol if the position of the mouse is within the Symbol bounding box, else returns None 
+FindSymbol (mousePos: XYPos) (model: Model) : option<SymbolId>
+
+// Looks for a Sheet-Symbol, used by the drag and drop menu
+findSheetSymbol (mousePos: XYPos) (model: Model) : option<SymbolId>
+
+```
+
+# Issie Interfaces 
+
+The following functions are provided in Symbol for interfacing with Issie:
+```
+// extracts a component with a specific Id from the Model
+extractComponent (symModel: Model) (sId:CommonTypes.ComponentId) : CommonTypes.Component
+
+// extracts Symbol list from the model Model
+extractComponents (symModel: Model) : CommonTypes.Component list = symModel.SymModel
+
+// Looks up a symbol using its Id
+getsymbolFromSymbolId (symbolId: SymbolId) (symModel: Model) : Symbol
 ```
 
 
