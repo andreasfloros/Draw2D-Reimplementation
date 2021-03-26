@@ -21,9 +21,10 @@ This file contains general documentation for the project.
 - Symbol snap
 - Symbol deletion
 - Visible ports on hover near a specific symbol
+- Comprehensive animation on which nearby symbol ports are compatible for connection during wire creation
 
 ### Wire-related features:
-- Wire creation with comprehensive animation on which nearby symbol ports are compatible for connection
+- Wire creation
 - Manual routing for wires
 - Split segment for wires (Ctrl+LeftClick)
 - Intelligent deletion of unecessary segments within wire
@@ -31,6 +32,7 @@ This file contains general documentation for the project.
 - Rounded corners for wires
 
 ### General features:
+- Click-drag-drop demo menu
 - Multiple selection with LeftClick on symbols and wires with Shift pressed
 - Multiple selection with click and drag selection box
 - Multiple item move with Shift pressed and moving one of the selected items
