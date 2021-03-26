@@ -43,7 +43,6 @@ type Msg =
     | CopySymbol
     | DeleteSymbol 
     | RotateSymbol of sId:CommonTypes.SymbolId 
-    | UpdateSymModelWithComponent of CommonTypes.Component // Issie interface
     | MultipleSelect of sId : CommonTypes.SymbolId * pagePos: XYPos
     | MouseMove of pagePos : XYPos * PortSelect: Port Option
     | Deselect
@@ -791,21 +790,6 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
             |> List.map (fun sym ->            
                 {sym with MouseNear = pos , portOpt }
              
-            // let pointchecker = containsPoint (createBBMouseHover sym ((sym.CurrentH),(sym.CurrentW ))) pos
-            
-            // match pointchecker with
-            // |true -> if containsPoint (createBB sym ((sym.CurrentH),(sym.CurrentW ))) pos
-            //          then { sym with 
-            //                     MouseNear = 1.0, portOpt
-            //               }
-
-            //          else { sym with 
-            //                     MouseNear = (distFromBB sym.Pos  (sym.CurrentH,sym.CurrentW) pos ), portOpt
-            //               }
-            // |false -> 
-            //         { sym with 
-            //             MouseNear = 0.0, portOpt
-            //         }
         )}
         , Cmd.none
 
@@ -849,15 +833,6 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
                                      then {sym with IsSelected = true}
                                      else sym)}
         , Cmd.none
-
-    // | SelectEnclosed (p1,p2) ->
-    //     let box = createSelectBox p1 p2
-    //     model 
-    //     |> List.map (fun sym ->
-    //                 let bbox = createBB sym (sym.H, sym.W) 
-    //                 if bBoxesIntersect bbox box
-    //                 then {sym with IsSelected = true}
-    //                 else sym), Cmd.none
 
     | _ -> failwithf "Not implemented"
 
