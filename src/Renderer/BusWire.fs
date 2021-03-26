@@ -651,8 +651,8 @@ let sheetWire (startPort: CommonTypes.Port) (endPos: XYPos) =
 
 // dummy init for demo
 let init () =
-    let initSymbols, symbolCmd = Symbol.init () // for the demo, direct access to symbol model is fine here
-    let initSymbolModel = { Symbol.Model.SymModel = initSymbols }
+    let initSymbolModel, symbolCmd = Symbol.init () // for the demo, direct access to symbol model is fine here
+    let initSymbols = initSymbolModel.SymModel
     
     let startPorts = initSymbols
                     |> List.map (fun s -> 

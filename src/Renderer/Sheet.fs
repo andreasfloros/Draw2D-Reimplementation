@@ -12,6 +12,7 @@ type SelectedItem =
     | Symbol of symbolId: CommonTypes.SymbolId
     | BusWire of wireId: BusWire.WireId  * segmentIndex : int
     | Port of port : CommonTypes.Port * portType : CommonTypes.PortType
+    | SheetSymbol of symbolId: CommonTypes.SymbolId
     | NoItem
     // | BusWire of wireId: BusWire.wireId * segmentIndex: int
 
@@ -189,9 +190,14 @@ let getHit (click: XYPos) (model: Model) =
                 printf "Get hit found a symbol"
                 Symbol sId 
 
-            | None -> 
-                printf "Get hit found nothing"
-                NoItem 
+            | None ->
+                match Symbol.findSheetSymbol click sModel with
+                | Some sId ->
+                    printfn "Get hit found a sheet symbol"
+                    SheetSymbol sId
+                | None ->
+                    printf "Get hit found nothing"
+                    NoItem 
 
 let getStringtoComponentType (s : string) = 
     match s with 
@@ -350,6 +356,13 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | Port(port, portType) -> 
             {model with SelectedItem = selected}, Cmd.none
 
+        | SheetSymbol symbolId ->             
+            {model with SelectedItem = selected}, 
+            (symbolId, event.Pos)
+            |> Symbol.Msg.CopySheetSymbol
+            |> BusWire.Msg.Symbol
+            |> Wire |> Cmd.ofMsg
+
     | MouseMsg event when event.Op = MouseOp.Up -> 
        let isPortSelected = getHit event.Pos model
        match model.SelectedItem, isPortSelected with 
@@ -382,7 +395,11 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | (Port (p1, o)), _ -> 
             model, 
             BusWire.Msg.DeleteSheetWire |> Wire |> Cmd.ofMsg
-
+        | SheetSymbol symbolId, _ ->
+            model,
+            Symbol.Msg.EndDragging
+            |> BusWire.Msg.Symbol
+            |> Wire |> Cmd.ofMsg
         | _ -> failwithf "not yet done"
 
     | MouseMsg event when event.Op = MouseOp.Move ->   
@@ -422,7 +439,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | NoItem -> 
             {model with SelectionBox = {TopLeft= model.SelectionBox.TopLeft; BottomRight = event.Pos}}, 
             Cmd.none
-
+        | SheetSymbol symbolId -> 
+            model,
+            event.Pos 
+            |> Symbol.Msg.Dragging
+            |> BusWire.Msg.Symbol
+            |> Wire |> Cmd.ofMsg
     | MouseMsg event -> model, Cmd.none
 
 

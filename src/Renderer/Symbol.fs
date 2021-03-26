@@ -21,7 +21,8 @@ open CommonTypes
 type Symbol = CommonTypes.Component
 
 type Model = {
-    SymModel :Symbol list
+    SymModel: Symbol list
+    SheetSymbol: Symbol list
 }
 //----------------------------Message Type-----------------------------------//
 
@@ -46,7 +47,8 @@ type Msg =
     | MultipleSelect of sId : CommonTypes.SymbolId * pagePos: XYPos
     | MouseMove of pagePos : XYPos * PortSelect: Port Option
     | Deselect
-    | SelectEnclosed of p1: XYPos * p2: XYPos 
+    | SelectEnclosed of p1: XYPos * p2: XYPos
+    | CopySheetSymbol of sId: CommonTypes.SymbolId * pagePos: XYPos
 
 
 //---------------------------------helper types and functions----------------//
@@ -59,8 +61,12 @@ let createBB (sym: Symbol) (h,w: float) =
     }
 
 let FindSymbol (mousePos: XYPos) (model: Model) = 
-    printf "hey in Find Symbol now"
     match List.tryFind (fun sym -> containsPoint (createBB sym (sym.CurrentH,sym.CurrentW)) mousePos) (model.SymModel) with 
+    | Some sym -> Some sym.Id
+    | None -> None
+
+let findSheetSymbol (mousePos: XYPos) (model: Model) = 
+    match List.tryFind (fun sym -> containsPoint (createBB sym (sym.CurrentH,sym.CurrentW)) mousePos) (model.SheetSymbol) with 
     | Some sym -> Some sym.Id
     | None -> None
 
@@ -389,9 +395,9 @@ let createNewSymbol (compType:CommonTypes.ComponentType) (label:string) (pos:XYP
     } 
 
 
-let createSymbolCopy (sym:Symbol) =
+let createSymbolCopy (sym:Symbol) isSheetSymbol mousePos=
     let symCopyId = SymbolId (Helpers.uuid())
-    let symCopyPos = posAdd sym.Pos {X = 20.;Y = 20.}
+    let symCopyPos = if isSheetSymbol then sym.Pos else posAdd sym.Pos {X = 20.;Y = 20.}
     {
         Id = symCopyId
         Type = sym.Type
@@ -410,9 +416,9 @@ let createSymbolCopy (sym:Symbol) =
         W = sym.W
         CurrentH = sym.CurrentH
         CurrentW = sym.CurrentW
-        LastDragPos = {X=0. ; Y=0.} 
-        IsDragging = false 
-        IsSelected = false
+        LastDragPos = if isSheetSymbol then mousePos else {X=0. ; Y=0.} 
+        IsDragging = isSheetSymbol 
+        IsSelected = isSheetSymbol
         Orientation = sym.Orientation
         MouseNear = (posOf 0.0 0.0),None
     } 
@@ -426,19 +432,21 @@ let testCustom = Custom {Name = "Custom Comp Test"; InputLabels = [("data-in",4)
 
 let init () =
     
-    List.allPairs [1..4] [1..2]
-    |> List.map (fun (x,y) -> {X = float (x*180+20); Y=float (y*220-60)})
-    |> List.map (fun {X=x;Y=y} -> 
-        match (x, y) with 
-        | 200., 160. -> (createNewSymbol (Input 7) "Input Example" {X=x;Y=y})
-        | 200., 380. -> (createNewSymbol (NbitsAdder 10) "label" {X=x;Y=y})
-        | 380., 160. -> (createNewSymbol (BusSelection (5,2)) "New BusSelect" {X=x;Y=y})
-        | 380., 380. -> (createNewSymbol (Xor) "Xor" {X=x;Y=y})
-        | 560., 160. -> (createNewSymbol (DemuxN 7) "label" {X=x;Y=y})
-        | 560., 380. -> (createNewSymbol (testCustom) "label" {X=x;Y=y})
-        | 740., 160. -> (createNewSymbol (Output 5) "label" {X=x;Y=y})
-        | 740., 380. -> (createNewSymbol (Demux4) "label" {X=x;Y=y})
-        | _ -> (createNewSymbol (Xor) "label" {X=x;Y=y}) )
+    {   SheetSymbol = [(createNewSymbol (Input 7) "Input Example" {X=1150.;Y=100.})]
+        SymModel = List.allPairs [1..4] [1..2]
+                |> List.map (fun (x,y) -> {X = float (x*180+20); Y=float (y*220-60)})
+                |> List.map (fun {X=x;Y=y} -> 
+                    match (x, y) with 
+                    | 200., 160. -> (createNewSymbol (Input 7) "Input Example" {X=x;Y=y})
+                    | 200., 380. -> (createNewSymbol (NbitsAdder 10) "label" {X=x;Y=y})
+                    | 380., 160. -> (createNewSymbol (BusSelection (5,2)) "New BusSelect" {X=x;Y=y})
+                    | 380., 380. -> (createNewSymbol (Xor) "Xor" {X=x;Y=y})
+                    | 560., 160. -> (createNewSymbol (DemuxN 7) "label" {X=x;Y=y})
+                    | 560., 380. -> (createNewSymbol (testCustom) "label" {X=x;Y=y})
+                    | 740., 160. -> (createNewSymbol (Output 5) "label" {X=x;Y=y})
+                    | 740., 380. -> (createNewSymbol (Demux4) "label" {X=x;Y=y})
+                    | _ -> (createNewSymbol (Xor) "label" {X=x;Y=y}))
+    }
         
     , Cmd.none
 
@@ -663,7 +671,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
         {model with SymModel = 
                     (List.collect (fun sym ->
                     if sym.IsSelected = true then
-                        [createSymbolCopy sym]
+                        [createSymbolCopy sym false (posOf 0. 0.)]
                     else
                         []
                     ) model.SymModel) 
@@ -675,6 +683,14 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
                         else sym
                     ) model.SymModel)}
         , Cmd.none
+    
+    | CopySheetSymbol (sId,mousePos) ->
+        let symbolToBeAdded = List.find (fun (sym: Symbol)  -> sym.Id = sId) model.SheetSymbol
+        let copy = createSymbolCopy symbolToBeAdded true mousePos
+        let newSymbolList = model.SymModel @ [copy]
+                            |> List.map (fun sym -> if sym.Id = copy.Id then sym else {sym with IsSelected = false})
+        {model with SymModel = newSymbolList}, Cmd.ofMsg (Dragging mousePos)
+        
 
     | DeleteSymbol -> 
     {model with SymModel = List.filter (fun sym -> sym.IsSelected = false) model.SymModel}, Cmd.none
@@ -1168,7 +1184,7 @@ let private symLabel (sym: Symbol) _ =
 
     
 
-let private renderBasicSymbol = 
+let private renderBasicSymbol =
     FunctionComponent.Of(
         fun (props : BasicSymbolProps) ->
 
@@ -1355,7 +1371,7 @@ let private renderBasicSymbol =
 
 /// View function for symbol layer of SVG
 let view (model : Model) (dispatch : Msg -> unit) : ReactElement = 
-    (List.rev model.SymModel)
+    model.SheetSymbol @ (List.rev model.SymModel)
     |> List.map (  fun sym -> renderBasicSymbol {    Sym = sym 
                                                      Dispatch = dispatch      
                                                      Key = string(sym.Id)  
