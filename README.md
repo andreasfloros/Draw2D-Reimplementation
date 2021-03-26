@@ -21,6 +21,7 @@ Clone the repo locally and run the code in the directory with one of two ways:
 (1) Run build or npm run dev (for first time the former rather than the latter is mandatory) commands from a command line (obviously, you need to be in this directory to run these commands). Doing this, the code is compiled in JS by FABLE (F# to JS compiler), and run under electron. That way you have a working GUI and all the HTML javascript interface (for example SVG) works, with Node/electron libraries. 
 
 (2) Build the code under Visual Studio under dotnet with ```dotnet fake build```. Doing this, the code will compile under dotnet, with dotnet libraries.
+Run ```dotnet tool restore``` before ```dotnet fake build``` if it doesn't work as expected.
 
 The code is designed so that it will compile OK both ways. But the Node library functions will only work under electron, and the dotnet (non-core) library functions only work under dotnet.
 
