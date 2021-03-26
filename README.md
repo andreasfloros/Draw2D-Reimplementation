@@ -23,7 +23,7 @@ Clone the repo locally and build and run the code in the directory with one of t
 (2) Build the code in Visual Studio under dotnet with ```dotnet fake build```. Doing this, the code will compile under dotnet, with dotnet libraries.
 Run ```dotnet tool restore``` before ```dotnet fake build``` if it doesn't work as expected. After building with dotnet for the first time you can again build using ```npm run dev```. 
 
-The code is designed so that it will compile OK both ways. But the Node library functions will only work under electron, and the dotnet (non-core) library functions only work under dotnet. Note that the reason for using ```npm run dev``` is that it is a lot faster than build.
+The code is designed so that it will compile fine using both ways. But it is worth noting that the Node library functions will only work under electron, and the dotnet (non-core) library functions only work under dotnet. Also note that the reason for using ```npm run dev``` is that it is a lot faster than build.
 
 ## Implemented Features
 ### Symbol-related features:
@@ -69,7 +69,9 @@ DEL | Delete selected items
 X | Copy and paste selected symbols
 R | Rotation of selected symbol
 
-
+### Half-implemented features
+- Zoom: Currently this has been commented out from the Sheet Messages (Ctrl+Minus/Ctrl+Plus) due to incomplete implementation. Ctrl+Minus and Ctrl+Plus do work by themselves with regards to zooming but when zoomed in or out other features (e.g. selection) don't work.
+- Menu/Catalogue: This requires extension for using the complete set of available symbol . This has not yet been done as it wasn't required for demoing functionality. Symbols for this can be added in the Symbol init function in the list SheetSymbol.
 
 ## Interface Documentation
 General documentation for module interaction as well as module specific interface documentation can be found in the doc folder. There is a seperate .md file for each module besides a general_description.md file for more general/non-module-specific information.
