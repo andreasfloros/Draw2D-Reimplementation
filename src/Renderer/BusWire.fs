@@ -767,14 +767,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                                                else 
                                                     w)
         updateWireModelWithWires newWires model, Cmd.none
-    | Deselect wId -> 
-        let newWires = model
-                       |> getWiresFromWireModel
-                       |> Map.map (fun id w -> if id = wId then 
-                                                    {w with WireRenderProps = {getWirePropsFromWire w with IsSelected = false}}
-                                               else 
-                                                    w)
-        updateWireModelWithWires newWires model, Cmd.none
+
     | CreateWire (port1,port2) ->
         let newModel = {model with SheetWire = None}
         let newWires = newModel

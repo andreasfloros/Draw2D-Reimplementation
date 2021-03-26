@@ -24,10 +24,11 @@ type SelectedItem =
     SelectedItem: SelectedItem
     Zoom: float
     SelectionBox: Box
+    BackupModel: Model option
     }
 
 type KeyboardMsg =
-    | CtrlS | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | R | CtrlPlus | CtrlMinus | X
+    | CtrlS | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | R | CtrlPlus | CtrlMinus | X | CtrlZ | CtrlY
 
 type Msg =
     | Wire of BusWire.Msg
@@ -215,7 +216,14 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     match msg with
     | Wire wMsg ->
         let wModel, wCmd = BusWire.update wMsg model.Wire
-        {model with Wire = wModel}, Cmd.map Wire wCmd
+        {model with Wire = wModel
+                    BackupModel = match wMsg with 
+                                  | BusWire.Msg.Symbol (Symbol.Msg.MouseMove (a,b)) -> model.BackupModel
+                                  | BusWire.Msg.Symbol (Symbol.Msg.Dragging (a)) -> model.BackupModel
+                                  | BusWire.Msg.Symbol (Symbol.Msg.EndDragging) -> model.BackupModel
+                                  | BusWire.Msg.ManualRouting (a,b,c) -> model.BackupModel
+                                  | _ -> Some model
+        }, Cmd.map Wire wCmd
 
     | KeyPress s ->
         match s with 
@@ -245,38 +253,38 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | F -> newSymbol "Nand" model
         | G -> newSymbol "Nor" model
         | H -> newSymbol "Decode4" model
-        | W -> printfn "asfas"
-               match model.SelectedItem with
+        | W -> match model.SelectedItem with
                | BusWire (wId,_) ->
                    let wModel, wCmd = BusWire.update (BusWire.AutoRouteWire wId) model.Wire
-                   {model with Wire = wModel}, Cmd.map Wire wCmd
+                   {model with Wire = wModel ; BackupModel = Some model}, Cmd.none
                | _ -> model, Cmd.none
 
         | CtrlW -> let wModel, wCmd = BusWire.update (BusWire.AutoRouteAll) model.Wire
-                   {model with Wire = wModel}, Cmd.map Wire wCmd
+                   {model with Wire = wModel ; BackupModel = Some model}, Cmd.none
 
-        | R -> 
-            printf "HELLO YOU HAVE PRESSED rotate"
-            let selected = model.SelectedItem
-            match selected with 
-                | Symbol symbolID ->
-                    model,
-                    symbolID
-                    |> Symbol.Msg.RotateSymbol
-                    |> BusWire.Msg.Symbol
-                    |> Wire |> Cmd.ofMsg
-                | BusWire _ -> model,Cmd.none
-                | NoItem -> model,Cmd.none
-                | Port(portId, portType) -> failwith "Not Implemented"
+        | R -> let selected = model.SelectedItem
+               match selected with 
+                    | Symbol symbolID ->
+                        model,
+                        symbolID
+                        |> Symbol.Msg.RotateSymbol
+                        |> BusWire.Msg.Symbol
+                        |> Wire |> Cmd.ofMsg
+                    | BusWire _ -> model,Cmd.none
+                    | NoItem -> model,Cmd.none
+                    | Port(portId, portType) -> failwith "Not Implemented"
+            
 
-        | X -> 
-            printf "HELLO YOU HAVE PRESSED copy"
-            model,
+        | X -> model,
                     Symbol.Msg.CopySymbol
                     |> BusWire.Msg.Symbol
-                    |> Wire |> Cmd.ofMsg
+                    |> Wire |> Cmd.ofMsg    
+         
                     
-                
+        | CtrlZ | CtrlY -> let backupModel = match model.BackupModel with
+                                     | Some model -> model
+                                     | None -> failwithf "Doesn't happen"
+                           {backupModel with BackupModel = Some model}, Cmd.none
 
         | _ -> failwithf "not yet done"
 
@@ -311,8 +319,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> Symbol.Msg.StartDragging
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
-            
-
+        
+        
         | BusWire (wireId,x) -> 
             {model with SelectedItem = selected}, 
             wireId 
@@ -363,7 +371,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | _ -> failwithf "not yet done"
 
     | MouseMsg event when event.Op = MouseOp.Move ->   
-        match model.SelectedItem with 
+        match model.SelectedItem with
         | Port (p, pType) -> {model with SelectedItem = NoItem}, 
                               BusWire.Msg.DeleteSheetWire 
                               |> Wire |> Cmd.ofMsg
@@ -379,7 +387,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | Symbol symbolId -> 
             model,
             event.Pos 
-            |> Symbol.Msg.Dragging 
+            |> Symbol.Msg.Dragging
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
         | BusWire (wId, segmentIndex) ->
@@ -389,7 +397,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 |> BusWire.Msg.ManualRouting
                 |> Wire
                 |> Cmd.ofMsg
-        | Port (p1, pType) -> 
+        | Port (p1, pType) ->
             model,
             ( Some p1, event.Pos)
             |> BusWire.Msg.CreateSheetWire
@@ -398,14 +406,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         | NoItem -> 
             {model with SelectionBox = {p1= model.SelectionBox.p1; p2 = event.Pos}}, 
             Cmd.none
-           
-       
 
-    | MouseMsg event -> model, Cmd.none 
-
-
-
-
+    | MouseMsg event -> model, Cmd.none
 
 
 
@@ -417,7 +419,7 @@ let init() =
         SelectedItem = NoItem
         Zoom = 1.0
         
-        SelectionBox= {p1 = a
-                       p2 = a}
-
+        SelectionBox = {p1 = a
+                        p2 = a}
+        BackupModel = None
     }, Cmd.map Wire cmds

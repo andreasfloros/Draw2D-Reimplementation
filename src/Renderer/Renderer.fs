@@ -54,6 +54,8 @@ module Renderer
                    makeKeyItem "Rotate Symbol" "R" (fun () -> dispatch R)
                    makeKeyItem "Copy Symbol" "X" (fun () -> dispatch X)
                    makeKeyItem "AutoRoutWire" "W" (fun () -> dispatch W)
+                   makeKeyItem "Undo" "CmdOrCtrl+Z" (fun () -> dispatch CtrlZ)
+                   makeKeyItem "Redo" "CmdOrCtrl+Y" (fun () -> dispatch CtrlY)
                    menuSeparator
                    makeKeyItem "Print Statistics" "Alt+Shift+Z" (fun () -> dispatch AltShiftZ)
                    makeRoleItem MenuItemRole.ForceReload
