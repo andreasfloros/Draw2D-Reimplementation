@@ -426,7 +426,7 @@ let createSymbolCopy (sym:Symbol) isSheetSymbol mousePos=
 let testAsyncROM = AsyncROM {AddressWidth = 4; WordWidth = 2; Data = Map.ofList [(int64(5),int64(2))]}
 let testROM = ROM {AddressWidth = 4; WordWidth = 2; Data = Map.ofList [(int64(5),int64(2))]}
 let testRAM = RAM {AddressWidth = 4; WordWidth = 2; Data = Map.ofList [(int64(5),int64(2))]}
-let testCustom = Custom {Name = "Custom Comp Test"; InputLabels = [("DATA",4);("R/W",1)]; OutputLabels = [("out1",2);("out2",2);("out3",2)] }
+let testCustom = Custom {Name = "Custom Comp Test"; InputLabels = [("DATA",4);("R/W",1)]; OutputLabels = [("out_1",2);("out_2",2);("out_3",2)] }
 
 
 let init () =
@@ -450,11 +450,11 @@ let init () =
                     | 200., 160. -> (createNewSymbol (Input 7) "Input Example" {X=x;Y=y})
                     | 200., 380. -> (createNewSymbol (NbitsAdder 10) "label" {X=x;Y=y})
                     | 380., 160. -> (createNewSymbol (BusSelection (5,2)) "BusSelect1" {X=x;Y=y})
-                    | 380., 380. -> (createNewSymbol (MergeWires) "label" {X=x;Y=y})
+                    | 380., 380. -> (createNewSymbol (testRAM) "label" {X=x;Y=y})
                     | 560., 160. -> (createNewSymbol (DemuxN 7) "label" {X=x;Y=y})
                     | 560., 380. -> (createNewSymbol (testCustom) "label" {X=x;Y=y})
                     | 740., 160. -> (createNewSymbol (Output 5) "label" {X=x;Y=y})
-                    | 740., 380. -> (createNewSymbol (SplitWire 5) "label" {X=x;Y=y})
+                    | 740., 380. -> (createNewSymbol (MuxN 4) "label" {X=x;Y=y})
                     | _ -> (createNewSymbol (Xor) "label" {X=x;Y=y}))
     }
         
