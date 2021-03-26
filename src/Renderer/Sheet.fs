@@ -33,13 +33,13 @@ type Msg =
     | MouseMsg of MouseT
     
 
-let constantGridLines = gridLines 925 1100
+let constantGridLines = gridLines 925 850
 
 let constantDemoMenu = 
     [                    // adds menu
         polygon 
                 [
-                SVGAttr.Points ("925,0 1444,0 1444,745 925,755")
+                SVGAttr.Points ("925,0 1444,0 1444,850 925,850")
                 SVGAttr.StrokeWidth "2px"
                 SVGAttr.Stroke "Black"
                 SVGAttr.FillOpacity 0.5
@@ -131,7 +131,7 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
             [ 
                 // Height "100vh" 
                 // MaxWidth "100vw"
-                Height 745.
+                Height 850.
                 MaxWidth sizeInPixels
                 //CSSProp.OverflowX OverflowOptions.Auto 
                 //CSSProp.OverflowY OverflowOptions.Auto
@@ -157,7 +157,7 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
             [ Style [
                         Transform (sprintf "scale(%f)" zoom)
                         Border "3px solid black"
-                        Height sizeInPixels
+                        Height 850.
                         Width sizeInPixels
                     ]   //ViewBox viewBoxArg
                 ] // top-level transform style attribute for zoom
