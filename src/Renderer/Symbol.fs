@@ -59,16 +59,6 @@ let createBB (sym: Symbol) (h,w: float) =
         BottomRight = {X =  sym.Pos.X + w ; Y = sym.Pos.Y + h}
     }
 
-let FindSymbol (mousePos: XYPos) (model: Model) = 
-    match List.tryFind (fun sym -> containsPoint (createBB sym (sym.CurrentH,sym.CurrentW)) mousePos) (model.SymModel) with 
-    | Some sym -> Some sym.Id
-    | None -> None
-
-let findSheetSymbol (mousePos: XYPos) (model: Model) = 
-    match List.tryFind (fun sym -> containsPoint (createBB sym (sym.CurrentH,sym.CurrentW)) mousePos) (model.SheetSymbol) with 
-    | Some sym -> Some sym.Id
-    | None -> None
-
 let getSelectedSymbols (model: Model) = 
     model.SymModel |> List.filter (fun sym -> (sym.IsSelected = true))
                       |> List.map (fun s -> s.Id)
@@ -96,13 +86,7 @@ let distFromBB (symPos: XYPos)  (h,w: float)  (mPos : XYPos)  : float=
 
 
 
-
-//-----------------------------Skeleton Model Type for symbols----------------//
-
-
-
-
-//-----------------------Skeleton Message type for symbols---------------------//
+//-----------------------Code---------------------//
 
 
 type CompProps = {
@@ -1398,16 +1382,17 @@ let updateSymModelWithComponent (symModel: Model) (comp:CommonTypes.Component) :
 
 //----------------------interface to Issie-----------------------------//
 
+// extracts a component with a specific Id from the Model
 let extractComponent //Issie
         (symModel: Model) 
         (sId:CommonTypes.ComponentId) : CommonTypes.Component = 
     List.find (fun (sym:Symbol) -> sym.Id = SymbolId(string(sId))) symModel.SymModel
 
-
+// extracts Symbol list from the model Model
 let extractComponents (symModel: Model) : CommonTypes.Component list = symModel.SymModel // issie
 
 
-/// Looks up a symbol using its Id
+// Looks up a symbol using its Id
 let getsymbolFromSymbolId (symbolId: SymbolId) (symModel: Model) : Symbol = // issie
     List.find (fun (sym:Symbol) -> sym.Id = symbolId) symModel.SymModel
 
@@ -1483,17 +1468,18 @@ let getPortsMapOfSelectedSymbolList (model : Model) : Map<string,Port>  = // wir
 
     //----------------------interface to Sheet----------------------------//
 
-
-let getSymbolBBox (symbol: Symbol) : BB = // SHeet
+// gets the bounding box for a Symbol
+let getSymbolBBox (symbol: Symbol) : BB = // Sheet
     boxOf (posAdd symbol.Pos (posOf 20.0 20.0)) (posDiff symbol.Pos (posOf 20.0 20.0))
 
-
+// gets the bounding box for a Port
 let createPortBB (port: Port) (x: float) : BB = // sheet
     {
         TopLeft = {X = port.PortPos.X - x ; Y = port.PortPos.Y - x }
         BottomRight = {X = port.PortPos.X + x ; Y = port.PortPos.Y + x}
     }
 
+// Returns a Port if the position of the mouse is within the port bounding box, else returns None 
 let FindPort (mousePos: XYPos) (model: Model) : option<Port * PortType> =  // Sheet
     let s = model.SymModel |> List.map (fun sym -> 
                             match List.tryFind (fun p -> containsPoint (createPortBB p 10.) mousePos) sym.Ports with 
@@ -1504,3 +1490,14 @@ let FindPort (mousePos: XYPos) (model: Model) : option<Port * PortType> =  // Sh
     | [] -> None 
     | s -> s.[0]
 
+// Returns a Symbol if the position of the mouse is within the Symbol bounding box, else returns None 
+let FindSymbol (mousePos: XYPos) (model: Model) : option<SymbolId> = 
+    match List.tryFind (fun sym -> containsPoint (createBB sym (sym.CurrentH,sym.CurrentW)) mousePos) (model.SymModel) with 
+    | Some sym -> Some sym.Id
+    | None -> None
+
+// Looks for a Sheet-Symbol, used by the drag and drop menu
+let findSheetSymbol (mousePos: XYPos) (model: Model) : option<SymbolId> = 
+    match List.tryFind (fun sym -> containsPoint (createBB sym (sym.CurrentH,sym.CurrentW)) mousePos) (model.SheetSymbol) with 
+    | Some sym -> Some sym.Id
+    | None -> None
