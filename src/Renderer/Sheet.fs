@@ -52,30 +52,34 @@ let createBox(box : Box) =
             SVGAttr.Points $"{p2.X},{p2.Y} {p1.X},{p2.Y} {p1.X},{p1.Y} {p2.X},{p1.Y} "
             SVGAttr.StrokeWidth "2px"
             SVGAttr.Stroke "Black"
+            SVGAttr.StrokeDasharray "5"
             SVGAttr.FillOpacity 0.1
-            SVGAttr.Fill "Blue"] []
+            SVGAttr.Fill "#7a9bff"] []
 
     elif p2.X > p1.X && p2.Y < p1.Y then 
         polygon [
             SVGAttr.Points $"{p1.X},{p2.Y} {p2.X},{p2.Y} {p2.X},{p1.Y} {p1.X},{p1.Y} "
             SVGAttr.StrokeWidth "2px"
             SVGAttr.Stroke "Black"
+            SVGAttr.StrokeDasharray "5"
             SVGAttr.FillOpacity 0.1
-            SVGAttr.Fill "Blue"] []
+            SVGAttr.Fill "#7a9bff"] []
     elif p2.X < p1.X && p2.Y > p1.Y then 
         polygon [
             SVGAttr.Points $"{p2.X},{p1.Y} {p1.X},{p1.Y} {p1.X},{p2.Y} {p2.X},{p2.Y} "
             SVGAttr.StrokeWidth "2px"
             SVGAttr.Stroke "Black"
+            SVGAttr.StrokeDasharray "5"
             SVGAttr.FillOpacity 0.1
-            SVGAttr.Fill "Blue"] []
+            SVGAttr.Fill "#7a9bff"] []
     else 
         polygon [
             SVGAttr.Points $"{p1.X},{p1.Y} {p2.X},{p1.Y} {p2.X},{p2.Y} {p1.X},{p2.Y} "
             SVGAttr.StrokeWidth "2px"
             SVGAttr.Stroke "Black"
+            SVGAttr.StrokeDasharray "5"
             SVGAttr.FillOpacity 0.1
-            SVGAttr.Fill "Blue"] []
+            SVGAttr.Fill "#7a9bff"] []
 
 let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch<Msg>)=
     let sizeInPixels = sprintf "%.2fpx" ((2000. * zoom))
