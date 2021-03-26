@@ -7,7 +7,7 @@ open Elmish.React
 
 open Helpers
 
-
+// SelectedItem allows Sheet to have information on which item is currently selected 
 type SelectedItem = 
     | Symbol of symbolId: CommonTypes.SymbolId
     | BusWire of wireId: BusWire.WireId  * segmentIndex : int
@@ -135,7 +135,7 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
                         Transform (sprintf "scale(%f)" zoom)
                         Border "3px solid black"
                         Height sizeInPixels
-                        Width sizeInPixels    
+                        Width sizeInPixels
                     ]   //ViewBox viewBoxArg
                 ] // top-level transform style attribute for zoom
 
@@ -279,12 +279,12 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                     | BusWire _ -> model,Cmd.none
                     | NoItem -> model,Cmd.none
                     | Port(portId, portType) -> failwith "Not Implemented"
-            
+
 
         | X -> model,
                     Symbol.Msg.CopySymbol
                     |> BusWire.Msg.Symbol
-                    |> Wire |> Cmd.ofMsg    
+                    |> Wire |> Cmd.ofMsg 
          
                     
         | CtrlZ | CtrlY -> let backupModel = match model.BackupModel with

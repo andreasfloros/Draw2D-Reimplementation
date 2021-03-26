@@ -33,21 +33,6 @@ let splitSegmentsAtEndSeg isStart (segments: Segment list)=
     if segmentIndex = 0 then [newPortSeg; segOf newPortSeg.End newPortSeg.End] @ modifiedSegments
     else modifiedSegments @ [segOf newPortSeg.Start newPortSeg.Start; newPortSeg]
 
-let splitSegments (mousePos: XYPos) (segments: Segment list) (segmentIndex: int)=
-    let segment = segments.[segmentIndex]
-    if lenOfSeg segment <> 0. then
-        let posToSplit =
-            match dirOfSeg segment |> isHorizontalDir with
-            | true -> posOf mousePos.X segment.Start.Y
-            | false -> posOf segment.Start.X mousePos.Y
-        segments
-        |> List.mapi (fun id seg ->
-                            if id = segmentIndex 
-                            then [segOf seg.Start posToSplit; segOf posToSplit posToSplit; segOf posToSplit seg.End]
-                            else [seg])
-        |> List.collect id
-    else segments
-
 //unused, might be useful for implementing a better auto router later
 let segmentIntersectsWithSymbols segment symbolsMap =
     let symbolThatIntersectsWithSegment _symbolId symbol=
@@ -794,18 +779,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                            |> Map.add (generateWireId()) (createWire port1.Id port1 port2.Id port2)
         updateWireModelWithWires newWires newModel, Cmd.none
 
-    | SplitSegment (wireId,segmentIndex,mousePos) -> 
-        let newWires =
-            getWiresFromWireModel model
-            |> Map.change wireId (fun wireOpt ->
-                                    match wireOpt with
-                                    | Some w -> 
-                                        let segments = getSegmentsFromWire w
-                                        splitSegments mousePos segments segmentIndex
-                                        |> updateWireWithSegments {w with HasBeenManualRouted = true}
-                                        |> Some
-                                    | None -> failwithf "Can't happen")
-        updateWireModelWithWires newWires model, Cmd.none 
+    | SplitSegment (wireId,segmentIndex,mousePos) -> model, Cmd.none 
 
     | CreateSheetWire (Some port, pos) -> 
         {model with SheetWire = Some (sheetWire port pos)}, (pos, Some port) |> Symbol.Msg.MouseMove |> Symbol |> Cmd.ofMsg

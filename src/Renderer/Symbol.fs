@@ -724,7 +724,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<'a>  =
         {model with 
             SymModel = model.SymModel 
             |> List.map (fun sym -> {sym with IsSelected = false})}, Cmd.none
-                
+
     | Dragging pagePos ->
         {model with
             SymModel = model.SymModel
