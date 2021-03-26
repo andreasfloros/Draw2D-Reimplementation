@@ -33,7 +33,7 @@ findSheetSymbol (mousePos: XYPos) (model: Model) : option<SymbolId>
 
 # Issie Interfaces 
 
-The following functions are provided in Symbol forinterfacing with Issie:
+The following functions are provided in Symbol for interfacing with Issie:
 ```
 // extracts a component with a specific Id from the Model
 extractComponent (symModel: Model) (sId:CommonTypes.ComponentId) : CommonTypes.Component
