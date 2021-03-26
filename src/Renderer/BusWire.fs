@@ -126,7 +126,7 @@ type Msg =
     | Symbol of Symbol.Msg
     | ManualRouting of wireId : WireId * segmentIndex : int * mousePos : XYPos
     | DeleteWire of wireId: WireId
-    | SetColor of CommonTypes.HighLightColor
+    | SplitSegment of wireId : WireId * segmentIndex : int * mousePos : XYPos
     | Select of wireId : WireId
     | MultipleSelect of wireId : WireId
     | AutoRouteAll
@@ -733,6 +733,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                        |> Map.map autoRouteWire
         model
         |> updateWireModelWithWires newWires, Cmd.none
+
     | AutoRouteWire wId ->
         let newWires = getWiresFromWireModel model
                        |> Map.change wId (fun wireOpt ->
@@ -774,7 +775,10 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                        | false ->
                            oldWires
                            |> Map.add (generateWireId()) (createWire port1.Id port1 port2.Id port2)
-        updateWireModelWithWires newWires newModel, Cmd.none       
+        updateWireModelWithWires newWires newModel, Cmd.none
+
+    | SplitSegment (wireId,segmentIndex,mousePos) -> model, Cmd.none 
+        
     | CreateSheetWire (Some port, pos) -> 
         {model with SheetWire = Some (sheetWire port pos)}, (pos, Some port) |> Symbol.Msg.MouseMove |> Symbol |> Cmd.ofMsg
     | DeleteSheetWire ->

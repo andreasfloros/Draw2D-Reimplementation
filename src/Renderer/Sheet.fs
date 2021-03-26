@@ -92,6 +92,10 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
     
     let mShift (ev:Types.MouseEvent) = 
         ev.shiftKey = true
+
+    let mCtrl (ev:Types.MouseEvent) = 
+        ev.ctrlKey = true
+
     /// Dispatch a BusWire MouseMsg message
     /// the screen mouse coordinates are compensated for the zoom transform
     let mouseOp op (ev:Types.MouseEvent) = 
@@ -114,11 +118,9 @@ let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch
 
           Id "Container"
           OnMouseDown (fun ev -> 
-                        if mShift ev
-                        then (mouseOp MouseOp.Shift ev)
+                        if mShift ev then (mouseOp MouseOp.Shift ev)
+                        else if mCtrl ev then (mouseOp MouseOp.Ctrl ev)
                         else (mouseOp MouseOp.Down ev))
-
-
 
           OnMouseUp (fun ev -> (mouseOp MouseOp.Up ev))
 
@@ -288,6 +290,19 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
         | _ -> failwithf "not yet done"
 
+
+    | MouseMsg event when event.Op = MouseOp.Ctrl -> 
+        let selected = getHit event.Pos model
+        match selected with
+        | BusWire (wireId,segmentIndex) -> 
+            {model with SelectedItem = selected}, 
+                    (wireId, segmentIndex, event.Pos)
+                    |> BusWire.Msg.SplitSegment
+                    |> Wire
+                    |> Cmd.ofMsg
+        | _ -> model, Cmd.none
+
+
     | MouseMsg event when event.Op = MouseOp.Shift ->
         let selected = getHit event.Pos model
         match selected with
@@ -391,7 +406,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
         | BusWire (wId, segmentIndex) ->
-            (if segmentIndex = 0 && (lenOfSeg (BusWire.getSegmentsFromWire (BusWire.getWireFromWireModel model.Wire wId)).Head) > portLength + 10.// see manualRoute function in BusWire for info on this
+            let zeroSeg = (lenOfSeg (BusWire.getSegmentsFromWire (BusWire.getWireFromWireModel model.Wire wId)).Head) > portLength + 10.
+            (if segmentIndex = 0 && zeroSeg // see manualRoute in BusWire for info on this
              then {model with SelectedItem = BusWire (wId,2)} else model), 
             (wId, segmentIndex, event.Pos)
                 |> BusWire.Msg.ManualRouting

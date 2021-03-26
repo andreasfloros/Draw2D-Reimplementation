@@ -28,6 +28,7 @@ type MouseOp =
     | Drag
 
     | Shift
+    | Ctrl
 
 type MouseT = {
     Pos: XYPos
