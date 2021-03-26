@@ -1,7 +1,7 @@
 ## Communication between modules for mouse clicks
 Sheet has a function called getHit(point: XYPos) which has as parameter the position that has been clicked on the canvas. This function will then query Port, Wire, Symbol, then SheetSymbol respectively to find out what has been clicked. This priority was a design decision for optimal functionality. If something has been clicked, then the unique id of that module is returned to sheet, which then sends the mouse messages accordingly.
 
-Symbol and wire will use the bounding box functions to perform a search to find out which symbol/wire has been clicked, and return that information to sheet.
+Symbol and BusWire modules will use the bounding box functions to perform a search to find out which symbol/wire has been clicked, and return that information to sheet.
 
 ## Selecting Items
 
