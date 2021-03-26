@@ -49,8 +49,8 @@ module Renderer
                   [makeKeyItem "Default" "CmdOrCtrl+S" (fun () -> dispatch CtrlS)
                    makeKeyItem "Delete Selected"  "Delete" (fun () -> dispatch DEL)
                    makeKeyItem "AutoRouteAll" "CmdOrCtrl+W" (fun () -> dispatch CtrlW)
-                   makeKeyItem "Zoom In" "CmdOrCtrl+="  (fun () -> dispatch CtrlPlus)
-                   makeKeyItem "Zoom Out" "CmdOrCtrl+-" (fun () -> dispatch CtrlMinus)
+                    //    makeKeyItem "Zoom In" "CmdOrCtrl+="  (fun () -> dispatch CtrlPlus)
+                    //    makeKeyItem "Zoom Out" "CmdOrCtrl+-" (fun () -> dispatch CtrlMinus)
                    makeKeyItem "Rotate Symbol" "R" (fun () -> dispatch R)
                    makeKeyItem "Copy Symbol" "X" (fun () -> dispatch X)
                    makeKeyItem "AutoRoutWire" "W" (fun () -> dispatch W)
@@ -64,18 +64,6 @@ module Renderer
                    ]
 
 
-    let symMenu dispatch =
-        makeMenu "New" 
-                  [makeMenu "Symbol"                  
-                      [makeKeyItem "Xnor" "A" (fun () -> dispatch A)
-                       makeKeyItem "And" "B" (fun () -> dispatch B)
-                       makeKeyItem "Not" "C" (fun () -> dispatch C)
-                       makeKeyItem "Or"  "D" (fun () -> dispatch D)
-                       makeKeyItem "Xor" "E" (fun () -> dispatch E)
-                       makeKeyItem "Nand" "F" (fun () -> dispatch F)
-                       makeKeyItem "Nor" "G" (fun () -> dispatch G)
-                       makeKeyItem "Decode4" "H" (fun () -> dispatch H)]]
-
     
     let attachMenusAndKeyShortcuts dispatch =
         let sub dispatch =
@@ -83,8 +71,7 @@ module Renderer
                 [| 
                     editMenu dispatch 
 
-                    symMenu dispatch
-                
+            
                 |]       
                 |> Array.map U2.Case1
                 |> electron.remote.Menu.buildFromTemplate   

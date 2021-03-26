@@ -25,7 +25,7 @@ type SelectedItem =
     }
 
 type KeyboardMsg =  
-    | CtrlS | AltShiftZ | DEL | A | B | C | D | E | F | G | H | I | CtrlW | W | R | CtrlPlus | CtrlMinus | X | CtrlZ | CtrlY
+    | CtrlS | AltShiftZ | DEL | CtrlW | W | R | CtrlPlus | CtrlMinus | X | CtrlZ | CtrlY
 
 type Msg =
     | Wire of BusWire.Msg
@@ -57,13 +57,7 @@ let constantDemoMenu =
                  ] [str <| sprintf "Catalogue"]
     ]
 
-//let Zoom = 1.
-/// Determines top-level zoom, > 1 => magnify.
-/// This should be moved into the model as state
-/// This function zooms an SVG canvas by transforming its content and altering its size.
-/// Currently the zoom expands based on top left corner. Better would be to collect dimensions
-/// current scroll position, and chnage scroll position to keep centre of screen a fixed point.
-/// 
+
 let createBox(box : BB) =
     let p1 = box.TopLeft
     let p2 = box.BottomRight
@@ -103,17 +97,18 @@ let createBox(box : BB) =
 
 let displaySvgWithZoom (zoom:float) (svgReact: ReactElement) (dispatch: Dispatch<Msg>)=
     let sizeInPixels = sprintf "%.2fpx" ((1450. * zoom))
-    //let halfSize = "500."
-    //let size = "1000."
-    //let viewBoxArg = ("-" + halfSize + " " + "-" + halfSize + " " + size + " " + size)
-    /// Is the mouse button currently down?
+
+    
     let container = document.getElementById("Container")
     let rect = if container <> null then 
                     container.getBoundingClientRect() 
                else null
+
+    /// Is the mouse button currently down?
     let mDown (ev:Types.MouseEvent) = 
         ev.buttons <> 0.
     
+    /// Has the shift key been pressed?
     let mShift (ev:Types.MouseEvent) = 
         ev.shiftKey = true
 
@@ -180,9 +175,6 @@ let view (model:Model) (dispatch : Msg -> unit) =
     displaySvgWithZoom  model.Zoom combine dispatch
      
 
-    
-    
-    //createBox model.SelectionBox
 
 
 let getHit (click: XYPos) (model: Model) =
@@ -212,13 +204,6 @@ let getHit (click: XYPos) (model: Model) =
                     NoItem 
 
     
-let newSymbol (sym: CommonTypes.ComponentType) (model: Model) = 
-        model, 
-        (sym, "label", { X = 180. + 60. ; Y = 180. + 60.} )
-        |> Symbol.Msg.AddSymbol
-        |> BusWire.Msg.Symbol 
-        |> Wire |> Cmd.ofMsg
-
 
 let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     match msg with
@@ -244,24 +229,15 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                 |> BusWire.Msg.Symbol
                 |> Wire |> Cmd.ofMsg
 
-        | CtrlPlus ->
-            let z = model.Zoom + 0.1
-            printf "zoom is %f" z
-            {model with Zoom = z} , Cmd.none
-        | CtrlMinus -> 
-            let z = model.Zoom - 0.1
-            printf "zoom is %f" z
-            {model with Zoom = z} , Cmd.none
-
-        //A to H not used anymore //old drop down menu
-        | A -> newSymbol CommonTypes.Xnor model
-        | B -> newSymbol CommonTypes.And model
-        | C -> newSymbol CommonTypes.Not model
-        | D -> newSymbol CommonTypes.Or model
-        | E -> newSymbol CommonTypes.Xor model
-        | F -> newSymbol CommonTypes.Nand model
-        | G -> newSymbol CommonTypes.Nor model
-        | H -> newSymbol CommonTypes.Decode4 model
+        //attempted zoom Implementation. Doesn't fully work : Zooms but other features don't work. 
+        // | CtrlPlus ->
+        //     let z = model.Zoom + 0.1
+        //     printf "zoom is %f" z
+        //     {model with Zoom = z} , Cmd.none
+        // | CtrlMinus -> 
+        //     let z = model.Zoom - 0.1
+        //     printf "zoom is %f" z
+        //     {model with Zoom = z} , Cmd.none
 
         | W -> match model.SelectedItem with
                | BusWire (wId,_) ->

@@ -32,6 +32,7 @@ getPortsOfSelectedSymbolList (model : Model) : list<string>
 
 // Returns a map of all ports belonging to symbols that are selected, with the PortId used as the key
 getPortsMapOfSelectedSymbolList (model : Model) : Map<string,Port>
+
 ```
 
 # Sheet Interfaces 
