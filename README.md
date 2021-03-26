@@ -60,6 +60,7 @@ Mouse/Keyboard user actions | Corresponding effects in application
 ----------------------------|-------------------------------------
 LeftClick+Drag | Box creation for multiple item selection
 Shift(held)+LeftClick | Multiple item selection
+Shift(held)+LeftClick+Drag | Multiple item movement
 Ctrl+LeftClick | Split segment at current mouse position
 W | Autoroute single selected wire
 Ctrl+W | Autoroute all wires

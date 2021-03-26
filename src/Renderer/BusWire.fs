@@ -8,12 +8,10 @@ open Helpers
 
 
 //------------------------------------------------------------------------//
-//------------------------------BusWire Demo------------------------------//
+//------------------------------BusWire Implementation--------------------//
 //------------------------------------------------------------------------//
 
 // The Segment and Dir types are used extensively here, see Helpers module for details on these
-// The below code is flexible in that it only uses interfaces to access port and symbol info
-// The necessary interface functions are implemented in Symbol and CommonTypes modules
 
 // splits the stretched port extension of a segment into the excess part, a 0 length segment and the port extension
 // should only be used when the excess length is strictly greater than 0
@@ -33,6 +31,7 @@ let splitSegmentsAtEndSeg isStart (segments: Segment list)=
     if segmentIndex = 0 then [newPortSeg; segOf newPortSeg.End newPortSeg.End] @ modifiedSegments
     else modifiedSegments @ [segOf newPortSeg.Start newPortSeg.Start; newPortSeg]
 
+// function called on ctrl click on segment, generalised version of above (could be merged in to one function)
 let splitSegments (mousePos: XYPos) (segments: Segment list) (segmentIndex: int)=
     let segment = segments.[segmentIndex]
     if lenOfSeg segment <> 0. then
@@ -48,7 +47,7 @@ let splitSegments (mousePos: XYPos) (segments: Segment list) (segmentIndex: int)
         |> List.collect id
     else segments
 
-//unused, might be useful for implementing a better auto router later
+// unused, might be useful for implementing a better auto router later
 let segmentIntersectsWithSymbols segment symbolsMap =
     let symbolThatIntersectsWithSegment _symbolId symbol=
         let symbolBBox = Symbol.getSymbolBBox symbol
@@ -62,6 +61,9 @@ let segmentIntersectsWithSymbols segment symbolsMap =
 // Abstract Id
 type WireId = string
 
+// Props to be passed to the viwewing function for a single wire
+// Some of these are also used in the routing algorithms
+// Sgegments should probably be changed to an array for better performance
 type WireRenderProps = {
     Segments : Segment list // the shortest possible wire with the current implementation will have two segments
     Color : string
@@ -70,7 +72,8 @@ type WireRenderProps = {
     Label : string // for printing the width
     StartDir : Dir // for determining the position of the label
 }                  // start dir is both a render prop and an attribute used in routing algorithms
-                   
+
+// The wire type                   
 type Wire = {
     StartId: CommonTypes.PortId
     EndId: CommonTypes.PortId
@@ -81,7 +84,7 @@ type Wire = {
 
 // Some example functions for interfacing
 // These should be used instead of directly accessing records, that way if a record definition is changed only these functions need to change
-// Some of these have no / little use in the demo code but they should be useful later
+// Some of these have no / little use but they should be useful for someone who wants to write a bit of code without looking too much into how BusWire does things
 let generateWireId () = uuid()
 
 let getSegmentsFromWire (wire: Wire) = wire.WireRenderProps.Segments
@@ -110,6 +113,7 @@ let getEndIdFromWire wire = wire.EndId
 
 let getEndDirFromWire wire = wire.EndDir
 
+// Model definition, maps are used for wires but using a dictionary could maybe help performance a bit
 type Model = {
     SymbolModel : Symbol.Model
     Wires : Map<WireId,Wire>
@@ -138,6 +142,8 @@ let getPropsFromId model wireId =
     getWiresFromWireModel model
     |> Map.pick (fun wId w -> if wId <> wireId then None else Some (getWirePropsFromWire w))
 
+// The msg type
+// SelectEnclosed might be redudant here since symbol already a similar message
 type Msg =
     | Symbol of Symbol.Msg
     | ManualRouting of wireId : WireId * segmentIndex : int * mousePos : XYPos
@@ -152,7 +158,7 @@ type Msg =
     | DeleteSheetWire
     | SelectEnclosed of p1: XYPos * p2: XYPos
 
-
+// for the SelectEnclosed msg
 let isInSelectionBox box wire = 
     let wireBoxes wire =    
         let segments = getSegmentsFromWire wire 
@@ -161,6 +167,7 @@ let isInSelectionBox box wire =
     let isSelected = List.map (fun s -> bBoxesIntersect s box) selectedSegment
     if List.forall(fun x -> x = true) isSelected then true else false 
 
+// controls visible on selection vertices
 let addVerticesIfSelected props =
     if props.IsSelected then
         props.Segments
@@ -187,7 +194,7 @@ let addVerticesIfSelected props =
         []
 
 
-
+// the view function for a single wire
 let singleWireView =
     FunctionComponent.Of(
         fun (props: WireRenderProps) ->
@@ -222,7 +229,7 @@ let singleWireView =
 
                 ] @ addVerticesIfSelected props))
 
-
+// Wire view function
 let view (model:Model) (dispatch: Dispatch<Msg>)=
 
     let wireSVG = 
@@ -292,10 +299,9 @@ let rec manualRouteWire segmentIndex mousePos wires wireId snap (wireOption: Wir
     // handle exceptional cases where the user wishes to change the port extension segment
     // and the highly unlikely event that the user has selected a segment of 0 length in which case dirOfSeg fails
     // if the start extension is changed then sheet needs to adjust its next drag message to wireId,2
-    // this could be done internally in BusWire.fs by including a selectedItem state in the model but as a team we agreed that only sheet will have such information
 
         if lenOfSeg segmentOfInterest < portLength + 10. then wireOption // only split the connection if it is longer than the extension, this handles all 0 segments too!
-        else                                                // note that the new segment will have length equal to the difference of the current length and the port length so we allow some extra room (i.e. < 11. instead < 10. in this case)                                
+        else                                                // note that the new segment will have length equal to the difference of the current length and the port length so we allow some extra room                            
             let newSegments = splitSegmentsAtEndSeg (segmentIndex = 0) segments // split the wire further, if the user manages to drag perfectly in parallel to the segment this split will still happen
             manualRouteWire (if segmentIndex  = 0 then 2 else segmentIndex) mousePos wires wireId snap (Some (updateWireWithSegments wire newSegments))
     | false ->
@@ -312,9 +318,9 @@ let rec manualRouteWire segmentIndex mousePos wires wireId snap (wireOption: Wir
                                             | _ -> segment)
         Some ({updateWireWithSegments wire newSegments with HasBeenManualRouted = true} |> if snap then snapToWire else id)
 
-    // fromDir is where the source pt is headed
-    // Resulting wire will attack the input port from a direction perpendicular to toDir
-    // Note that the exact toDir does not matter, only whether it is perpendicular to fromDir does
+// fromDir is where the source pt is headed
+// Resulting wire will attack the input port from a direction perpendicular to toDir
+// Note that the exact fromDir, toDir does not matter, only whether they are horizontal or vertical directions
 let rec manhattanAutoRoute fromPt fromDir toPt toDir=
     if pointsAreClose fromPt toPt (10. ** (-9.)) && arePerependicularDirs fromDir toDir then [] // base case
     else
@@ -333,13 +339,15 @@ let routeFromStart startExtension endExtension fromDir toDir =
     startExtension :: manhattanAutoRoute startExtension.End fromDir endExtension.Start toDir @ [endExtension] 
 
 
+// condition to check if there is badness caused by symbols facing oppsite directions
 let pointsAreOnRightSide pt1 dir1 pt2 dir2 = // pt1 is output pt2 is input
     if areOppositeDirs dir1 dir2 |> not then false
     else
         match dir1 |> isHorizontalDir with
         | true -> (if dir1 = Right then pt1.X - pt2.X > -2. * portLength else pt2.X - pt1.X > -2. * portLength)
         | false -> (if dir1 = Dir.Down then pt1.Y - pt2.Y > -2. * portLength else pt2.Y - pt1.Y > -2. * portLength)
-
+// post processing of the wire to remove 0 length segments, could probably be merged with the other post processsing functions
+// or, better, could be done during wire generation but this probably won't be straight forawrd
 let remove0Segs wire =
     let segments = getSegmentsFromWire wire
     let tripletToBeEradicated = 
@@ -362,7 +370,8 @@ let remove0Segs wire =
         |> List.collect id
         |> updateWireWithSegments wire
     | None -> wire
-    
+
+// very similar to above, checks for other badness condition   
 let removeKinkySegs wire =
     let segments = getSegmentsFromWire wire
     let tripletToBeEradicated = 
@@ -388,6 +397,7 @@ let removeKinkySegs wire =
         |> updateWireWithSegments wire      
     | None -> wire
 
+// very similar to above, checks for other badness condition
 let mergeSegs wire =
     let segments = getSegmentsFromWire wire
     let tripletToBeEradicated = 
@@ -412,19 +422,15 @@ let mergeSegs wire =
         |> updateWireWithSegments wire      
     | None -> wire
 
-// expecting a portmap from symbol people with all the ports of the symbol that moved (so just an interface function to get the ports from a symbol)
-// the exact structure (list or map) does not matter as we can easily convert from one to the other
 // this function will get called whenever a change is made on ports that affects the wiring
-// currently the only anticipated change is ports moving (due to symbols moving)
-// adjusting to port dir change is similar and can be included here if symbol decides to allow this
-// other changes that could be easily implemented here are wire colour and width changes (if symbol allows width changes for example)
+// this includes moving symbols as well as rotating symbols
 // a seperate function might have to be written for processing width inference changes (updating labels)
-// as of the demo this is purely used for routing
 let autoRouteWires wires portsMap =
-        
+
+    // correct wire end points and directions according to the portsMap and route the wire
     let correctEndPtsAndAutoRoute (wire: Wire) ids =
-        // if ports can change positions a similar function to correctEndPt could be written, correndEndDir
-        // any additional changes could also be factored in here as they would only result in a change in the WireRenderProps of the affected wire
+
+        // find the correct end point
         let correctEndPt ids connectedPortId isOutput =
             match ids with
             | id, None -> // one end exists within the port map and the other doesn't
@@ -433,6 +439,8 @@ let autoRouteWires wires portsMap =
                     let segments = getSegmentsFromWire wire
                     if isOutput then segments.Head.Start else (List.rev segments).Head.End
             | _ -> Symbol.getPosFromPort (Map.find connectedPortId portsMap) // both ends exist within the port map (same symbol)
+
+        // find the correct direction
         let correctEndDir ids connectedPortId isOutput =
             match ids with
             | id, None -> // one end exists within the port map and the other doesn't
@@ -443,14 +451,18 @@ let autoRouteWires wires portsMap =
 
         let startId = getStartIdFromWire wire
         let endId = getEndIdFromWire wire
+       
         // get the new starting points of the wires
+        
         let routeStart = correctEndPt ids startId true
         let routeEnd = correctEndPt ids endId false
+        
         // setup for routing
-
         let oldFromDir, oldToDir = getStartDirFromWire wire, getEndDirFromWire wire
         let fromDir, toDir = correctEndDir ids startId true, correctEndDir ids endId false
         let wire = {wire with EndDir = toDir; WireRenderProps = {getWirePropsFromWire wire with StartDir = fromDir}}
+        
+        // originally extensions were just the first and last segments of the wire but this was changed to include the badness case of pointsAreOnRighSide
         let startExtension, endExtension, shouldChangeDirs =
             let portExtendAtOutput, portExtendAtInput = getPortExtension routeStart fromDir true, getPortExtension routeEnd toDir false
             if pointsAreOnRightSide routeStart fromDir routeEnd toDir
@@ -464,10 +476,14 @@ let autoRouteWires wires portsMap =
                 true
             else
                 [portExtendAtOutput],[portExtendAtInput],false
+        
+        // previous segments are used in the HasBeenManualRouted setting
         let prevSegments = getSegmentsFromWire wire
         let prevSegmentsLength = prevSegments.Length
-        printfn "SEG LENGTH %A" prevSegmentsLength
+
+        // proper port extensions
         let extensionOutput, extensionInput = startExtension.Head, (List.rev endExtension).Head
+
         // if the wire is long then wire memory is kept and we don't route from the beginning
         if prevSegmentsLength > 2 && snd ids = None && wire.HasBeenManualRouted && oldFromDir = fromDir && oldToDir = toDir then
             let portId = fst ids
@@ -475,7 +491,7 @@ let autoRouteWires wires portsMap =
                 let maybeStretchedPort = 
                     if portId = endId then (List.rev prevSegments).Head
                     else prevSegments.Head
-                if lenOfSeg maybeStretchedPort > portLength then                 // if the user has stretched the port we would like to preserve that part,
+                if lenOfSeg maybeStretchedPort > portLength then          // if the user has stretched the port we would like to preserve that part,
                     splitSegmentsAtEndSeg (portId = startId) prevSegments // in that case split the segment
                 else prevSegments
             let segmentsMaxIdx = segments.Length - 1
@@ -502,7 +518,7 @@ let autoRouteWires wires portsMap =
                 let maybeStretchedPort = 
                     if portId = endId then (List.rev prevSegments).Head
                     else prevSegments.Head
-                if lenOfSeg maybeStretchedPort > portLength then                 // if the user has stretched the port we would like to preserve that part,
+                if lenOfSeg maybeStretchedPort > portLength then          // if the user has stretched the port we would like to preserve that part,
                     splitSegmentsAtEndSeg (portId = startId) prevSegments // in that case split the segment
                 else prevSegments
             let segmentsMaxIdx = segments.Length - 1
@@ -527,7 +543,7 @@ let autoRouteWires wires portsMap =
         else if prevSegmentsLength > 2 && snd ids <> None && fromDir = oldFromDir && toDir = oldToDir then // when dealing with a loop, simple translation of the path is done
             let route = translateRoute routeStart prevSegments // note that prevSegmentsLength > 3 can be omitted here
             updateWireWithSegments wire route
-        else // route from the beginning if the wire is short
+        else // route from the beginning
             let route =
                 
                 if shouldChangeDirs then
@@ -542,21 +558,22 @@ let autoRouteWires wires portsMap =
         match Map.tryPick matchingStartOrEnd portsMap with
         | Some x ->
             (x,
-             portsMap // Handles the exceptional case of a wire being connected to only one symbol (feedback loop)
+             portsMap // Handles the exceptional case of a wire being connected to only one symbol (feedback loop) and more generally multiple symbol movement
              |> Map.filter (fun pId _p -> pId <> x)
              |> Map.tryPick matchingStartOrEnd)
              |> Some
         | _ -> None
     wires
-    |> Map.map (fun _wireId wire ->
-                match connectedToPorts wire with
-                | Some ids -> correctEndPtsAndAutoRoute wire ids
-                              |> remove0Segs
-                              |> removeKinkySegs
-                              |> mergeSegs
-                | None -> wire)
+    |> Map.map (fun _wireId wire -> // for every wire in the wire map...
+                match connectedToPorts wire with // check if it is connected to any of the ports in the port map
+                | Some ids -> correctEndPtsAndAutoRoute wire ids // if it is then adjust the route
+                              |> remove0Segs    // filter (there's probably a better way to do this)
+                              |> removeKinkySegs // filter (there's probably a better way to do this)
+                              |> mergeSegs  //filter (there's probably a better way to do this)
+                | None -> wire) // do nothing if the wire doesn't need to be routed
 
 // assumes wire has been initialised
+// could maybe be combined with other auto routing functions as code here is pretty repetitive
 let autoRouteWire _wireId wire =
     let prevSegments = getSegmentsFromWire wire
     let startPortPos, endPortPos = prevSegments.Head.Start, (List.rev prevSegments).Head.End
@@ -585,7 +602,9 @@ let autoRouteWire _wireId wire =
     |> mergeSegs
 
 // example function for wire creation from ports
-// for custom wires with props decided by the user use the updateWireWithProps function
+// ports can be given in any order (input/output, output/input)
+// fails if input/input or output/output is given (sheet currently prevents this)
+// some of the code here is repretitive and has to do with routing so could be written better
 let createWire startId startPort endId endPort =
     // setup for the router
     let startPort, startId, endPort, endId =
@@ -616,7 +635,7 @@ let createWire startId startPort endId endPort =
             extensionOutput :: routeFromStart (List.rev startExtension).Head endExtension.Head (somePerpendicularDir fromDir) (somePerpendicularDir toDir) @ [extensionInput]
         else routeFromStart extensionOutput extensionInput fromDir toDir
     let portWidth = // for determining wire width and color
-        if Symbol.getWidthFromPort startPort <> Symbol.getWidthFromPort endPort then -1
+        if Symbol.getWidthFromPort startPort <> Symbol.getWidthFromPort endPort then -1 // this would probably get replaced by a more sophisticated system for determining widths
         else Symbol.getWidthFromPort startPort
     {StartId = startId                                  
      EndId = endId
@@ -637,6 +656,8 @@ let createWire startId startPort endId endPort =
     |> removeKinkySegs
     |> mergeSegs
 
+// for the wire creation animation
+// don't really need a wire type for it as we only need two points to visualise this
 let sheetWire (startPort: CommonTypes.Port) (endPos: XYPos) = 
     {StartId = startPort.Id                                  
      EndId = null
@@ -650,9 +671,9 @@ let sheetWire (startPort: CommonTypes.Port) (endPos: XYPos) =
      EndDir = startPort.ConnectionDirection
     }
 
-// dummy init for demo
+// dummy init for demo, not very pretty
 let init () =
-    let initSymbolModel, symbolCmd = Symbol.init () // for the demo, direct access to symbol model is fine here
+    let initSymbolModel, symbolCmd = Symbol.init ()
     let initSymbols = initSymbolModel.SymModel
     
     let startPorts = initSymbols
@@ -662,18 +683,13 @@ let init () =
                     |> List.collect id
                     |> List.map (fun p -> (Symbol.getPortIdFromPort p, p)) 
                                         
-                    //|> Map.toList
-                    //|> List.map snd
-                    //|> List.collect Map.toList
     let endPorts = initSymbols
                     |> List.map (fun s -> 
                                         Symbol.getPortsFromSymbol s
                                         |> List.filter (fun p -> Symbol.getPortTypeFromPort p = CommonTypes.PortType.Input))
                     |> List.collect id
                     |> List.map (fun p -> (Symbol.getPortIdFromPort p, p))
-                    //|> Map.toList
-                    //|> List.map snd
-                    //|> List.collect Map.toList
+
     let rng = System.Random 0
 
     let wireMap = [(generateWireId(), createWire (fst startPorts.[3]) (snd startPorts.[3]) (fst endPorts.Head) (snd endPorts.Head))]
@@ -683,14 +699,14 @@ let init () =
 
 
 
-
+// update function for wire
 let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
     match msg with
 
     | Symbol sMsg -> 
         let sm,sCmd = Symbol.update sMsg model.SymbolModel
         match sMsg with
-        | Symbol.StartDragging (sId, pos) ->
+        | Symbol.StartDragging (sId, pos) -> // deselect wires on symbol drag
             let newWires = model
                            |> getWiresFromWireModel
                            |> Map.map (fun id w -> { w with WireRenderProps = {getWirePropsFromWire w with IsSelected = false} } )
@@ -698,27 +714,27 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
 
-        | Symbol.Dragging pos ->
+        | Symbol.Dragging pos -> // correct wiring on symbol move
             let movedPortsMap = Symbol.getPortsMapOfSelectedSymbolList sm 
             let newWires = autoRouteWires model.Wires movedPortsMap
             model
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
-        | Symbol.EndDragging -> 
+        | Symbol.EndDragging -> // final correction on end drag
             let movedPortsMap = Symbol.getPortsMapOfSelectedSymbolList sm 
             let newWires = autoRouteWires model.Wires movedPortsMap
             model
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
-        | Symbol.MouseMove (pos,None) -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd///// Shaheer /// for port bubbles
-        | Symbol.RotateSymbol sId ->
+        | Symbol.MouseMove (pos,None) -> {model with SymbolModel=sm}, Cmd.map Symbol sCmd // MouseMove is for port bubbles (see symbol module)
+        | Symbol.RotateSymbol sId -> // same as symbol move
             let movedPortsMap = Symbol.getPortsFromId sId sm
             let newWires = autoRouteWires model.Wires movedPortsMap
             model
             |> updateWireModelWithWires newWires
             |> updateWireModelWithSymbolModel sm, Cmd.map Symbol sCmd
 
-        | Symbol.DeleteSymbol ->
+        | Symbol.DeleteSymbol -> // delete symbol and wires that were attached to it
             let deletedPorts = model 
                                |> getSymbolModelFromWireModel
                                |> Symbol.getPortsOfSelectedSymbolList
@@ -738,21 +754,21 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
         | _ -> {model with SymbolModel=sm},Cmd.none
      
-    | ManualRouting (wireId,segmentIndex,mousePos) ->
+    | ManualRouting (wireId,segmentIndex,mousePos) -> // handle moving segments
         let newWires = getWiresFromWireModel model
                        |> Map.change wireId (manualRouteWire segmentIndex mousePos (getWiresFromWireModel model) wireId true)
         updateWireModelWithWires newWires model, Cmd.none
                                    
-    | DeleteWire wId -> 
+    | DeleteWire wId -> // delete specific wire
         {model with Wires = Map.filter (fun id w -> id <> wId) model.Wires } , Cmd.none
 
-    | AutoRouteAll ->
+    | AutoRouteAll -> // On Ctrl W
         let newWires = getWiresFromWireModel model
                        |> Map.map autoRouteWire
         model
         |> updateWireModelWithWires newWires, Cmd.none
 
-    | AutoRouteWire wId ->
+    | AutoRouteWire wId -> // On W on selected wire
         let newWires = getWiresFromWireModel model
                        |> Map.change wId (fun wireOpt ->
                                                 match wireOpt with
@@ -761,7 +777,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         model
         |> updateWireModelWithWires newWires, Cmd.none
 
-    | Select wId -> 
+    | Select wId -> // select a wire
         let sm,sCmd = Symbol.update Symbol.Deselect model.SymbolModel
         let newWires = model
                        |> getWiresFromWireModel
@@ -771,7 +787,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                                                     {w with WireRenderProps = {getWirePropsFromWire w with IsSelected = false}})
         updateWireModelWithWires newWires {model with SymbolModel = sm}, Cmd.none
 
-    | MultipleSelect wId -> 
+    | MultipleSelect wId -> // quite similar to above (maybe above is redundant)
         let newWires = model
                        |> getWiresFromWireModel
                        |> Map.map (fun id w -> if id = wId then
@@ -783,19 +799,19 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                                                     w)
         updateWireModelWithWires newWires model, Cmd.none
 
-    | CreateWire (port1,port2) ->
+    | CreateWire (port1,port2) -> // expects ports to be of opposite polarity
         let newModel = {model with SheetWire = None}
-        let inputPort, outputPort = if (Symbol.getPortTypeFromPort port1) = CommonTypes.PortType.Input then port1, port2 else port2, port1 // assume here they are of opposite polarity, sheet should also be checking this anyway
+        let inputPort, outputPort = if (Symbol.getPortTypeFromPort port1) = CommonTypes.PortType.Input then port1, port2 else port2, port1
         let oldWires = getWiresFromWireModel newModel
         let newWires = 
-                       match oldWires |> Map.exists (fun id w -> (w.StartId = outputPort.Id && w.EndId = inputPort.Id) || w.EndId = inputPort.Id) with
+                       match oldWires |> Map.exists (fun id w -> (w.StartId = outputPort.Id && w.EndId = inputPort.Id) || w.EndId = inputPort.Id) with // don't allow duplicates or same input wires
                        | true -> oldWires
                        | false ->
                            oldWires
                            |> Map.add (generateWireId()) (createWire port1.Id port1 port2.Id port2)
         updateWireModelWithWires newWires newModel, Cmd.none
 
-    | SplitSegment (wireId,segmentIndex,mousePos) -> 
+    | SplitSegment (wireId,segmentIndex,mousePos) -> // on Ctrl Click on selected wire segment
         let newWires =
             getWiresFromWireModel model
             |> Map.change wireId (fun wireOpt ->
@@ -808,11 +824,11 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                                     | None -> failwithf "Can't happen")
         updateWireModelWithWires newWires model, Cmd.none 
 
-    | CreateSheetWire (Some port, pos) -> 
+    | CreateSheetWire (Some port, pos) -> // for wire creation animation
         {model with SheetWire = Some (sheetWire port pos)}, (pos, Some port) |> Symbol.Msg.MouseMove |> Symbol |> Cmd.ofMsg
-    | DeleteSheetWire ->
+    | DeleteSheetWire -> // on wire creatuib animation end
         {model with SheetWire = None}, Cmd.none        
-    | SelectEnclosed (p1, p2) ->
+    | SelectEnclosed (p1, p2) -> // probably redundant
         let box = createSelectBox p1 p2 
         let newWires = model 
                        |> getWiresFromWireModel
@@ -843,7 +859,7 @@ let findWire mousePos wireModel =
 
 
 
-
+// currently unused
 let getSelectedWireList model =
     model
     |> getWiresFromWireModel
