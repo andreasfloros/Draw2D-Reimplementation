@@ -1415,56 +1415,43 @@ let getsymbolFromSymbolId (symbolId: SymbolId) (symModel: Model) : Symbol = // i
 
 //----------------------interface to BusWire----------------------------//
 
-// /// Outputs a map containing a symbol's ports, with their respective Ids as the keys
-// let getPortsFromSymbol (symbol: Symbol) : Map<string,Port> =
-//     symbol.Ports
-//     |> List.map (fun port -> (port.Id,port))
-//     |> Map.ofList 
+let getPortsFromSymbol (symbol: Symbol) : list<Port> = symbol.Ports 
 
-// let getPortFromPortId (portId: PortId) (SymModel: Model) : Port =
-//     List.find (fun (p:Port) -> p.Id = portlId) SymModel
+let getPosFromPort (port : Port) : XYPos = port.PortPos
 
+let getPortTypeFromPort (port : Port) : PortType = port.PortType 
 
-let getPortsFromSymbol (symbol: Symbol) : list<Port> = symbol.Ports // Wire
-
-
-let getPosFromPort (port : Port) : XYPos = port.PortPos //Wire
-
-let getPortTypeFromPort (port : Port) : PortType = port.PortType // Wire
-
-let getPortIdFromPort (port: Port) : string = port.Id //Wire
-
+let getPortIdFromPort (port: Port) : string = port.Id 
 
 /// Returns the side of the symbol that the port is on 
-let getDirFromPort (port : Port) : Dir = // Wire
+let getDirFromPort (port : Port) : Dir = 
     match port.ConnectionDirection with 
     | Left -> Right
     | Right -> Left
     | Up -> Down
     | Down -> Up
 
-
 /// Returns the BusWidth of a port
-let getWidthFromPort (port : Port) : int =  //Wire
+let getWidthFromPort (port : Port) : int =  
     match port.BusWidth with
     | Some x -> x
     | None -> failwithf "should not occur"
 
-
 /// Returns all the ports connected to the symbol with the specified Id
-let getPortsFromId (symbolId : SymbolId) (symModel : Model) : Map<string,Port> = // Wire
+let getPortsFromId (symbolId : SymbolId) (symModel : Model) : Map<string,Port> =
     let sym = List.find (fun (sym:Symbol) -> sym.Id = symbolId) symModel.SymModel
     sym.Ports
     |> List.map (fun port -> (port.Id,port))
     |> Map.ofList 
 
-
-let getSelectedSymbolList (model : Model) : list<SymbolId> = //Wire
+/// Returns a list of all symbols that are selected 
+let getSelectedSymbolList (model : Model) : list<SymbolId> =
     model.SymModel
     |> List.filter (fun s -> s.IsSelected)
     |> List.map (fun s -> s.Id)
 
-let getPortsOfSelectedSymbolList (model : Model) : list<string> = // Wire
+/// Returns a list of all ports belonging to symbols that are selected
+let getPortsOfSelectedSymbolList (model : Model) : list<string> = 
     model.SymModel
     |> List.filter (fun s -> if s.IsSelected then 
                                 true 
@@ -1472,7 +1459,8 @@ let getPortsOfSelectedSymbolList (model : Model) : list<string> = // Wire
     |> List.collect (fun s -> s.Ports)
     |> List.map (fun p -> p.Id)
 
-let getPortsMapOfSelectedSymbolList (model : Model) : Map<string,Port>  = // wire
+/// Returns a map of all ports belonging to symbols that are selected, with the PortId used as the key
+let getPortsMapOfSelectedSymbolList (model : Model) : Map<string,Port>  = 
     model.SymModel
     |> List.filter (fun s -> if s.IsSelected then 
                                 true 
