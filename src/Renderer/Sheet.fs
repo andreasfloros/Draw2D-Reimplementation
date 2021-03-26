@@ -255,15 +255,18 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         //     printf "zoom is %f" z
         //     {model with Zoom = z} , Cmd.none
 
+        //Performs auto routing of selected wire
         | W -> match model.SelectedItem with
                | BusWire (wId,_) ->
                    let wModel, wCmd = BusWire.update (BusWire.AutoRouteWire wId) model.Wire
                    {model with Wire = wModel ; BackupModel = Some model}, Cmd.none
                | _ -> model, Cmd.none
-
+        
+        //Performs auto routing of all wires 
         | CtrlW -> let wModel, wCmd = BusWire.update (BusWire.AutoRouteAll) model.Wire
                    {model with Wire = wModel ; BackupModel = Some model}, Cmd.none
-
+        
+        //Performs 90 Degrees roation of selected symbol
         | R -> let selected = model.SelectedItem
                match selected with 
                     | Symbol symbolID ->
@@ -277,7 +280,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                     | Port(portId, portType) -> model, Cmd.none
                     | _ -> failwithf "shouldn't be here!"
 
-
+        //Copies all selected symbol
         | X -> model,
                     Symbol.Msg.CopySymbol
                     |> BusWire.Msg.Symbol
@@ -291,7 +294,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
 
         | _ -> model, Cmd.none
 
-
+    //Allows extra segmets to be added to wire where the mouse is clicked
     | MouseMsg event when event.Op = MouseOp.Ctrl -> 
         let selected = getHit event.Pos model
         match selected with
@@ -303,7 +306,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                     |> Cmd.ofMsg
         | _ -> model, Cmd.none
 
-
+    //Allows user to perform multi select
     | MouseMsg event when event.Op = MouseOp.Shift ->
         let selected = getHit event.Pos model
         match selected with
@@ -324,7 +327,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
                       |> Wire |> Cmd.ofMsg       
         | _ -> model, Cmd.none
 
-
+    
+    //Allows single selection of wire or symbol. If port is selected then wire creation can be started.If none is selcted selection bounding box is ready to be dragged.
     | MouseMsg event when event.Op = MouseOp.Down -> 
         let selected = getHit event.Pos model 
         match selected with 
@@ -352,6 +356,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
 
+    //Unselects symbols and wires. Completes wire creation and collapses the bounding box
     | MouseMsg event when event.Op = MouseOp.Up -> 
        let isPortSelected = getHit event.Pos model
        match model.SelectedItem, isPortSelected with 
@@ -386,7 +391,8 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
         | _ -> failwithf "not yet done"
-
+    
+    //Performs highlighting of nearby ports
     | MouseMsg event when event.Op = MouseOp.Move ->   
         match model.SelectedItem with
         | Port (p, pType) -> {model with SelectedItem = NoItem}, 
@@ -399,6 +405,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             |> BusWire.Msg.Symbol
             |> Wire |> Cmd.ofMsg
 
+    //Allows dragging of symbols, wires, selection bounding box and symbol catalogue drag and drop
     | MouseMsg event when event.Op = Drag -> 
         match model.SelectedItem with 
         | Symbol symbolId -> 
