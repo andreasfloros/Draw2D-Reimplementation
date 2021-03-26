@@ -73,7 +73,9 @@ R | Rotation of selected symbol
 ### Half-implemented features
 - Zoom: Currently this has been commented out from the Sheet Messages (Ctrl+Minus/Ctrl+Plus) due to incomplete implementation. Ctrl+Minus and Ctrl+Plus do work by themselves with regards to zooming but when zoomed in or out other features (e.g. selection) don't work.
 - Menu/Catalogue: This requires extension for using the complete set of available symbol . This has not yet been done as it wasn't required for demoing functionality. Symbols for this can be added in the Symbol init function in the list SheetSymbol.
-- Small bug: Creating a wire and then undoing with Ctrl+Z leaves the wire-creating animation on canvas. Probably not hard to fix but figured out last moment.
+- Small bugs: 
+1. Creating a wire and then undoing with Ctrl+Z leaves the wire-creating animation on canvas. Can be worked around by either pressing redo to make the created wire reappear and delete that wire or by starting to create another wire by dragging on a port. Probably not hard to fix but figured out last moment.
+2. Scroll without moving the mouse at all does not update mouse coordinates. Example: Scroll without moving the mouse, immediately start dragging to create selectionBox, view the scroll offset between actual mouse position and displayed mouse position. (Delay of one view call). Probably hard to recreate in practice due to condition to not move the mouse at all, but even if done, goes away after any view call (any action)
 
 ## Interface Documentation
 General documentation for module interaction as well as module specific interface documentation can be found in the doc folder. There is a seperate .md file for each module besides a general_description.md file for more general/non-module-specific information.
