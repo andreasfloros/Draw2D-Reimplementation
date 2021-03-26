@@ -33,13 +33,13 @@ type Msg =
     | MouseMsg of MouseT
     
 
-let constantGridLines = gridLines 925 850
+let constantGridLines = gridLines 980 850
 
 let constantDemoMenu = 
     [                    // adds menu
         polygon 
                 [
-                SVGAttr.Points ("925,0 1444,0 1444,850 925,850")
+                SVGAttr.Points ("980,0 1444,0 1444,850 980,850")
                 SVGAttr.StrokeWidth "2px"
                 SVGAttr.Stroke "Black"
                 SVGAttr.FillOpacity 0.5
