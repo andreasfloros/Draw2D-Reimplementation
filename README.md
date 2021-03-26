@@ -17,9 +17,12 @@ This file contains general documentation for the project.
 
 ## Implemented Features
 ### Symbol-related features:
-- Symbol-related features MISSING HERE
-- Symbol snap
+- Symbol dragging
+- Symbol creation
 - Symbol deletion
+- Symbol copy
+- Symbol rotation
+- "Snap-to-symbol": Symbol alignment with other symbols
 - Visible ports on hover near a specific symbol
 - Comprehensive animation on which nearby symbol ports are compatible for connection during wire creation
 
