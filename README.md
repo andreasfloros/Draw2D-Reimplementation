@@ -35,6 +35,7 @@ This file contains general documentation for the project.
 - Multiple selection with click and drag selection box
 - Multiple item move with Shift pressed and moving one of the selected items
 - Multiple deletion with Del key
+- Multiple item copy and paste
 - Single undo (CtrlZ) and redo (CtrlY)
 - Zoom
 - Scroll
