@@ -932,7 +932,7 @@ let private circmaker (sym: Symbol) (i:int) =
         | _ -> {X = port.RelativePortPos.X  ; Y = port.RelativePortPos.Y  }
 
     g      []
-        [   if circleRadius = 8. && (calcPointsDist port.PortPos (fst sym.MouseNear) < 12.) then 
+        [   if circleRadius = 8. && (calcPointsDist port.PortPos (fst sym.MouseNear) < 10.) then 
                 circle
                     [ 
                     Cx circPos.X
@@ -1389,39 +1389,31 @@ let symbolPos (symModel: Model) (sId: CommonTypes.SymbolId) : XYPos =
 
 
 /// Update the symbol with matching componentId to comp, or add a new symbol based on comp.
-let updateSymModelWithComponent (symModel: Model) (comp:CommonTypes.Component) =
+let updateSymModelWithComponent (symModel: Model) (comp:CommonTypes.Component) : list<Component> =
     if List.tryFind (fun (sym:Symbol) -> sym.Id = comp.Id) symModel.SymModel = None
     then comp :: symModel.SymModel
     else symModel.SymModel
 
 
-/// Return the output Buswire width (in bits) if this can be calculated based on known
-/// input wire widths, for the symbol wId. The types used here are possibly wrong, since
-/// this calculation is based on ports, and the skeleton code does not implement ports or
-/// port ids. If This is done the inputs could be expressed in terms of port Ids.
-let calculateOutputWidth 
-        (wId: CommonTypes.ConnectionId) 
-        (outputPortNumber: int) 
-        (inputPortWidths: int option list) : int option =
-    failwithf "Not implemented"
-
 
 //----------------------interface to Issie-----------------------------//
 
-let extractComponent 
+let extractComponent //Issie
         (symModel: Model) 
         (sId:CommonTypes.ComponentId) : CommonTypes.Component = 
     List.find (fun (sym:Symbol) -> sym.Id = SymbolId(string(sId))) symModel.SymModel
 
 
-let extractComponents (symModel: Model) : CommonTypes.Component list = symModel.SymModel
+let extractComponents (symModel: Model) : CommonTypes.Component list = symModel.SymModel // issie
 
-//----------------------interface to BusWire----------------------------//
 
 /// Looks up a symbol using its Id
-let getsymbolFromSymbolId (symbolId: SymbolId) (symModel: Model) : Symbol =
+let getsymbolFromSymbolId (symbolId: SymbolId) (symModel: Model) : Symbol = // issie
     List.find (fun (sym:Symbol) -> sym.Id = symbolId) symModel.SymModel
 
+
+
+//----------------------interface to BusWire----------------------------//
 
 // /// Outputs a map containing a symbol's ports, with their respective Ids as the keys
 // let getPortsFromSymbol (symbol: Symbol) : Map<string,Port> =
@@ -1429,25 +1421,22 @@ let getsymbolFromSymbolId (symbolId: SymbolId) (symModel: Model) : Symbol =
 //     |> List.map (fun port -> (port.Id,port))
 //     |> Map.ofList 
 
-
-let getPortsFromSymbol (symbol: Symbol) = symbol.Ports
-
-
 // let getPortFromPortId (portId: PortId) (SymModel: Model) : Port =
 //     List.find (fun (p:Port) -> p.Id = portlId) SymModel
 
 
-/// Returns the coordinates of a port
-let getPosFromPort (port : Port) : XYPos = port.PortPos
+let getPortsFromSymbol (symbol: Symbol) : list<Port> = symbol.Ports // Wire
 
 
-let getPortTypeFromPort (port : Port) : PortType = port.PortType
+let getPosFromPort (port : Port) : XYPos = port.PortPos //Wire
 
-let getPortIdFromPort (port: Port) : string = port.Id
+let getPortTypeFromPort (port : Port) : PortType = port.PortType // Wire
+
+let getPortIdFromPort (port: Port) : string = port.Id //Wire
 
 
 /// Returns the side of the symbol that the port is on 
-let getDirFromPort (port : Port) : Dir =
+let getDirFromPort (port : Port) : Dir = // Wire
     match port.ConnectionDirection with 
     | Left -> Right
     | Right -> Left
@@ -1456,33 +1445,56 @@ let getDirFromPort (port : Port) : Dir =
 
 
 /// Returns the BusWidth of a port
-let getWidthFromPort (port : Port) : int =  
+let getWidthFromPort (port : Port) : int =  //Wire
     match port.BusWidth with
     | Some x -> x
     | None -> failwithf "should not occur"
 
 
 /// Returns all the ports connected to the symbol with the specified Id
-let getPortsFromId (symbolId : SymbolId) (symModel : Model) : Map<string,Port> =
+let getPortsFromId (symbolId : SymbolId) (symModel : Model) : Map<string,Port> = // Wire
     let sym = List.find (fun (sym:Symbol) -> sym.Id = symbolId) symModel.SymModel
     sym.Ports
     |> List.map (fun port -> (port.Id,port))
     |> Map.ofList 
 
 
-let getSymbolBBox symbol =
+let getSelectedSymbolList (model : Model) : list<SymbolId> = //Wire
+    model.SymModel
+    |> List.filter (fun s -> s.IsSelected)
+    |> List.map (fun s -> s.Id)
+
+let getPortsOfSelectedSymbolList (model : Model) : list<string> = // Wire
+    model.SymModel
+    |> List.filter (fun s -> if s.IsSelected then 
+                                true 
+                             else false)
+    |> List.collect (fun s -> s.Ports)
+    |> List.map (fun p -> p.Id)
+
+let getPortsMapOfSelectedSymbolList (model : Model) : Map<string,Port>  = // wire
+    model.SymModel
+    |> List.filter (fun s -> if s.IsSelected then 
+                                true 
+                             else false)
+    |> List.collect (fun s -> s.Ports)
+    |> List.map (fun p -> (p.Id,p))
+    |> Map.ofList
+
+    //----------------------interface to Sheet----------------------------//
+
+
+let getSymbolBBox (symbol: Symbol) : BB = // SHeet
     boxOf (posAdd symbol.Pos (posOf 20.0 20.0)) (posDiff symbol.Pos (posOf 20.0 20.0))
 
 
-//Anushka -- written for adding wires -- unused for now
-let createPortBB (port: Port) (x: float) = 
+let createPortBB (port: Port) (x: float) : BB = // sheet
     {
         TopLeft = {X = port.PortPos.X - x ; Y = port.PortPos.Y - x }
         BottomRight = {X = port.PortPos.X + x ; Y = port.PortPos.Y + x}
     }
 
-//Anushka -- written for adding wires -- unused for now
-let FindPort (mousePos: XYPos) (model: Model) = 
+let FindPort (mousePos: XYPos) (model: Model) : option<Port * PortType> =  // Sheet
     let s = model.SymModel |> List.map (fun sym -> 
                             match List.tryFind (fun p -> containsPoint (createPortBB p 10.) mousePos) sym.Ports with 
                             | Some p -> Some (p, p.PortType)
@@ -1492,24 +1504,3 @@ let FindPort (mousePos: XYPos) (model: Model) =
     | [] -> None 
     | s -> s.[0]
 
-let getSelectedSymbolList model =
-    model.SymModel
-    |> List.filter (fun s -> s.IsSelected)
-    |> List.map (fun s -> s.Id)
-
-let getPortsOfSelectedSymbolList model =
-    model.SymModel
-    |> List.filter (fun s -> if s.IsSelected then 
-                                true 
-                             else false)
-    |> List.collect (fun s -> s.Ports)
-    |> List.map (fun p -> p.Id)
-
-let getPortsMapOfSelectedSymbolList model =
-    model.SymModel
-    |> List.filter (fun s -> if s.IsSelected then 
-                                true 
-                             else false)
-    |> List.collect (fun s -> s.Ports)
-    |> List.map (fun p -> (p.Id,p))
-    |> Map.ofList
