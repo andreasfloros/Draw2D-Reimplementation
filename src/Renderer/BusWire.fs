@@ -151,10 +151,10 @@ let addVerticesIfSelected props =
         |> List.mapi (fun index segment -> if index <> props.Segments.Length-1 then
                                                 let middlePointX = segment.End.X
                                                 let middlePointY = segment.End.Y
-                                                let topLeft = string (middlePointX-6.) + "," + string (middlePointY-6.) + " "
-                                                let topRight = string (middlePointX+6.) + "," + string (middlePointY-6.) + " "
-                                                let bottomLeft = string (middlePointX-6.) + "," + string (middlePointY+6.) + " "
-                                                let bottomRight = string (middlePointX+6.) + "," + string (middlePointY+6.) + " "
+                                                let topLeft = string (middlePointX-5.5) + "," + string (middlePointY-5.5) + " "
+                                                let topRight = string (middlePointX+5.5) + "," + string (middlePointY-5.5) + " "
+                                                let bottomLeft = string (middlePointX-5.5) + "," + string (middlePointY+5.5) + " "
+                                                let bottomRight = string (middlePointX+5.5) + "," + string (middlePointY+5.5) + " "
                                                 let vertexCoordinates = topLeft + topRight + bottomRight + bottomLeft
 
                                                 [polygon
@@ -609,7 +609,9 @@ let createWire startId startPort endId endPort =
                         Color = if portWidth < 1 then "#ff0000"
                                 else if portWidth > 1 then "#9121b3"
                                 else "#000000"
-                        Width = if portWidth > 1 then 3.5 else 1.5
+                        Width = if portWidth > 1 then 4.
+                                else if portWidth < 1 then 3.
+                                else 1.5
                         Label = if portWidth < 1 then "" else sprintf "%d" portWidth
                         StartDir = fromDir
                         IsSelected = false}
@@ -778,7 +780,7 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
         updateWireModelWithWires newWires newModel, Cmd.none
 
     | SplitSegment (wireId,segmentIndex,mousePos) -> model, Cmd.none 
-        
+
     | CreateSheetWire (Some port, pos) -> 
         {model with SheetWire = Some (sheetWire port pos)}, (pos, Some port) |> Symbol.Msg.MouseMove |> Symbol |> Cmd.ofMsg
     | DeleteSheetWire ->
